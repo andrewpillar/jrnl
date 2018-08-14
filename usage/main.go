@@ -9,6 +9,7 @@ Usage:
 Commands:
 
   init     Initialise a new journal
+  title    Set the journal's title
   tmpl     Edit a template
   post     Create a post
   edit     Edit a post

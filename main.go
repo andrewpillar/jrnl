@@ -20,6 +20,7 @@ func main() {
 	})
 
 	c.Command("init", command.Initialize)
+	c.Command("title", command.Title)
 	c.Command("tmpl", command.Template)
 
 	postCmd := c.Command("post", command.Post)
