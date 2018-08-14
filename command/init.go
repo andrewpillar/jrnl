@@ -44,8 +44,12 @@ var (
 </html>`
 )
 
-func isInitialized() bool {
+func isInitialized(target string) bool {
 	for _, d := range Dirs {
+		if target != "" {
+			d = target + "/" + d
+		}
+
 		f, err := os.Stat(d)
 
 		if os.IsNotExist(err) {
@@ -80,12 +84,14 @@ func mustBeInitialized() {
 }
 
 func Initialize(c cli.Command) {
-	if c.Flags.IsSet("help") {
+	if c.Flags.IsSet("help") || len(c.Args) > 1 {
 		fmt.Println(usage.Init)
 		return
 	}
 
-	if isInitialized() {
+	target := c.Args.Get(0)
+
+	if isInitialized(target) {
 		fmt.Fprintf(os.Stderr, "jrnl already initialized\n")
 		os.Exit(1)
 	}
@@ -94,7 +100,11 @@ func Initialize(c cli.Command) {
 		f, err := os.Stat(d)
 
 		if os.IsNotExist(err) {
-			if err := os.Mkdir(d, os.ModePerm); err != nil {
+			if target != "" {
+				d = target + "/" + d
+			}
+
+			if err := os.MkdirAll(d, os.ModePerm); err != nil {
 				fmt.Fprintf(os.Stderr, "%s\n", err)
 				os.Exit(1)
 			}
@@ -113,6 +123,10 @@ func Initialize(c cli.Command) {
 
 	for k, v := range Templates {
 		path := TemplatesDir + "/" + k
+
+		if target != "" {
+			path = target + "/" + TemplatesDir + "/" + k
+		}
 
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0660)
 
