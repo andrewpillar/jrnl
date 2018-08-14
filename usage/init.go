@@ -4,7 +4,7 @@ var Init = `jrnl init - Initialise a new journal
 
 Usage:
 
-  jrnl init
+  jrnl init [directory]
 
 Options:
 
