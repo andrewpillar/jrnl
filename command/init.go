@@ -7,6 +7,8 @@ import (
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/usage"
+
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -145,5 +147,37 @@ func Initialize(c cli.Command) {
 		}
 	}
 
+	m := &meta{
+		Title: target,
+	}
+
+	fname := MetaFile
+
+	if target != "" {
+		fname = target + "/" + MetaFile
+	}
+
+	f, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR, 0660)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	defer f.Close()
+
+	enc := yaml.NewEncoder(f)
+
+	if err := enc.Encode(m); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	enc.Close()
+
 	fmt.Fprintf(os.Stdout, "jrnl initialized\n")
+
+	if m.Title == "" {
+		fmt.Fprintf(os.Stdout, "set your journal title with 'jrnl title'\n")
+	}
 }
