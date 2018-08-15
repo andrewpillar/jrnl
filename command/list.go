@@ -18,6 +18,8 @@ func List(c cli.Command) {
 		return
 	}
 
+	mustBeInitialized()
+
 	r := resolve.New(SiteDir, PostsDir)
 
 	posts := r.ResolvePostsToMap()
