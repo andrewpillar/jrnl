@@ -11,6 +11,39 @@ import (
 	"github.com/andrewpillar/jrnl/util"
 )
 
+func editPost(id string) {
+	p, err := post.NewFromSource(SiteDir, PostsDir + "/" + id + ".md")
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	util.OpenInEditor(p.SourcePath)
+}
+
+func rmPost(ids []string) {
+	code := 0
+
+	for _, id := range ids {
+		p, err := post.NewFromSource(SiteDir, PostsDir + "/" + id + ".md")
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+
+			code = 1
+		}
+
+		if err = p.Remove(); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+
+			code = 1
+		}
+	}
+
+	os.Exit(code)
+}
+
 func ChangePost(c cli.Command) {
 	if c.Flags.IsSet("help") || len(c.Args) == 0 {
 		switch c.Name {
@@ -25,22 +58,10 @@ func ChangePost(c cli.Command) {
 
 	mustBeInitialized()
 
-	src := PostsDir + "/" + c.Args.Get(0) + ".md"
-
-	p, err := post.NewFromSource(SiteDir, src)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
-	}
-
 	switch c.Name {
 		case "edit":
-			util.OpenInEditor(p.SourcePath)
+			editPost(c.Args.Get(0))
 		case "rm":
-			if err := p.Remove(); err != nil {
-				fmt.Fprintf(os.Stderr, "%s\n", err)
-				os.Exit(1)
-			}
+			rmPost(c.Args)
 	}
 }
