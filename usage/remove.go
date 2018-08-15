@@ -4,7 +4,7 @@ var Rm = `jrnl rm - Remove a post
 
 Usage:
 
-  jrnl rm [post]
+  jrnl rm [posts...]
 
 Options:
 
