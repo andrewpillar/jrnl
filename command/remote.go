@@ -40,7 +40,7 @@ func RemoteSet(c cli.Command) {
 
 	defer f.Close()
 
-	f.Write([]byte())
+//	f.Write([]byte())
 }
 
 func RemoteRemove(c cli.Command) {
