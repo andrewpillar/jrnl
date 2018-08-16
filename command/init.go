@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -12,7 +13,20 @@ import (
 )
 
 var (
-	PostTemplate = `<!DOCTYPE HTML>
+	postTmpl = `<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="main.css"/>
+	</head>
+	<body>
+		<h1>{{.Title}}</h1>
+		<div>{{.Body}}</div>
+	</body>
+</html>`
+
+	 indexTmpl = `<!DOCTYPE HTML>
 <html>
 	<head>
 		<meta charset="utf-8"/>
@@ -23,18 +37,7 @@ var (
 	</body>
 </html>`
 
-	IndexTemplate = `<!DOCTYPE HTML>
-<html>
-	<head>
-		<meta charset="utf-8"/>
-		<title></title>
-		<link rel="stylesheet" type="text/css" href="main.css"/>
-	</head>
-	<body>
-	</body>
-</html>`
-
-	CategoryTemplate = `<!DOCTYPE HTML>
+	categoryTmpl = `<!DOCTYPE HTML>
 <html>
 	<head>
 		<meta charset="utf-8"/>
@@ -85,19 +88,7 @@ func mustBeInitialized() {
 	}
 }
 
-func Initialize(c cli.Command) {
-	if c.Flags.IsSet("help") || len(c.Args) > 1 {
-		fmt.Println(usage.Init)
-		return
-	}
-
-	target := c.Args.Get(0)
-
-	if isInitialized(target) {
-		fmt.Fprintf(os.Stderr, "jrnl already initialized\n")
-		os.Exit(1)
-	}
-
+func initDirs(target string) error {
 	for _, d := range Dirs {
 		f, err := os.Stat(d)
 
@@ -107,22 +98,21 @@ func Initialize(c cli.Command) {
 			}
 
 			if err := os.MkdirAll(d, os.ModePerm); err != nil {
-				fmt.Fprintf(os.Stderr, "%s\n", err)
-				os.Exit(1)
+				return err
 			}
 
 			continue
 		}
 
 		if !f.IsDir() {
-			fmt.Fprintf(
-				os.Stderr,
-				"jrnl already partially, or fully initialized\n",
-			)
-			os.Exit(1)
+			return errors.New("journal already partially, or fully initialized")
 		}
 	}
 
+	return nil
+}
+
+func initTemplates(target string) error {
 	for k, v := range Templates {
 		path := TemplatesDir + "/" + k
 
@@ -133,8 +123,7 @@ func Initialize(c cli.Command) {
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0660)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(1)
+			return err
 		}
 
 		defer f.Close()
@@ -142,14 +131,37 @@ func Initialize(c cli.Command) {
 		_, err = f.Write([]byte(v))
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(1)
+			return err
 		}
 	}
 
-	m := &meta{
-		Title: target,
+	return nil
+}
+
+func Initialize(c cli.Command) {
+	if c.Flags.IsSet("help") || len(c.Args) > 1 {
+		fmt.Println(usage.Init)
+		return
 	}
+
+	target := c.Args.Get(0)
+
+	if isInitialized(target) {
+		fmt.Fprintf(os.Stderr, "journal already initialized\n")
+		os.Exit(1)
+	}
+
+	if err := initDirs(target); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	if err := initTemplates(target); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	m := &meta{Title: target}
 
 	fname := MetaFile
 
@@ -175,7 +187,7 @@ func Initialize(c cli.Command) {
 
 	enc.Close()
 
-	fmt.Fprintf(os.Stdout, "jrnl initialized\n")
+	fmt.Fprintf(os.Stdout, "journal initialized\n")
 
 	if m.Title == "" {
 		fmt.Fprintf(os.Stdout, "set your journal title with 'jrnl title'\n")
