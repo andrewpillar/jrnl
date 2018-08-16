@@ -26,10 +26,16 @@ var (
 	Remotes = "_remotes"
 
 	Templates = map[string]string{
-		"post":     PostTemplate,
-		"index":    IndexTemplate,
-		"category": CategoryTemplate,
+		"post":     postTmpl,
+		"index":    indexTmpl,
+		"category": categoryTmpl,
 	}
+
+	CategoryTemplate = TemplatesDir + "/category"
+
+	IndexTemplate = TemplatesDir + "/index"
+
+	PostTemplate = TemplatesDir + "/post"
 )
 
 type meta struct {
