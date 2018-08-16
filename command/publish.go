@@ -6,31 +6,22 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"text/template"
 
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/resolve"
 	"github.com/andrewpillar/jrnl/usage"
-
-	"gopkg.in/russross/blackfriday.v2"
 )
 
-func publishPost(p *post.Post, draft bool, wg *sync.WaitGroup, errs chan error) {
-	src, err := os.Open(p.SourcePath)
-
-	if err != nil {
-		errs <- err
-		wg.Done()
-
-		return
-	}
-
-	defer src.Close()
-
-	b, err := ioutil.ReadAll(src)
-
-	if err != nil {
+func publishPost(
+	p *post.Post,
+	draft bool,
+	wg *sync.WaitGroup,
+	errs chan error,
+) {
+	if err := p.Load(); err != nil {
 		errs <- err
 		wg.Done()
 
@@ -46,11 +37,27 @@ func publishPost(p *post.Post, draft bool, wg *sync.WaitGroup, errs chan error) 
 		return
 	}
 
-	md := blackfriday.Run(b)
+	f, err := os.Open(PostTemplate)
+
+	if err != nil {
+		errs <- err
+		wg.Done()
+
+		return
+	}
+
+	defer f.Close()
+
+	tmpl, err := ioutil.ReadAll(f)
+
+	if err != nil {
+		errs <- err
+		wg.Done()
+
+		return
+	}
 
 	dst, err := os.OpenFile(p.SitePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0660)
-
-	dst.Write(md)
 
 	if err != nil {
 		errs <- err
@@ -60,6 +67,24 @@ func publishPost(p *post.Post, draft bool, wg *sync.WaitGroup, errs chan error) 
 	}
 
 	defer dst.Close()
+
+	t, err := template.New("post").Parse(string(tmpl))
+
+	if err != nil {
+		errs <- err
+		wg.Done()
+
+		return
+	}
+
+	p.Convert()
+
+	if err = t.Execute(dst, p); err != nil {
+		errs <- err
+		wg.Done()
+
+		return
+	}
 
 	wg.Done()
 }
