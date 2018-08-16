@@ -49,8 +49,6 @@ func Post(c cli.Command) {
 
 	defer f.Close()
 
-	f.Write([]byte("# " + title + "\n\n\n"))
-
 	util.OpenInEditor(p.SourcePath)
 
 	fmt.Fprintf(os.Stdout, "new post added: %s\n", p.ID)
