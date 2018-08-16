@@ -2,6 +2,7 @@ package post
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,8 @@ import (
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/mozillazg/go-slugify"
+
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 var (
@@ -32,7 +35,7 @@ type Post struct {
 
 	Title string
 
-	Preview string
+	Body string
 
 	SourcePath string
 
@@ -111,6 +114,30 @@ func NewFromSource(siteDir, srcPath string) (*Post, error) {
 	p.setSrcPath(categorySlug, titleSlug)
 
 	return p, nil
+}
+
+func (p *Post) Convert() {
+	md := blackfriday.Run([]byte(p.Body))
+
+	p.Body = string(md)
+}
+
+func (p *Post) Load() error {
+	f, err := os.Open(p.SourcePath)
+
+	if err != nil {
+		return err
+	}
+
+	b, err := ioutil.ReadAll(f)
+
+	if err != nil {
+		return err
+	}
+
+	p.Body = string(b)
+
+	return nil
 }
 
 func (p *Post) Remove() error {
