@@ -21,8 +21,6 @@ var (
 		TemplatesDir,
 	}
 
-	Remotes = "_remotes"
-
 	Templates = map[string]string{
 		"post":     postTmpl,
 		"index":    indexTmpl,
