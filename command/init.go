@@ -7,9 +7,8 @@ import (
 
 	"github.com/andrewpillar/cli"
 
+	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/usage"
-
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -161,15 +160,20 @@ func Initialize(c cli.Command) {
 		os.Exit(1)
 	}
 
-	m := &meta{Title: target}
+	m, err := meta.Init(target)
 
-	fname := MetaFile
-
-	if target != "" {
-		fname = target + "/" + MetaFile
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 
-	f, err := os.OpenFile(fname, os.O_CREATE|os.O_RDWR, 0660)
+	fname := meta.File
+
+	if target != "" {
+		fname = target + "/" + meta.File
+	}
+
+	f, err := os.OpenFile(fname, os.O_RDWR, 0660)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -178,18 +182,10 @@ func Initialize(c cli.Command) {
 
 	defer f.Close()
 
-	enc := yaml.NewEncoder(f)
-
-	if err := enc.Encode(m); err != nil {
+	if err := m.Encode(f); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 
-	enc.Close()
-
-	fmt.Fprintf(os.Stdout, "journal initialized\n")
-
-	if m.Title == "" {
-		fmt.Fprintf(os.Stdout, "set your journal title with 'jrnl title'\n")
-	}
+	fmt.Printf("journal initialized, set the title with 'jrnl title'\n")
 }

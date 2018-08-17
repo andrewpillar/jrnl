@@ -6,9 +6,8 @@ import (
 
 	"github.com/andrewpillar/cli"
 
+	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/usage"
-
-	"gopkg.in/yaml.v2"
 )
 
 func Title(c cli.Command) {
@@ -17,7 +16,7 @@ func Title(c cli.Command) {
 		os.Exit(1)
 	}
 
-	f, err := os.OpenFile(MetaFile, os.O_RDWR, 0660)
+	f, err := os.OpenFile(meta.File, os.O_RDWR, 0660)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -26,16 +25,15 @@ func Title(c cli.Command) {
 
 	defer f.Close()
 
-	dec := yaml.NewDecoder(f)
-	m := &meta{}
+	m, err := meta.Decode(f)
 
-	if err := dec.Decode(m); err != nil {
-		fmt.Fprintf(os.Stderr, "dec: %s\n", err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 
 	if err := f.Truncate(0); err != nil {
-		fmt.Fprintf(os.Stderr, "trunc: %s\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 
@@ -48,12 +46,8 @@ func Title(c cli.Command) {
 
 	m.Title = c.Args.Get(0)
 
-	enc := yaml.NewEncoder(f)
-
-	if err := enc.Encode(m); err != nil {
-		fmt.Fprintf(os.Stderr, "enc: %s\n", err)
+	if err = m.Encode(f); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
-
-	enc.Close()
 }

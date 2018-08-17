@@ -15,8 +15,6 @@ var (
 
 	TemplatesDir = "_templates"
 
-	MetaFile = "_meta.yml"
-
 	Dirs = []string{
 		PostsDir,
 		SiteDir,
@@ -37,18 +35,6 @@ var (
 
 	PostTemplate = TemplatesDir + "/post"
 )
-
-type meta struct {
-	Title string `yaml:",omitempty"`
-
-	Remotes []remote `yaml:",omitempty"`
-}
-
-type remote struct {
-	Alias string
-
-	Target string
-}
 
 func Main(c cli.Command) {
 	fmt.Println(usage.Main)
