@@ -66,6 +66,14 @@ func main() {
 		Default:  22,
 	})
 
+	remoteSetCmd.AddFlag(&cli.Flag{
+		Name:     "identity",
+		Short:    "-i",
+		Long:     "--identity",
+		Argument: true,
+		Default:  "",
+	})
+
 	remoteCmd.Command("rm", command.RemoteRemove)
 
 	publishCmd := c.Command("publish", command.Publish)
