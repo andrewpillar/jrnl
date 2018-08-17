@@ -19,6 +19,26 @@ func RemoteList(c cli.Command) {
 		fmt.Println(usage.RemoteLs)
 		return
 	}
+
+	f, err := os.Open(meta.File)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	defer f.Close()
+
+	m, err := meta.Decode(f)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	for k, v := range m.Remotes {
+		fmt.Printf("%s - %s\n", k, v.Target)
+	}
 }
 
 func RemoteSet(c cli.Command) {
