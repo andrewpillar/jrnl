@@ -14,12 +14,10 @@ type Meta struct {
 
 	Default string `yaml:",omitempty"`
 
-	Remotes []Remote `yaml:",omitempty"`
+	Remotes map[string]Remote `yaml:,omitempty"`
 }
 
 type Remote struct {
-	Alias string `yaml:",omitempty"`
-
 	Target string `yaml:",omitempty"`
 
 	Identity string `yaml:",omitempty"`
