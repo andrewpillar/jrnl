@@ -6,6 +6,7 @@ import (
 
 	"github.com/andrewpillar/cli"
 
+	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/usage"
 )
 
@@ -26,12 +27,15 @@ func RemoteSet(c cli.Command) {
 		return
 	}
 
-	if c.Args.Get(1) == "" {
+	alias := c.Args.Get(0)
+	target := c.Args.Get(1)
+
+	if target == "" {
 		fmt.Fprintf(os.Stderr, "missing remote target\n")
 		os.Exit(1)
 	}
 
-	f, err := os.OpenFile(Remotes, os.O_CREATE|os.O_RDWR, 0660)
+	f, err := os.OpenFile(meta.File, os.O_RDWR, 0660)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -40,7 +44,41 @@ func RemoteSet(c cli.Command) {
 
 	defer f.Close()
 
-//	f.Write([]byte())
+	m, err := meta.Decode(f)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	if err := f.Truncate(0); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	_, err = f.Seek(0, 0)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	r := meta.Remote{Target: target}
+
+	if c.Flags.GetString("identity") != "" {
+		r.Identity = c.Flags.GetString("identity")
+	}
+
+	m.Remotes[alias] = r
+
+	if c.Flags.IsSet("default") {
+		m.Default = alias
+	}
+
+	if err := m.Encode(f); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 }
 
 func RemoteRemove(c cli.Command) {
