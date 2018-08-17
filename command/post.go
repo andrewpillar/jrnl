@@ -51,5 +51,5 @@ func Post(c cli.Command) {
 
 	util.OpenInEditor(p.SourcePath)
 
-	fmt.Fprintf(os.Stdout, "new post added: %s\n", p.ID)
+	fmt.Printf("new post added: %s\n", p.ID)
 }

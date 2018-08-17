@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -42,12 +41,12 @@ func List(c cli.Command) {
 		p := posts[id]
 
 		if category == "" {
-			fmt.Fprintf(os.Stdout, "%s\n", p.ID)
+			fmt.Printf("%s\n", p.ID)
 			continue
 		}
 
 		if strings.ToLower(p.Category) == category {
-			fmt.Fprintf(os.Stdout, "%s\n", p.ID)
+			fmt.Printf("%s\n", p.ID)
 		}
 	}
 }
