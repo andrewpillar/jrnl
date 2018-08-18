@@ -111,13 +111,21 @@ func DirEmpty(dir string) bool {
 	return false
 }
 
-func OpenInEditor(fname string) {
+func OpenInEditor(fname string) error {
+	_, err := os.Stat(fname)
+
+	if err != nil {
+		return err
+	}
+
 	cmd := exec.Command(os.Getenv("EDITOR"), fname)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	cmd.Run()
+
+	return nil
 }
 
 // Remove all empty directories within the given path, excluding the root
