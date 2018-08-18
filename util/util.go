@@ -115,7 +115,9 @@ func OpenInEditor(fname string) error {
 	_, err := os.Stat(fname)
 
 	if err != nil {
-		return err
+		if !os.IsNotExist(err) {
+			return err
+		}
 	}
 
 	cmd := exec.Command(os.Getenv("EDITOR"), fname)
