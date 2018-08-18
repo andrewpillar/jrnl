@@ -3,6 +3,8 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/andrewpillar/cli"
 
@@ -14,11 +16,25 @@ func Asset(c cli.Command) {
 	fmt.Println(usage.Asset)
 }
 
+func assetWalk(path string, info os.FileInfo, err error) error {
+	if info.IsDir() {
+		return nil
+	}
+
+	parts := strings.Split(path, "/")
+
+	fmt.Println(strings.Join(parts[2:], "/"))
+
+	return nil
+}
+
 func AssetLs(c cli.Command) {
 	if c.Flags.IsSet("help") {
 		fmt.Println(usage.AssetLs)
 		return
 	}
+
+	filepath.Walk(AssetsDir, assetWalk)
 }
 
 func AssetAdd(c cli.Command) {
@@ -43,7 +59,10 @@ func AssetAdd(c cli.Command) {
 			os.Exit(1)
 		}
 
-		util.OpenInEditor(target + "/" + asset)
+		if err := util.OpenInEditor(target + "/" + asset); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			os.Exit(1)
+		}
 
 		return
 	}
