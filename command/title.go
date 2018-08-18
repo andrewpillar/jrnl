@@ -11,7 +11,7 @@ import (
 )
 
 func Title(c cli.Command) {
-	if c.Flags.IsSet("help") || len(c.Args) < 1 {
+	if c.Flags.IsSet("help") {
 		fmt.Println(usage.Title)
 		os.Exit(1)
 	}
@@ -30,6 +30,16 @@ func Title(c cli.Command) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
+	}
+
+	if len(c.Args) == 0 {
+		if m.Title == "" {
+			fmt.Printf("no journal title set, run `jrnl title` to set one\n")
+			return
+		}
+
+		fmt.Println(m.Title)
+		return
 	}
 
 	if err := f.Truncate(0); err != nil {
