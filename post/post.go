@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/mozillazg/go-slugify"
@@ -21,7 +22,7 @@ var (
 
 	// Date format for the site directory where the final published post will
 	// reside.
-	dateDirFmt = "2006/01/02/"
+	dateDirFmt = "2006/01/02"
 )
 
 type Post struct {
@@ -30,6 +31,8 @@ type Post struct {
 	siteDir string
 
 	ID string
+
+	JournalTitle string
 
 	Category string
 
@@ -41,7 +44,7 @@ type Post struct {
 
 	SitePath string
 
-	Date *time.Time
+	Date time.Time
 }
 
 func New(siteDir, srcDir, category, title string) *Post {
@@ -63,13 +66,45 @@ func New(siteDir, srcDir, category, title string) *Post {
 		ID:       id,
 		Category: category,
 		Title:    title,
-		Date:     &date,
+		Date:     date,
 	}
 
 	p.setSitePath(categorySlug, titleSlug)
 	p.setSrcPath(categorySlug, titleSlug)
 
 	return p
+}
+
+func resolveId(parts []string) string {
+	r := []rune(strings.Join(parts, "/"))
+
+	return string(r[:len(r) - 3])
+}
+
+func resolveCategory(parts []string) (string, string) {
+	if len(parts) >= 3 {
+		slug := parts[len(parts) - 2]
+
+		return util.Deslug(slug), slug
+	}
+
+	return "", ""
+}
+
+func resolveTitle(parts []string) (string, string) {
+	fname := parts[len(parts) - 1]
+	r := []rune(fname)
+
+	slug := string(r[17:len(r) - 3])
+
+	return util.Deslug(slug), slug
+}
+
+func resolveDate(parts []string) (time.Time, error) {
+	fname := parts[len(parts) - 1]
+	r := []rune(fname)
+
+	return time.Parse(dateFmt, string(r[:16]))
 }
 
 func NewFromSource(siteDir, srcPath string) (*Post, error) {
@@ -79,35 +114,40 @@ func NewFromSource(siteDir, srcPath string) (*Post, error) {
 		return nil, err
 	}
 
-	parts := strings.Split(srcPath, "/")
+	f, err := os.Open(meta.File)
 
-	rid := []rune(strings.Join(parts[1:], "/"))
-	id := string(rid[:len(rid) - 3])
-
-	fname := []rune(parts[len(parts) - 1])
-
-	categorySlug := ""
-
-	if len(parts) >= 3 {
-		categorySlug = parts[len(parts) - 2]
+	if err != nil {
+		return nil, err
 	}
 
-	titleSlug := string(fname[17:len(fname) - 3])
-	dateSlug := string(fname[:16])
+	defer f.Close()
 
-	date, err := time.Parse(dateFmt, dateSlug)
+	m, err := meta.Decode(f)
+
+	if err != nil {
+		return nil, err
+	}
+
+	parts := strings.Split(srcPath, "/")
+
+	id := resolveId(parts[1:])
+	category, categorySlug := resolveCategory(parts)
+	title, titleSlug := resolveTitle(parts)
+
+	date, err := resolveDate(parts)
 
 	if err != nil {
 		return nil, err
 	}
 
 	p := &Post{
-		srcDir:   parts[0],
-		siteDir:  siteDir,
-		ID:       id,
-		Category: util.Deslug(categorySlug),
-		Title:    util.Deslug(titleSlug),
-		Date:     &date,
+		srcDir:       parts[0],
+		siteDir:      siteDir,
+		ID:           id,
+		JournalTitle: m.Title,
+		Category:     category,
+		Title:        title,
+		Date:         date,
 	}
 
 	p.setSitePath(categorySlug, titleSlug)
