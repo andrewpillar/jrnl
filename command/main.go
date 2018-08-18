@@ -15,10 +15,13 @@ var (
 
 	TemplatesDir = "_templates"
 
+	AssetsDir = SiteDir + "/assets"
+
 	Dirs = []string{
 		PostsDir,
 		SiteDir,
 		TemplatesDir,
+		AssetsDir,
 	}
 
 	Templates = map[string]string{
