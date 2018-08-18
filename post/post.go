@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/andrewpillar/jrnl/meta"
@@ -75,38 +76,6 @@ func New(siteDir, srcDir, category, title string) *Post {
 	return p
 }
 
-func resolveId(parts []string) string {
-	r := []rune(strings.Join(parts, "/"))
-
-	return string(r[:len(r) - 3])
-}
-
-func resolveCategory(parts []string) (string, string) {
-	if len(parts) >= 3 {
-		slug := parts[len(parts) - 2]
-
-		return util.Deslug(slug), slug
-	}
-
-	return "", ""
-}
-
-func resolveTitle(parts []string) (string, string) {
-	fname := parts[len(parts) - 1]
-	r := []rune(fname)
-
-	slug := string(r[17:len(r) - 3])
-
-	return util.Deslug(slug), slug
-}
-
-func resolveDate(parts []string) (time.Time, error) {
-	fname := parts[len(parts) - 1]
-	r := []rune(fname)
-
-	return time.Parse(dateFmt, string(r[:16]))
-}
-
 func NewFromSource(siteDir, srcPath string) (*Post, error) {
 	_, err := os.Stat(srcPath)
 
@@ -156,6 +125,38 @@ func NewFromSource(siteDir, srcPath string) (*Post, error) {
 	return p, nil
 }
 
+func resolveCategory(parts []string) (string, string) {
+	if len(parts) >= 3 {
+		slug := parts[len(parts) - 2]
+
+		return util.Deslug(slug), slug
+	}
+
+	return "", ""
+}
+
+func resolveDate(parts []string) (time.Time, error) {
+	fname := parts[len(parts) - 1]
+	r := []rune(fname)
+
+	return time.Parse(dateFmt, string(r[:16]))
+}
+
+func resolveId(parts []string) string {
+	r := []rune(strings.Join(parts, "/"))
+
+	return string(r[:len(r) - 3])
+}
+
+func resolveTitle(parts []string) (string, string) {
+	fname := parts[len(parts) - 1]
+	r := []rune(fname)
+
+	slug := string(r[17:len(r) - 3])
+
+	return util.Deslug(slug), slug
+}
+
 func (p *Post) Convert() {
 	md := blackfriday.Run([]byte(p.Body))
 
@@ -178,6 +179,30 @@ func (p *Post) Load() error {
 	p.Body = string(b)
 
 	return nil
+}
+
+func (p *Post) Publish(tmpl string) error {
+	dir := filepath.Dir(p.SitePath)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
+
+	dst, err := os.OpenFile(p.SitePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0660)
+
+	if err != nil {
+		return err
+	}
+
+	defer dst.Close()
+
+	t, err := template.New("post").Parse(tmpl)
+
+	if err != nil {
+		return err
+	}
+
+	return t.Execute(dst, p)
 }
 
 func (p *Post) Remove() error {
@@ -215,7 +240,7 @@ func (p *Post) setSitePath(categorySlug, titleSlug string) {
 		path.WriteString(categorySlug + "/")
 	}
 
-	path.WriteString(p.Date.Format(dateDirFmt))
+	path.WriteString(p.Date.Format(dateDirFmt) + "/")
 	path.WriteString(titleSlug + "/index.html")
 
 	p.SitePath = path.String()

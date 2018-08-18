@@ -1,36 +1,52 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
-	"text/template"
 
 	"github.com/andrewpillar/cli"
 
+	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/resolve"
 	"github.com/andrewpillar/jrnl/usage"
+	"github.com/andrewpillar/jrnl/util"
 )
 
-func publishPost(
-	p *post.Post,
-	draft bool,
-	wg *sync.WaitGroup,
-	errs chan error,
-) {
-	if err := p.Load(); err != nil {
-		errs <- err
-		wg.Done()
+func copyToRemote() error {
+	f, err := os.Open(meta.File)
 
-		return
+	if err != nil {
+		return err
 	}
 
-	dir := filepath.Dir(p.SitePath)
+	defer f.Close()
 
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+	m, err := meta.Decode(f)
+
+	if err != nil {
+		return err
+	}
+
+	r, ok := m.Remotes[m.Default]
+
+	if !ok {
+		return errors.New("no default remote has been set")
+	}
+
+	if filepath.IsAbs(r.Target) {
+		return util.Copy(SiteDir, r.Target + "/" + SiteDir)
+	}
+
+	return nil
+}
+
+func publishPost(p *post.Post, wg *sync.WaitGroup, errs chan error) {
+	if err := p.Load(); err != nil {
 		errs <- err
 		wg.Done()
 
@@ -57,29 +73,9 @@ func publishPost(
 		return
 	}
 
-	dst, err := os.OpenFile(p.SitePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, 0660)
-
-	if err != nil {
-		errs <- err
-		wg.Done()
-
-		return
-	}
-
-	defer dst.Close()
-
-	t, err := template.New("post").Parse(string(tmpl))
-
-	if err != nil {
-		errs <- err
-		wg.Done()
-
-		return
-	}
-
 	p.Convert()
 
-	if err = t.Execute(dst, p); err != nil {
+	if err := p.Publish(string(tmpl)); err != nil {
 		errs <- err
 		wg.Done()
 
@@ -112,7 +108,7 @@ func Publish(c cli.Command) {
 		if postId != "" && p.ID == postId {
 			wg.Add(1)
 
-			go publishPost(p, draft, wg, errs)
+			go publishPost(p, wg, errs)
 
 			break
 		}
@@ -120,7 +116,7 @@ func Publish(c cli.Command) {
 		if postId == "" {
 			wg.Add(1)
 
-			go publishPost(p, draft, wg, errs)
+			go publishPost(p, wg, errs)
 		}
 	}
 
@@ -133,6 +129,14 @@ func Publish(c cli.Command) {
 
 	for err := range errs {
 		if err != nil {
+			didErr = true
+
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
+	}
+
+	if !draft {
+		if err := copyToRemote(); err != nil {
 			didErr = true
 
 			fmt.Fprintf(os.Stderr, "%s\n", err)
