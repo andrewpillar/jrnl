@@ -15,6 +15,7 @@ Commands:
   edit     Edit a post
   rm       Remove a post
   ls       List all posts
+  asset    Modify the site's assets
   remote   Modify a remote
   publish  Publish a post to a remote
 
