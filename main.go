@@ -93,7 +93,25 @@ func main() {
 	assetCmd := c.Command("asset", command.Asset)
 
 	assetCmd.Command("ls", command.AssetLs)
-	assetCmd.Command("add", command.AssetAdd)
+
+	assetAddCmd := assetCmd.Command("add", command.AssetAdd)
+
+	assetAddCmd.AddFlag(&cli.Flag{
+		Name:     "file",
+		Short:    "-f",
+		Long:     "--file",
+		Argument: true,
+		Default:  "",
+	})
+
+	assetAddCmd.AddFlag(&cli.Flag{
+		Name:     "target",
+		Short:    "-t",
+		Long:     "--target",
+		Argument: true,
+		Default:  "",
+	})
+
 	assetCmd.Command("edit", command.AssetEdit)
 	assetCmd.Command("rm", command.AssetRm)
 
