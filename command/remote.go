@@ -20,6 +20,8 @@ func RemoteList(c cli.Command) {
 		return
 	}
 
+	mustBeInitialized()
+
 	f, err := os.Open(meta.File)
 
 	if err != nil {
