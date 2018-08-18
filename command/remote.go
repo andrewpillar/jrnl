@@ -39,7 +39,13 @@ func RemoteList(c cli.Command) {
 	}
 
 	for k, v := range m.Remotes {
-		fmt.Printf("%s - %s\n", k, v.Target)
+		fmt.Printf("%s - %s", k, v.Target)
+
+		if m.Default == k {
+			fmt.Printf("    [default]")
+		}
+
+		fmt.Printf("\n")
 	}
 }
 
