@@ -57,13 +57,13 @@ func (r *Resolver) ResolvePosts() chan *post.Post {
 	return r.posts
 }
 
-func (r *Resolver) ResolvePostsToMap() map[string]*post.Post {
+func (r *Resolver) ResolvePostsToStore() post.Store {
 	ch := r.ResolvePosts()
 
-	posts := make(map[string]*post.Post)
+	posts := post.NewStore()
 
 	for p := range ch {
-		posts[p.ID] = p
+		posts.Put(p)
 	}
 
 	return posts
