@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/andrewpillar/cli"
@@ -21,32 +20,20 @@ func List(c cli.Command) {
 
 	r := resolve.New(SiteDir, PostsDir)
 
-	posts := r.ResolvePostsToMap()
+	posts := r.ResolvePostsToStore()
 
-	ids := make([]string, len(posts), len(posts))
-
-	i := 0
-
-	for k := range posts {
-		ids[i] = k
-
-		i++
-	}
+	posts.Sort()
 
 	category := c.Flags.GetString("category")
 
-	sort.Strings(ids)
-
-	for _, id := range ids {
-		p := posts[id]
-
+	for _, p := range posts {
 		if category == "" {
-			fmt.Printf("%s\n", p.ID)
+			fmt.Println(p.ID)
 			continue
 		}
 
-		if strings.ToLower(p.Category) == category {
-			fmt.Printf("%s\n", p.ID)
+		if strings.ToLower(p.Category) == strings.ToLower(category) {
+			fmt.Println(p.ID)
 		}
 	}
 }
