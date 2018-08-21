@@ -7,9 +7,13 @@ import (
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/command"
+	"github.com/andrewpillar/jrnl/post"
 )
 
 func main() {
+	post.SourceDir = "_posts"
+	post.SiteDir = "_site"
+
 	c := cli.New()
 
 	c.Main(command.Main)
