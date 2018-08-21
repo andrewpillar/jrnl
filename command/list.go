@@ -18,7 +18,7 @@ func List(c cli.Command) {
 
 	mustBeInitialized()
 
-	r := resolve.New(SiteDir, PostsDir)
+	r := resolve.New(PostsDir)
 
 	posts := r.ResolvePostsToStore()
 
