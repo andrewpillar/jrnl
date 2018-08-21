@@ -12,7 +12,7 @@ import (
 )
 
 func editPost(id string) {
-	p, err := post.NewFromSource(SiteDir, PostsDir + "/" + id + ".md")
+	p, err := post.NewFromPath(id + ".md")
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -26,7 +26,7 @@ func rmPost(ids []string) {
 	code := 0
 
 	for _, id := range ids {
-		p, err := post.NewFromSource(SiteDir, PostsDir + "/" + id + ".md")
+		p, err := post.NewFromPath(id + ".md")
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)

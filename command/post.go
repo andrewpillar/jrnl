@@ -20,24 +20,20 @@ func Post(c cli.Command) {
 
 	mustBeInitialized()
 
-	title := c.Args.Get(0)
-
-	p := post.New(SiteDir, PostsDir, c.Flags.GetString("category"), title)
+	p := post.New(c.Args.Get(0), c.Flags.GetString("category"))
 
 	dir := filepath.Dir(p.SourcePath)
 
 	d, err := os.Stat(dir)
 
-	if os.IsNotExist(err) {
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(1)
-		}
-	} else {
-		if !d.IsDir() {
-			fmt.Fprintf(os.Stderr, "%s is not a directory\n", d.Name())
-			os.Exit(1)
-		}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+
+	if !d.IsDir() {
+		fmt.Fprintf(os.Stderr, "%s is not a directory\n", d.Name())
+		os.Exit(1)
 	}
 
 	f, err := os.OpenFile(p.SourcePath, os.O_CREATE|os.O_RDWR, 0660)

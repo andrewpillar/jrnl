@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	_ "strings"
 	"sync"
 
 	"github.com/andrewpillar/cli"
@@ -85,35 +86,25 @@ func publishPost(p *post.Post, wg *sync.WaitGroup, errs chan error) {
 	wg.Done()
 }
 
-func Publish(c cli.Command) {
-	if c.Flags.IsSet("help") {
-		fmt.Println(usage.Publish)
-		return
-	}
-
-	mustBeInitialized()
-
-	postId := c.Args.Get(0)
-
-	r := resolve.New(SiteDir, PostsDir)
+func publishPosts(id string) (post.Store, chan error) {
+	r := resolve.New(PostsDir)
 
 	ch := r.ResolvePosts()
 
-	draft := c.Flags.IsSet("draft")
-
 	wg := &sync.WaitGroup{}
+	posts := make([]*post.Post, 0)
 	errs := make(chan error)
 
 	for p := range ch {
-		if postId != "" && p.ID == postId {
+		posts = append(posts, p)
+
+		if id != "" && p.ID == id {
 			wg.Add(1)
 
 			go publishPost(p, wg, errs)
-
-			break
 		}
 
-		if postId == "" {
+		if id == "" {
 			wg.Add(1)
 
 			go publishPost(p, wg, errs)
@@ -125,6 +116,19 @@ func Publish(c cli.Command) {
 		close(errs)
 	}()
 
+	return post.NewStore(posts...), errs
+}
+
+func Publish(c cli.Command) {
+	if c.Flags.IsSet("help") {
+		fmt.Println(usage.Publish)
+		return
+	}
+
+	mustBeInitialized()
+
+	_, errs := publishPosts(c.Args.Get(0))
+
 	didErr := false
 
 	for err := range errs {
@@ -135,7 +139,9 @@ func Publish(c cli.Command) {
 		}
 	}
 
-	if !draft {
+//	createIndexes(posts)
+
+	if !c.Flags.IsSet("draft") {
 		if err := copyToRemote(); err != nil {
 			didErr = true
 
