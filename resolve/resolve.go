@@ -12,18 +12,15 @@ import (
 type Resolver struct {
 	wg *sync.WaitGroup
 
-	srcDir string
-
-	siteDir string
+	dir string
 
 	posts chan *post.Post
 }
 
-func New(siteDir, srcDir string) *Resolver {
+func New(dir string) *Resolver {
 	return &Resolver{
 		wg:      &sync.WaitGroup{},
-		srcDir:  srcDir,
-		siteDir: siteDir,
+		dir:     dir,
 		posts:   make(chan *post.Post),
 	}
 }
@@ -47,7 +44,7 @@ func (r *Resolver) ResolvePost(id string) (*post.Post, error) {
 }
 
 func (r *Resolver) ResolvePosts() chan *post.Post {
-	filepath.Walk(r.srcDir, r.walk)
+	filepath.Walk(r.dir, r.walk)
 
 	go func() {
 		r.wg.Wait()
@@ -73,12 +70,12 @@ func (r *Resolver) walk(path string, info os.FileInfo, err error) error {
 	r.wg.Add(1)
 
 	go func() {
-		if info.Name() == r.srcDir || info.IsDir() {
+		if info.Name() == r.dir || info.IsDir() {
 			r.wg.Done()
 			return
 		}
 
-		p, _ := post.NewFromSource(r.siteDir, path)
+		p, _ := post.NewFromPath(path)
 
 		r.posts <- p
 		r.wg.Done()
