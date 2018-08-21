@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/andrewpillar/cli"
@@ -47,7 +48,7 @@ func Title(c cli.Command) {
 		os.Exit(1)
 	}
 
-	_, err = f.Seek(0, 0)
+	_, err = f.Seek(0, io.SeekStart)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
