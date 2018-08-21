@@ -69,7 +69,7 @@ func (s Store) groupByDate(i int) *group {
 	g := newGroup()
 
 	for _, p := range s {
-		key := strings.Split(p.Date.Format(dateDirFmt), "/")[i]
+		key := strings.Split(p.Date.Format(DateDir), "/")[i]
 
 		_, ok := (*g)[key]
 

@@ -18,19 +18,18 @@ import (
 )
 
 var (
-	// Date format for the source post file.
-	dateFmt = "2006-01-02T15:04"
+	dateLen = 16
 
-	// Date format for the site directory where the final published post will
-	// reside.
-	dateDirFmt = "2006/01/02"
+	DateSlug = "2006-01-02T15:04"
+
+	DateDir = "2006/01/02"
+
+	SourceDir string
+
+	SiteDir string
 )
 
 type Post struct {
-	srcDir string
-
-	siteDir string
-
 	ID string
 
 	JournalTitle string
@@ -38,6 +37,8 @@ type Post struct {
 	Category string
 
 	Title string
+
+	Preview string
 
 	Body string
 
@@ -48,36 +49,64 @@ type Post struct {
 	Date time.Time
 }
 
-func New(siteDir, srcDir, category, title string) *Post {
+func getId(parts []string) string {
+	if parts[0] == SourceDir {
+		parts = parts[1:]
+	}
+
+	id := []rune(filepath.Join(parts...))
+
+	return string(id[:len(id) - 3])
+}
+
+func getCategory(parts []string) string {
+	if len(parts) >= 3 {
+		return filepath.Join(parts[1:len(parts) - 2]...)
+	}
+
+	return ""
+}
+
+func getDate(fname string) string {
+	r := []rune(fname)
+
+	return string(r[:dateLen])
+}
+
+func getTitle(fname string) string {
+	r := []rune(fname)
+
+	return string(r[dateLen + 1:len(r) - 3])
+}
+
+func New(title, category string) *Post {
 	date := time.Now()
 
 	categorySlug := slugify.Slugify(category)
-	dateSlug := date.Format(dateFmt)
+	dateSlug := date.Format(DateSlug)
 	titleSlug := slugify.Slugify(title)
 
-	id := dateSlug + "-" + titleSlug
+	id := filepath.Join(categorySlug, dateSlug + "-" + titleSlug)
 
-	if categorySlug != "" {
-		id = categorySlug + "/" + dateSlug + "-" + titleSlug
-	}
+	sourcePath := filepath.Join(
+		SourceDir,
+		categorySlug,
+		dateSlug + "-" + titleSlug + ".md",
+	)
 
 	p := &Post{
-		srcDir:   srcDir,
-		siteDir:  siteDir,
-		ID:       id,
-		Category: category,
-		Title:    title,
-		Date:     date,
+		ID:         id,
+		SourcePath: sourcePath,
+		Category:   category,
+		Title:      title,
+		Date:       date,
 	}
-
-	p.setSitePath(categorySlug, titleSlug)
-	p.setSrcPath(categorySlug, titleSlug)
 
 	return p
 }
 
-func NewFromSource(siteDir, srcPath string) (*Post, error) {
-	_, err := os.Stat(srcPath)
+func NewFromPath(path string) (*Post, error) {
+	_, err := os.Stat(path)
 
 	if err != nil {
 		return nil, err
@@ -97,70 +126,46 @@ func NewFromSource(siteDir, srcPath string) (*Post, error) {
 		return nil, err
 	}
 
-	parts := strings.Split(srcPath, "/")
+	parts := strings.Split(path, string(os.PathSeparator))
 
-	id := resolveId(parts[1:])
-	category, categorySlug := resolveCategory(parts)
-	title, titleSlug := resolveTitle(parts)
+	id := getId(parts)
+	categorySlug := getCategory(parts)
+	titleSlug := getTitle(parts[len(parts) - 1])
+	dateSlug := getDate(parts[len(parts) - 1])
 
-	date, err := resolveDate(parts)
+	date, err := time.Parse(DateSlug, dateSlug)
 
 	if err != nil {
 		return nil, err
 	}
 
+	sitePath := filepath.Join(
+		SiteDir,
+		categorySlug,
+		date.Format(DateDir),
+		titleSlug,
+		"index.html",
+	)
+
 	p := &Post{
-		srcDir:       parts[0],
-		siteDir:      siteDir,
 		ID:           id,
 		JournalTitle: m.Title,
-		Category:     category,
-		Title:        title,
+		SourcePath:   path,
+		SitePath:     sitePath,
+		Title:        util.Deslug(titleSlug),
+		Category:     util.Deslug(categorySlug),
 		Date:         date,
 	}
-
-	p.setSitePath(categorySlug, titleSlug)
-	p.setSrcPath(categorySlug, titleSlug)
 
 	return p, nil
 }
 
-func resolveCategory(parts []string) (string, string) {
-	if len(parts) >= 3 {
-		slug := parts[len(parts) - 2]
-
-		return util.Deslug(slug), slug
-	}
-
-	return "", ""
-}
-
-func resolveDate(parts []string) (time.Time, error) {
-	fname := parts[len(parts) - 1]
-	r := []rune(fname)
-
-	return time.Parse(dateFmt, string(r[:16]))
-}
-
-func resolveId(parts []string) string {
-	r := []rune(strings.Join(parts, "/"))
-
-	return string(r[:len(r) - 3])
-}
-
-func resolveTitle(parts []string) (string, string) {
-	fname := parts[len(parts) - 1]
-	r := []rune(fname)
-
-	slug := string(r[17:len(r) - 3])
-
-	return util.Deslug(slug), slug
-}
-
 func (p *Post) Convert() {
-	md := blackfriday.Run([]byte(p.Body))
+	body := blackfriday.Run([]byte(p.Body))
+	preview := blackfriday.Run([]byte(p.Preview))
 
-	p.Body = string(md)
+	p.Body = string(body)
+	p.Preview = string(preview)
 }
 
 func (p *Post) Load() error {
@@ -174,6 +179,12 @@ func (p *Post) Load() error {
 
 	if err != nil {
 		return err
+	}
+
+	if len(b) > 2 {
+		i := bytes.Index(b, []byte("\n"))
+
+		p.Preview = string(b[:i])
 	}
 
 	p.Body = string(b)
@@ -209,52 +220,26 @@ func (p *Post) Remove() error {
 	_, err := os.Stat(p.SitePath)
 
 	if !os.IsNotExist(err) {
-		if err := p.RemoveSitePath(); err != nil {
+		if err := p.removeSitePath(); err != nil {
 			return err
 		}
 	}
 
-	return p.RemoveSourcePath()
+	return p.removeSourcePath()
 }
 
-func (p *Post) RemoveSourcePath() error {
+func (p *Post) removeSourcePath() error {
 	if err := os.Remove(p.SourcePath); err != nil {
 		return err
 	}
 
-	return util.RemoveEmptyDirs(p.srcDir, filepath.Dir(p.SourcePath))
+	return util.RemoveEmptyDirs(SourceDir, filepath.Dir(p.SourcePath))
 }
 
-func (p *Post) RemoveSitePath() error {
+func (p *Post) removeSitePath() error {
 	if err := os.Remove(p.SitePath); err != nil {
 		return err
 	}
 
-	return util.RemoveEmptyDirs(p.siteDir, filepath.Dir(p.SitePath))
-}
-
-func (p *Post) setSitePath(categorySlug, titleSlug string) {
-	path := bytes.NewBufferString(p.siteDir + "/")
-
-	if categorySlug != "" {
-		path.WriteString(categorySlug + "/")
-	}
-
-	path.WriteString(p.Date.Format(dateDirFmt) + "/")
-	path.WriteString(titleSlug + "/index.html")
-
-	p.SitePath = path.String()
-}
-
-func (p *Post) setSrcPath(categorySlug, titleSlug string) {
-	path := bytes.NewBufferString(p.srcDir + "/")
-
-	if categorySlug != "" {
-		path.WriteString(categorySlug + "/")
-	}
-
-	path.WriteString(p.Date.Format(dateFmt) + "-")
-	path.WriteString(titleSlug + ".md")
-
-	p.SourcePath = path.String()
+	return util.RemoveEmptyDirs(SiteDir, filepath.Dir(p.SitePath))
 }
