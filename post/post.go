@@ -61,7 +61,7 @@ func getId(parts []string) string {
 
 func getCategory(parts []string) string {
 	if len(parts) >= 3 {
-		return filepath.Join(parts[1:len(parts) - 2]...)
+		return filepath.Join(parts[1:len(parts) - 1]...)
 	}
 
 	return ""
