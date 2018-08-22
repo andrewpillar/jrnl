@@ -18,7 +18,7 @@ import (
 	"github.com/andrewpillar/jrnl/util"
 )
 
-func copyToRemote() error {
+func copyToRemote(remote string) error {
 	f, err := os.Open(meta.File)
 
 	if err != nil {
@@ -35,7 +35,7 @@ func copyToRemote() error {
 
 	r, ok := m.Remotes[m.Default]
 
-	if !ok {
+	if !ok && remote == "" {
 		return errors.New("no default remote has been set")
 	}
 
@@ -142,7 +142,7 @@ func Publish(c cli.Command) {
 //	createIndexes(posts)
 
 	if !c.Flags.IsSet("draft") {
-		if err := copyToRemote(); err != nil {
+		if err := copyToRemote(c.Flags.GetString("remote")); err != nil {
 			didErr = true
 
 			fmt.Fprintf(os.Stderr, "%s\n", err)

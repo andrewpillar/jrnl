@@ -89,9 +89,11 @@ func main() {
 	})
 
 	publishCmd.AddFlag(&cli.Flag{
-		Name:  "remote",
-		Short: "-r",
-		Long:  "--remote",
+		Name:     "remote",
+		Short:    "-r",
+		Long:     "--remote",
+		Argument: true,
+		Default:  "",
 	})
 
 	assetCmd := c.Command("asset", command.Asset)
