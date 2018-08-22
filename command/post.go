@@ -27,8 +27,15 @@ func Post(c cli.Command) {
 	d, err := os.Stat(dir)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		if os.IsNotExist(err) {
+			if err = os.MkdirAll(dir, os.ModePerm); err != nil {
+				fmt.Fprintf(os.Stderr, "%s\n", err)
+				os.Exit(1)
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			os.Exit(1)
+		}
 	}
 
 	if !d.IsDir() {
