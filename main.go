@@ -93,6 +93,31 @@ func main() {
 
 	remoteCmd.Command("rm", command.RemoteRm)
 
+	assetCmd := c.Command("asset", command.Asset)
+
+	assetCmd.Command("ls", command.AssetLs)
+
+	assetAddCmd := assetCmd.Command("add", command.AssetAdd)
+
+	assetAddCmd.AddFlag(&cli.Flag{
+		Name:     "file",
+		Short:    "-f",
+		Long:     "--file",
+		Argument: true,
+		Default:  "",
+	})
+
+	assetAddCmd.AddFlag(&cli.Flag{
+		Name:     "dir",
+		Short:    "-d",
+		Long:     "--dir",
+		Argument: true,
+		Default:  "",
+	})
+
+	assetCmd.Command("edit", command.AssetEdit)
+	assetCmd.Command("rm", command.AssetRm)
+
 	if err := c.Run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
