@@ -6,7 +6,6 @@ import (
 
 	"github.com/andrewpillar/cli"
 
-	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/usage"
 )
@@ -19,7 +18,7 @@ func List(c cli.Command) {
 
 	mustBeInitialized()
 
-	r := post.NewResolver(meta.PostsDir)
+	r := post.NewResolver()
 
 	posts := r.Resolve()
 

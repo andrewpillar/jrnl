@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/andrewpillar/jrnl/meta"
 )
 
 type Resolver struct {
@@ -12,9 +14,9 @@ type Resolver struct {
 	posts Store
 }
 
-func NewResolver(dir string) *Resolver {
+func NewResolver() *Resolver {
 	return &Resolver{
-		dir:   dir,
+		dir:   meta.PostsDir,
 		posts: NewStore(),
 	}
 }
