@@ -15,6 +15,7 @@ Commands:
   edit    Edit a post
   rm      Remove a post
   remote  Modify a remote
+  asset   Modify the journal's assets
 
 Options:
 
