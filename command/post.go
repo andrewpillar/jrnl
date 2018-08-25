@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,30 +30,26 @@ func Post(c cli.Command) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(dir, os.ModePerm); err != nil {
-				fmt.Fprintf(os.Stderr, "%s\n", err)
-				os.Exit(1)
+				util.Error("failed to create post directory", err)
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(1)
+			util.Error("failed to stat post directory", err)
 		}
 	}
 
-	if !d.IsDir() {
-		fmt.Fprintf(os.Stderr, "%s is not a directory\n", d.Name())
-		os.Exit(1)
+	if d != nil && !d.IsDir() {
+		util.Error("unexpected non-directory file", errors.New(dir))
 	}
 
-	f, err := os.OpenFile(p.SourcePath, os.O_CREATE|os.O_RDWR, 0660)
+	f, err := os.OpenFile(p.SourcePath, os.O_CREATE, os.ModePerm)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		util.Error("failed to open post file", err)
 	}
 
 	defer f.Close()
 
 	util.OpenInEditor(p.SourcePath)
 
-	fmt.Printf("new post added: %s\n", p.ID)
+	fmt.Println("new post added", p.ID)
 }

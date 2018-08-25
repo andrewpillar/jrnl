@@ -7,16 +7,15 @@ import (
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/post"
-	"github.com/andrewpillar/jrnl/usage"
 	"github.com/andrewpillar/jrnl/util"
+	"github.com/andrewpillar/jrnl/usage"
 )
 
 func editPost(id string) {
-	p, err := post.NewFromPath(id + ".md")
+	p, err := post.Find(id)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		util.Error("failed to find post", err)
 	}
 
 	util.OpenInEditor(p.SourcePath)
@@ -26,16 +25,18 @@ func rmPost(ids []string) {
 	code := 0
 
 	for _, id := range ids {
-		p, err := post.NewFromPath(id + ".md")
+		p, err := post.Find(id)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
+			fmt.Fprintf(os.Stderr, "jrnl: failed to find post\n  %s\n", err)
 
 			code = 1
+
+			continue
 		}
 
 		if err = p.Remove(); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
+			fmt.Fprintf(os.Stderr, "jrnl: failed to remove post\n  %s\n", err)
 
 			code = 1
 		}

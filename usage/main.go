@@ -8,19 +8,16 @@ Usage:
 
 Commands:
 
-  init     Initialise a new journal
-  title    Set the journal's title
-  tmpl     Edit a template
-  post     Create a post
-  edit     Edit a post
-  rm       Remove a post
-  ls       List all posts
-  asset    Modify the site's assets
-  remote   Modify a remote
-  publish  Publish a post to a remote
+  init    Initialize a new journal
+  title   Set the journal's title
+  layout  Modify a layout file
+  post    Create a post
+  edit    Edit a post
+  rm      Remove a post
+  remote  Modify a remote
 
 Options:
 
   --help  Display this usage message
 
-For more information on a command run 'jrnl [command] --help'`
+For more information on a command run 'jrnl [command] --help`

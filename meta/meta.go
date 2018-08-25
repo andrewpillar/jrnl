@@ -3,24 +3,48 @@ package meta
 import (
 	"io"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
 
-var File = "_meta.yml"
+var (
+	File = "_meta.yml"
+
+	PostsDir string
+
+	SiteDir string
+
+	LayoutsDir string
+
+	AssetsDir string
+
+	Dirs []string
+
+	Layouts = map[string]string{
+		"index.html":          index,
+		"day_index.html":      dayIndex,
+		"month_index.html":    monthIndex,
+		"year_index.html":     yearIndex,
+		"category_index.html": categoryIndex,
+		"post.html":           post,
+	}
+)
 
 type Meta struct {
 	Title string
 
-	Default string `yaml:",omitempty"`
+	Default string
 
-	Remotes map[string]Remote `yaml:,omitempty"`
+	Remotes map[string]Remote
 }
 
 type Remote struct {
-	Target string `yaml:",omitempty"`
+	Target string
 
-	Identity string `yaml:",omitempty"`
+	Port int
+
+	Identity string
 }
 
 func Decode(r io.Reader) (*Meta, error) {
@@ -36,19 +60,15 @@ func Decode(r io.Reader) (*Meta, error) {
 }
 
 func Init(dir string) (*Meta, error) {
-	fname := File
+	fname := filepath.Join(dir, File)
 
-	if dir != "" {
-		fname = dir + "/" + fname
-	}
-
-	f, err := os.OpenFile(fname, os.O_CREATE, 0660)
+	f, err := os.OpenFile(fname, os.O_CREATE, os.ModePerm)
 
 	if err != nil {
 		return nil, err
 	}
 
-	f.Close()
+	defer f.Close()
 
 	return &Meta{}, nil
 }
@@ -60,7 +80,7 @@ func (m *Meta) Encode(w io.Writer) error {
 		return err
 	}
 
-	enc.Close()
+	defer enc.Close()
 
 	return nil
 }
