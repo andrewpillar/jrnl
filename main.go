@@ -7,12 +7,21 @@ import (
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/command"
-	"github.com/andrewpillar/jrnl/post"
+	"github.com/andrewpillar/jrnl/meta"
 )
 
 func main() {
-	post.SourceDir = "_posts"
-	post.SiteDir = "_site"
+	meta.PostsDir = "_posts"
+	meta.SiteDir = "_site"
+	meta.LayoutsDir = "_layouts"
+	meta.AssetsDir = meta.SiteDir + "/assets"
+
+	meta.Dirs = []string{
+		meta.PostsDir,
+		meta.SiteDir,
+		meta.LayoutsDir,
+		meta.AssetsDir,
+	}
 
 	c := cli.New()
 
@@ -25,7 +34,11 @@ func main() {
 
 	c.Command("init", command.Initialize)
 	c.Command("title", command.Title)
-	c.Command("tmpl", command.Template)
+
+	layoutCmd := c.Command("layout", command.Layout)
+
+	layoutCmd.Command("ls", command.LayoutLs)
+	layoutCmd.Command("edit", command.LayoutEdit)
 
 	postCmd := c.Command("post", command.Post)
 
@@ -52,7 +65,7 @@ func main() {
 
 	remoteCmd := c.Command("remote", command.Remote)
 
-	remoteCmd.Command("ls", command.RemoteList)
+	remoteCmd.Command("ls", command.RemoteLs)
 
 	remoteSetCmd := remoteCmd.Command("set", command.RemoteSet)
 
@@ -67,7 +80,7 @@ func main() {
 		Short:    "-p",
 		Long:     "--port",
 		Argument: true,
-		Default:  22,
+		Default:  int64(22),
 	})
 
 	remoteSetCmd.AddFlag(&cli.Flag{
@@ -78,48 +91,7 @@ func main() {
 		Default:  "",
 	})
 
-	remoteCmd.Command("rm", command.RemoteRemove)
-
-	publishCmd := c.Command("publish", command.Publish)
-
-	publishCmd.AddFlag(&cli.Flag{
-		Name:  "draft",
-		Short: "-d",
-		Long:  "--draft",
-	})
-
-	publishCmd.AddFlag(&cli.Flag{
-		Name:     "remote",
-		Short:    "-r",
-		Long:     "--remote",
-		Argument: true,
-		Default:  "",
-	})
-
-	assetCmd := c.Command("asset", command.Asset)
-
-	assetCmd.Command("ls", command.AssetLs)
-
-	assetAddCmd := assetCmd.Command("add", command.AssetAdd)
-
-	assetAddCmd.AddFlag(&cli.Flag{
-		Name:     "file",
-		Short:    "-f",
-		Long:     "--file",
-		Argument: true,
-		Default:  "",
-	})
-
-	assetAddCmd.AddFlag(&cli.Flag{
-		Name:     "target",
-		Short:    "-t",
-		Long:     "--target",
-		Argument: true,
-		Default:  "",
-	})
-
-	assetCmd.Command("edit", command.AssetEdit)
-	assetCmd.Command("rm", command.AssetRm)
+	remoteCmd.Command("rm", command.RemoteRm)
 
 	if err := c.Run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)

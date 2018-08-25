@@ -9,19 +9,19 @@ import (
 
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/usage"
+	"github.com/andrewpillar/jrnl/util"
 )
 
 func Title(c cli.Command) {
 	if c.Flags.IsSet("help") {
 		fmt.Println(usage.Title)
-		os.Exit(1)
+		return
 	}
 
-	f, err := os.OpenFile(meta.File, os.O_RDWR, 0660)
+	f, err := os.OpenFile(meta.File, os.O_RDWR, os.ModePerm)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		util.Error("failed to open meta file", err)
 	}
 
 	defer f.Close()
@@ -29,13 +29,12 @@ func Title(c cli.Command) {
 	m, err := meta.Decode(f)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		util.Error("failed to read meta file", err)
 	}
 
 	if len(c.Args) == 0 {
 		if m.Title == "" {
-			fmt.Printf("no journal title set, run `jrnl title` to set one\n")
+			fmt.Println("no journal title set, run 'jrnl title' to set one")
 			return
 		}
 
@@ -44,21 +43,18 @@ func Title(c cli.Command) {
 	}
 
 	if err := f.Truncate(0); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		util.Error("failed to truncate meta file", err)
 	}
 
 	_, err = f.Seek(0, io.SeekStart)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		util.Error("failed to seek beginning of meta file", err)
 	}
 
 	m.Title = c.Args.Get(0)
 
 	if err = m.Encode(f); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		util.Error("failed to write to meta file", err)
 	}
 }

@@ -6,7 +6,8 @@ import (
 
 	"github.com/andrewpillar/cli"
 
-	"github.com/andrewpillar/jrnl/resolve"
+	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/usage"
 )
 
@@ -18,13 +19,11 @@ func List(c cli.Command) {
 
 	mustBeInitialized()
 
-	r := resolve.New(PostsDir)
+	r := post.NewResolver(meta.PostsDir)
 
-	posts := r.ResolvePostsToStore()
+	posts := r.Resolve()
 
-	posts.Sort()
-
-	category := c.Flags.GetString("category")
+	category := strings.Replace(c.Flags.GetString("category"), "/", " ", -1)
 
 	for _, p := range posts {
 		if category == "" {
