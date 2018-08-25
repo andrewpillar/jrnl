@@ -34,7 +34,7 @@ func mustBeInitialized() {
 		f, err := os.Stat(d)
 
 		if os.IsNotExist(err) {
-			util.Error("not fully initialized", err)
+			util.Error("not fully initialized", nil)
 		}
 
 		if !f.IsDir() {
