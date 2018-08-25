@@ -29,8 +29,12 @@ func New(title, category string) *Post {
 
 	parts := strings.Split(category, "/")
 
-	for _, p := range parts {
-		categorySlug.WriteString(slugify.Slugify(p) + string(os.PathSeparator))
+	for i, p := range parts {
+		categorySlug.WriteString(slugify.Slugify(p))
+
+		if i != len(parts) - 1 {
+			categorySlug.WriteString(string(os.PathSeparator))
+		}
 	}
 
 	titleSlug := slugify.Slugify(title)
