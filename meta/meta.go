@@ -21,13 +21,25 @@ var (
 
 	Dirs []string
 
+	IndexLayout = "index.html"
+
+	DayIndexLayout = "day_index.html"
+
+	MonthIndexLayout = "month_index.html"
+
+	YearIndexLayout = "year_index.html"
+
+	CategoryIndexLayout = "category_index.html"
+
+	PostLayout = "post.html"
+
 	Layouts = map[string]string{
-		"index.html":          index,
-		"day_index.html":      dayIndex,
-		"month_index.html":    monthIndex,
-		"year_index.html":     yearIndex,
-		"category_index.html": categoryIndex,
-		"post.html":           post,
+		IndexLayout:         index,
+		DayIndexLayout:      dayIndex,
+		MonthIndexLayout:    monthIndex,
+		YearIndexLayout:     yearIndex,
+		CategoryIndexLayout: categoryIndex,
+		PostLayout:          post,
 	}
 )
 
