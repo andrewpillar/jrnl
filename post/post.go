@@ -5,11 +5,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/mozillazg/go-slugify"
+)
+
+var (
+	dateSlug = "2006-01-02T15:04"
 )
 
 type Post struct {
@@ -22,9 +27,13 @@ type Post struct {
 	SourcePath string
 
 	SitePath string
+
+	CreatedAt time.Time
 }
 
 func New(title, category string) *Post {
+	createdAt := time.Now()
+
 	categorySlug := bytes.Buffer{}
 
 	parts := strings.Split(category, "/")
@@ -37,7 +46,7 @@ func New(title, category string) *Post {
 		}
 	}
 
-	titleSlug := slugify.Slugify(title)
+	titleSlug := createdAt.Format(dateSlug) + "-" + slugify.Slugify(title)
 
 	id := filepath.Join(categorySlug.String(), titleSlug)
 	sourcePath := filepath.Join(
@@ -51,6 +60,7 @@ func New(title, category string) *Post {
 		Category:   category,
 		Title:      title,
 		SourcePath: sourcePath,
+		CreatedAt:  createdAt,
 	}
 }
 
@@ -71,7 +81,7 @@ func Find(id string) (*Post, error) {
 		tmp := parts[1:len(parts) - 1]
 
 		for i, p := range tmp {
-			category.WriteString(util.Ucfirst(p))
+			category.WriteString(util.Deslug(p))
 
 			if i != len(tmp) - 1 {
 				category.WriteString(" ")
@@ -79,13 +89,22 @@ func Find(id string) (*Post, error) {
 		}
 	}
 
-	title := util.Deslug(strings.Split(filepath.Base(sourcePath), ".")[0])
+	titleSlug := []rune(filepath.Base(sourcePath))
+
+	createdAt, err := time.Parse(dateSlug, string(titleSlug[:len(dateSlug)]))
+
+	if err != nil {
+		return nil, err
+	}
+
+	title := util.Deslug(string(titleSlug[len(dateSlug) + 1:len(titleSlug) - 3]))
 
 	return &Post{
 		ID:         id,
 		Category:   category.String(),
 		Title:      title,
 		SourcePath: sourcePath,
+		CreatedAt:  createdAt,
 	}, nil
 }
 
