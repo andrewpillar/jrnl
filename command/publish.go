@@ -117,7 +117,12 @@ func addPostToIndex(p *post.Post, wg *sync.WaitGroup, m *sync.Mutex) {
 	}
 }
 
-func writeIndex(dir, title string, posts *post.Store, wg *sync.WaitGroup, errs chan error) {
+func writeIndex(
+	dir, title string,
+	posts *post.Store,
+	wg *sync.WaitGroup,
+	errs chan error,
+) {
 	defer wg.Done()
 
 	indexPath := filepath.Join(dir, "index.html")
@@ -185,8 +190,12 @@ func writeIndex(dir, title string, posts *post.Store, wg *sync.WaitGroup, errs c
 	}
 
 	if layoutPath == "" {
-		errs <- errors.New("layout path is empty for dir: " + dir)
+		errs <- errors.New("no layout for index to " + dir)
 		return
+	}
+
+	if page == nil {
+		errs <- errors.New("no page to write index to " + dir)
 	}
 
 	layoutFile, err := os.Open(layoutPath)
@@ -277,6 +286,8 @@ func Publish(c cli.Command) {
 
 		go addPostToIndex(p, wg, mut)
 	}
+
+	wg.Wait()
 
 	for k, v := range postIndexes {
 		wg.Add(1)
