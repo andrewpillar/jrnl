@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/andrewpillar/cli"
 
@@ -14,7 +15,7 @@ func main() {
 	meta.PostsDir = "_posts"
 	meta.SiteDir = "_site"
 	meta.LayoutsDir = "_layouts"
-	meta.AssetsDir = meta.SiteDir + "/assets"
+	meta.AssetsDir = filepath.Join(meta.SiteDir, "assets")
 
 	meta.Dirs = []string{
 		meta.PostsDir,
@@ -117,6 +118,22 @@ func main() {
 
 	assetCmd.Command("edit", command.AssetEdit)
 	assetCmd.Command("rm", command.AssetRm)
+
+	publishCmd := c.Command("publish", command.Publish)
+
+	publishCmd.AddFlag(&cli.Flag{
+		Name: "draft",
+		Short: "-d",
+		Long:  "--draft",
+	})
+
+	publishCmd.AddFlag(&cli.Flag{
+		Name:     "remote",
+		Short:    "-r",
+		Long:     "--remote",
+		Argument: true,
+		Default:  "",
+	})
 
 	if err := c.Run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
