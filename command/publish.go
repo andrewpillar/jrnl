@@ -24,20 +24,24 @@ var (
 	// under them. All the keys in the map will be different degraded paths
 	// from the post's source, for example:
 	//
-	//   _site/2006/01/02/some-category
+	//   _site/some-category/2006/01/02
 	//   _site/2006/01/02
 	//   _site/2006/01
 	//   _site/2006
 	//   _site
 	postIndexes map[string]*post.Store
 
-	categoryPattern = "[-_a-zA-Z0-9]+/[-a-zA-Z0-9/]+/[0-9]{4}/[0-9]{2}/[0-9]{2}"
+	categoryDatePattern = "[-_a-zA-Z0-9]+/[-a-zA-Z0-9/]+/[0-9]{4}/[0-9]{2}/[0-9]{2}"
+
+	categoryPattern = "[-_a-zA-Z0-9]+/[-a-zA-Z0-9/]"
 
 	dayPattern = "[-_a-zA-Z0-9]+/[0-9]{4}/[0-9]{2}/[0-9]{2}"
 
 	monthPattern = "[-_a-zA-Z0-9]+/[0-9]{4}/[0-9]{2}"
 
 	yearPattern = "[-_a-zA-Z0-9]+/[0-9]{4}"
+
+	categoryDateRegex = regexp.MustCompile(categoryDatePattern)
 
 	categoryRegex = regexp.MustCompile(categoryPattern)
 
@@ -145,7 +149,7 @@ func writeIndex(
 		}
 	}
 
-	if categoryRegex.Match(pattern) {
+	if categoryDateRegex.Match(pattern) || categoryRegex.Match(pattern) {
 		layoutPath = filepath.Join(meta.LayoutsDir, meta.CategoryIndexLayout)
 
 		page = struct{
@@ -289,10 +293,10 @@ func Publish(c cli.Command) {
 
 	wg.Wait()
 
-	for k, v := range postIndexes {
+	for dir, posts := range postIndexes {
 		wg.Add(1)
 
-		go writeIndex(k, m.Title, v, wg, errs)
+		go writeIndex(dir, m.Title, posts, wg, errs)
 	}
 
 	go func() {
