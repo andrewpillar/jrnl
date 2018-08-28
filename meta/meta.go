@@ -31,15 +31,24 @@ var (
 
 	CategoryIndexLayout = "category_index.html"
 
+	CategoryDayIndexLayout = "category_day_index.html"
+
+	CategoryMonthIndexLayout = "category_month_index.html"
+
+	CategoryYearIndexLayout = "category_year_index.html"
+
 	PostLayout = "post.html"
 
 	Layouts = map[string]string{
-		IndexLayout:         index,
-		DayIndexLayout:      dayIndex,
-		MonthIndexLayout:    monthIndex,
-		YearIndexLayout:     yearIndex,
-		CategoryIndexLayout: categoryIndex,
-		PostLayout:          post,
+		IndexLayout:              index,
+		DayIndexLayout:           dayIndex,
+		MonthIndexLayout:         monthIndex,
+		YearIndexLayout:          yearIndex,
+		CategoryIndexLayout:      categoryIndex,
+		CategoryDayIndexLayout:   categoryDayIndex,
+		CategoryMonthIndexLayout: categoryMonthIndex,
+		CategoryYearIndexLayout:  categoryYearIndex,
+		PostLayout:               post,
 	}
 )
 

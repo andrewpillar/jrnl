@@ -45,7 +45,37 @@ var (
 <html>
 	<head>
 		<meta charset="utf-8"/>
-		<title>{{.Title}}</title>
+		<title>{{.Category}} - {{.Title}}</title>
+	</head>
+	<body>
+	</body>
+</html>`
+
+	categoryDayIndex = `<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title>{{.Category}} - {{.Title}}</title>
+	</head>
+	<body>
+	</body>
+</html>`
+
+	categoryMonthIndex = `<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title>{{.Category}} - {{.Title}}</title>
+	</head>
+	<body>
+	</body>
+</html>`
+
+	categoryYearIndex = `<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
 	</body>
