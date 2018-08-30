@@ -17,9 +17,7 @@ import (
 	"gopkg.in/russross/blackfriday.v2"
 )
 
-var (
-	dateSlug = "2006-01-02T15:04"
-)
+var dateSlug = "2006-01-02T15:04"
 
 type Post struct {
 	ID string
@@ -136,6 +134,12 @@ func (p *Post) Convert() {
 
 	p.Body = string(body)
 	p.Preview = string(preview)
+}
+
+func (p Post) Href() string {
+	href := []rune(p.SitePath)
+
+	return filepath.Dir(string(href[len(meta.SiteDir):]))
 }
 
 func (p *Post) Load() error {
