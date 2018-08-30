@@ -17,6 +17,7 @@ Commands:
   remote   Modify a remote
   asset    Modify the journal's assets
   publish  Publish the journal's posts
+  theme    Manage the journal's themes
 
 Options:
 

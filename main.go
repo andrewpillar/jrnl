@@ -16,12 +16,14 @@ func main() {
 	meta.SiteDir = "_site"
 	meta.LayoutsDir = "_layouts"
 	meta.AssetsDir = filepath.Join(meta.SiteDir, "assets")
+	meta.ThemesDir = "_themes"
 
 	meta.Dirs = []string{
 		meta.PostsDir,
 		meta.SiteDir,
 		meta.LayoutsDir,
 		meta.AssetsDir,
+		meta.ThemesDir,
 	}
 
 	c := cli.New()
@@ -134,6 +136,13 @@ func main() {
 		Argument: true,
 		Default:  "",
 	})
+
+	themeCmd := c.Command("theme", command.Theme)
+
+	themeCmd.Command("ls", command.ThemeLs)
+	themeCmd.Command("save", command.ThemeSave)
+	themeCmd.Command("use", command.ThemeUse)
+	themeCmd.Command("rm", command.ThemeRm)
 
 	if err := c.Run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
