@@ -8,6 +8,13 @@ var (
 		<title>{{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -15,9 +22,16 @@ var (
 <html>
 	<head>
 		<meta charset="utf-8"/>
-		<title>{{.Title}}</title>
+		<title>Posts from {{.Time.Format "Mon 2 Jan 2006"}} - {{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -25,9 +39,16 @@ var (
 <html>
 	<head>
 		<meta charset="utf-8"/>
-		<title>{{.Title}}</title>
+		<title>Posts from {{.Time.Format "Jan 2006"}} - {{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -35,9 +56,16 @@ var (
 <html>
 	<head>
 		<meta charset="utf-8"/>
-		<title>{{.Title}}</title>
+		<title>Posts from {{.Time.Format "2006"}} - {{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -48,6 +76,13 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -58,6 +93,13 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -68,6 +110,13 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -78,6 +127,13 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
+		{{range $i, $p := .Posts}}
+			<div>
+				<a href="{{$p.Href}}">{{$p.Title}}</a>
+				<div>{{$p.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
+				<div>{{$p.Preview}}</div>
+			</div>
+		{{end}}
 	</body>
 </html>`
 
@@ -89,6 +145,7 @@ var (
 	</head>
 	<body>
 		<h1>{{.Post.Title}}</h1>
+		<div>{{.Post.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
 		<div>{{.Post.Body}}</div>
 	</body>
 </html>`
