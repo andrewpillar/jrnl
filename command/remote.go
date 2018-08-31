@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/andrewpillar/cli"
@@ -24,18 +23,10 @@ func RemoteLs(c cli.Command) {
 
 	mustBeInitialized()
 
-	f, err := os.Open(meta.File)
+	m, err := meta.Open()
 
 	if err != nil {
 		util.Error("failed to open meta file", err)
-	}
-
-	defer f.Close()
-
-	m, err := meta.Decode(f)
-
-	if err != nil {
-		util.Error("failed to read meta file", err)
 	}
 
 	for k, v := range m.Remotes {
@@ -62,35 +53,19 @@ func RemoteSet(c cli.Command) {
 		util.Error("missing remote target", nil)
 	}
 
-	f, err := os.OpenFile(meta.File, os.O_RDWR, os.ModePerm)
-
-	if err != nil {
-		util.Error("failed to open meta file", err)
-	}
-
-	defer f.Close()
-
-	m, err := meta.Decode(f)
-
-	if err != nil {
-		util.Error("failed to read meta file", err)
-	}
-
-	if err := f.Truncate(0); err != nil {
-		util.Error("failed to truncate meta file", err)
-	}
-
-	_, err = f.Seek(0, io.SeekStart)
-
-	if err != nil {
-		util.Error("failed to seek beginning of meta file", err)
-	}
-
 	port, err := c.Flags.GetInt("port")
 
 	if err != nil {
 		util.Error("failed to get port number from flag", err)
 	}
+
+	m, err := meta.Open()
+
+	if err != nil {
+		util.Error("failed to open meta file", err)
+	}
+
+	defer m.Close()
 
 	r := meta.Remote{
 		Target: target,
@@ -107,8 +82,8 @@ func RemoteSet(c cli.Command) {
 		m.Default = alias
 	}
 
-	if err := m.Encode(f); err != nil {
-		util.Error("failed to write meta file", err)
+	if err := m.Save(); err != nil {
+		util.Error("faild to save meta file", err)
 	}
 }
 
@@ -118,29 +93,13 @@ func RemoteRm(c cli.Command) {
 		return
 	}
 
-	f, err := os.OpenFile(meta.File, os.O_RDWR, os.ModePerm)
+	m, err := meta.Open()
 
 	if err != nil {
 		util.Error("failed to open meta file", err)
 	}
 
-	defer f.Close()
-
-	m, err := meta.Decode(f)
-
-	if err != nil {
-		util.Error("failed to read meta file", err)
-	}
-
-	if err := f.Truncate(0); err != nil {
-		util.Error("failed to truncate meta file", err)
-	}
-
-	_, err = f.Seek(0, io.SeekStart)
-
-	if err != nil {
-		util.Error("failed to seek beginning of meta file", err)
-	}
+	defer m.Close()
 
 	code := 0
 
@@ -162,8 +121,8 @@ func RemoteRm(c cli.Command) {
 		delete(m.Remotes, alias)
 	}
 
-	if err := m.Encode(f); err != nil {
-		util.Error("failed to write meta file", err)
+	if err := m.Save(); err != nil {
+		util.Error("faild to save meta file", err)
 	}
 
 	os.Exit(code)
