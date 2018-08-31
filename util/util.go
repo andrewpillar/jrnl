@@ -118,7 +118,7 @@ func Error(msg string, err error) {
 	fmt.Fprintf(os.Stderr, "jrnl: %s\n", msg)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "  %s\n", err)
+		fmt.Fprintf(os.Stderr, "      %s\n", err)
 	}
 
 	os.Exit(1)
