@@ -19,6 +19,8 @@ var (
 
 	AssetsDir string
 
+	ThemesDir string
+
 	Dirs []string
 
 	IndexLayout = "index.html"
@@ -53,7 +55,11 @@ var (
 )
 
 type Meta struct {
+	f *os.File `yaml:"-"`
+
 	Title string
+
+	Theme string
 
 	Default string
 
@@ -68,10 +74,34 @@ type Remote struct {
 	Identity string
 }
 
-func Decode(r io.Reader) (*Meta, error) {
-	m := &Meta{}
+func Init(dir string) (*Meta, error) {
+	f, err := os.OpenFile(filepath.Join(dir, File), os.O_CREATE|os.O_RDWR, 0660)
 
-	dec := yaml.NewDecoder(r)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	m := &Meta{f: f}
+
+	if err := m.Save(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func Open() (*Meta, error) {
+	f, err := os.OpenFile(File, os.O_RDWR, 0660)
+
+	if err != nil {
+		return nil, err
+	}
+
+	m := &Meta{f: f}
+
+	dec := yaml.NewDecoder(f)
 
 	if err := dec.Decode(m); err != nil {
 		return nil, err
@@ -80,28 +110,34 @@ func Decode(r io.Reader) (*Meta, error) {
 	return m, nil
 }
 
-func Init(dir string) (*Meta, error) {
-	fname := filepath.Join(dir, File)
-
-	f, err := os.OpenFile(fname, os.O_CREATE, os.ModePerm)
+func (m *Meta) Save() error {
+	info, err := m.f.Stat()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	defer f.Close()
+	if info.Size() > 0 {
+		if err := m.f.Truncate(0); err != nil {
+			return err
+		}
+	}
 
-	return &Meta{}, nil
-}
+	if _, err := m.f.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
 
-func (m *Meta) Encode(w io.Writer) error {
-	enc := yaml.NewEncoder(w)
+	enc := yaml.NewEncoder(m.f)
 
 	if err := enc.Encode(m); err != nil {
 		return err
 	}
 
-	defer enc.Close()
+	enc.Close()
 
 	return nil
+}
+
+func (m *Meta) Close() error {
+	return m.f.Close()
 }
