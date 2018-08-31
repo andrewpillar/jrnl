@@ -34,7 +34,24 @@ func themeWalk(path string, info os.FileInfo, err error) error {
 func Theme(c cli.Command) {
 	if c.Flags.IsSet("help") {
 		fmt.Println(usage.Theme)
+		return
 	}
+
+	mustBeInitialized()
+
+	m, err := meta.Open()
+	m.Close()
+
+	if err != nil {
+		util.Error("failed to open meta file", err)
+	}
+
+	if m.Theme == "" {
+		fmt.Println("no theme being used")
+		return
+	}
+
+	fmt.Println("current theme: " + m.Theme)
 }
 
 func ThemeLs(c cli.Command) {
@@ -50,21 +67,33 @@ func ThemeLs(c cli.Command) {
 }
 
 func ThemeSave(c cli.Command) {
-	if c.Flags.IsSet("help") || len(c.Args) != 1 {
+	if c.Flags.IsSet("help") {
 		fmt.Println(usage.ThemeSave)
 		return
 	}
 
 	mustBeInitialized()
 
+	m, err := meta.Open()
+
+	if err != nil {
+		util.Error("failed to open meta file", err)
+	}
+
+	defer m.Close()
+
 	assetsDir := strings.TrimPrefix(
 		strings.Replace(meta.AssetsDir, meta.SiteDir, "", -1),
 		string(os.PathSeparator),
 	)
 
-	theme := slugify.Slugify(c.Args.Get(0))
+	m.Theme = slugify.Slugify(c.Args.Get(0))
 
-	path := filepath.Join(meta.ThemesDir, theme)
+	if m.Theme == "" {
+		util.Error("no theme specified", nil)
+	}
+
+	path := filepath.Join(meta.ThemesDir, m.Theme)
 
 	tmp := filepath.Join(path, assetsDir)
 
@@ -97,6 +126,12 @@ func ThemeSave(c cli.Command) {
 	if err := os.RemoveAll(path); err != nil {
 		util.Error("failed to remove dir", err)
 	}
+
+	if err := m.Save(); err != nil {
+		util.Error("failed to save meta file", err)
+	}
+
+	fmt.Println("saved theme: " + m.Theme)
 }
 
 func ThemeUse(c cli.Command) {
@@ -107,11 +142,19 @@ func ThemeUse(c cli.Command) {
 
 	mustBeInitialized()
 
-	theme := slugify.Slugify(c.Args.Get(0))
+	m, err := meta.Open()
 
-	path := filepath.Join(meta.ThemesDir, theme + ".tar.gz")
+	if err != nil {
+		util.Error("failed to open meta file", err)
+	}
 
-	_, err := os.Stat(path)
+	defer m.Close()
+
+	m.Theme = slugify.Slugify(c.Args.Get(0))
+
+	path := filepath.Join(meta.ThemesDir, m.Theme + ".tar.gz")
+
+	_, err = os.Stat(path)
 
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -149,6 +192,12 @@ func ThemeUse(c cli.Command) {
 	if err := util.Copy(tmp, meta.LayoutsDir); err != nil {
 		util.Error("failed to copy dir", err)
 	}
+
+	if err = m.Save(); err != nil {
+		util.Error("failed to save meta file", err)
+	}
+
+	fmt.Println("using theme: " + m.Theme)
 }
 
 func ThemeRm(c cli.Command) {

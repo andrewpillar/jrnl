@@ -389,19 +389,13 @@ func Publish(c cli.Command) {
 
 	mustBeInitialized()
 
-	f, err := os.Open(meta.File)
+	m, err := meta.Open()
 
 	if err != nil {
 		util.Error("failed to open meta file", err)
 	}
 
-	defer f.Close()
-
-	m, err := meta.Decode(f)
-
-	if err != nil {
-		util.Error("failed to read meta file", err)
-	}
+	m.Close()
 
 	journalTitle = m.Title
 

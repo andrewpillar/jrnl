@@ -97,19 +97,7 @@ func Initialize(c cli.Command) {
 		util.Error("failed to create meta file", err)
 	}
 
-	fname := filepath.Join(target, meta.File)
-
-	f, err := os.OpenFile(fname, os.O_RDWR, os.ModePerm)
-
-	if err != nil {
-		util.Error("failed to open meta file", err)
-	}
-
-	defer f.Close()
-
-	if err := m.Encode(f); err != nil {
-		util.Error("failed to write to meta file", err)
-	}
+	m.Close()
 
 	fmt.Println("journal initialize, set the title with 'jrnl title'")
 }
