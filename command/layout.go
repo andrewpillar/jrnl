@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/andrewpillar/cli"
@@ -31,8 +32,20 @@ func LayoutLs(c cli.Command) {
 
 	mustBeInitialized()
 
+	layouts := make([]string, len(meta.Layouts), len(meta.Layouts))
+
+	i := 0
+
 	for l := range meta.Layouts {
-		fmt.Println(strings.Split(l, ".")[0])
+		layouts[i] = strings.Split(l,".")[0]
+
+		i++
+	}
+
+	sort.Strings(layouts)
+
+	for _, l := range layouts {
+		fmt.Println(l)
 	}
 }
 
