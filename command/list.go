@@ -8,6 +8,7 @@ import (
 
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/usage"
+	"github.com/andrewpillar/jrnl/util"
 )
 
 func List(c cli.Command) {
@@ -18,9 +19,11 @@ func List(c cli.Command) {
 
 	mustBeInitialized()
 
-	r := post.NewResolver()
+	posts, err := post.ResolvePosts()
 
-	posts := r.Resolve()
+	if err != nil {
+		util.Error("failed to resolve posts", err)
+	}
 
 	category := strings.Replace(c.Flags.GetString("category"), "/", " ", -1)
 

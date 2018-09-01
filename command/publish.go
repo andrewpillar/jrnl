@@ -399,9 +399,11 @@ func Publish(c cli.Command) {
 
 	journalTitle = m.Title
 
-	r := post.NewResolver()
+	posts, err := post.ResolvePosts()
 
-	posts := r.Resolve()
+	if err != nil {
+		util.Error("failed to resolve posts", err)
+	}
 
 	errs := make(chan error)
 
