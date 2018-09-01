@@ -315,7 +315,7 @@ func writeIndex(
 	}
 
 	if categoryDate {
-		category := util.Deslug(strings.Join(parts[1:len(parts) - timeIndex], " / "))
+		category := util.Deslug(strings.Join(parts[1:len(parts) - timeIndex], " "), " / ")
 
 		t, err := time.Parse(
 			timeFormat,
@@ -348,7 +348,7 @@ func writeIndex(
 	}
 
 	if categoryRegex.Match(pattern) {
-		category := strings.Join(parts[1:], " / ")
+		category := util.Deslug(strings.Join(parts[1:], " "), " / ")
 
 		layout = filepath.Join(meta.LayoutsDir, meta.CategoryIndexLayout)
 
