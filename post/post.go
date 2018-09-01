@@ -80,20 +80,13 @@ func Find(id string) (*Post, error) {
 	}
 
 	parts := strings.Split(sourcePath, string(os.PathSeparator))
-	categoryParts := []string{}
 
-	category := bytes.Buffer{}
+	categoryParts := []string{}
+	category := ""
 
 	if len(parts) >= 3 {
 		categoryParts = parts[1:len(parts) - 1]
-
-		for i, p := range categoryParts {
-			category.WriteString(util.Deslug(p))
-
-			if i != len(categoryParts) - 1 {
-				category.WriteString(" ")
-			}
-		}
+		category = util.Deslug(strings.Join(categoryParts, " "), " / ")
 	}
 
 	titleSlug := []rune(filepath.Base(sourcePath))
@@ -107,7 +100,7 @@ func Find(id string) (*Post, error) {
 	createdAtSlug := []rune(createdAt.Format(dateSlug))
 
 	title := util.Deslug(
-		string(titleSlug[len(dateSlug) + 1:len(titleSlug) - 3]),
+		string(titleSlug[len(dateSlug) + 1:len(titleSlug) - 3]), " ",
 	)
 
 	sitePath := filepath.Join(
@@ -120,7 +113,7 @@ func Find(id string) (*Post, error) {
 
 	return &Post{
 		ID:         id,
-		Category:   category.String(),
+		Category:   category,
 		Title:      title,
 		SourcePath: sourcePath,
 		SitePath:   sitePath,
