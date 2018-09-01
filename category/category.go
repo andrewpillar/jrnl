@@ -84,3 +84,7 @@ func ResolveCategories() ([]Category, error) {
 
 	return categories, err
 }
+
+func (c Category) Href() string {
+	return "/" + c.ID
+}
