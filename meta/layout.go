@@ -144,7 +144,11 @@ var (
 		<title>{{.Title}}</title>
 	</head>
 	<body>
-		<h1>{{.Post.Title}}</h1>
+		{{if .Post.HasCategory}}
+			<h1>{{.Post.Category}} - {{.Post.Title}}</h1>
+		{{else}}
+			<h1>{{.Post.Title}}</h1>
+		{{end}}
 		<div>{{.Post.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
 		<div>{{.Post.Body}}</div>
 	</body>

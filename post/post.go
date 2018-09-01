@@ -164,6 +164,10 @@ func (p *Post) Convert() {
 	p.Preview = string(preview)
 }
 
+func (p Post) HasCategory() bool {
+	return p.Category != ""
+}
+
 func (p Post) Href() string {
 	href := []rune(p.SitePath)
 
