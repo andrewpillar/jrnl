@@ -396,6 +396,14 @@ func writeIndexFile(layout, index string, data interface{}) error {
 	return nil
 }
 
+func publishToRemote(remote meta.Remote) {
+	if filepath.IsAbs(remote.Target) {
+		if err := util.Copy(meta.SiteDir, remote.Target); err != nil {
+			util.Error("failed to publish to " + remote.Target, err)
+		}
+	}
+}
+
 func Publish(c cli.Command) {
 	if c.Flags.IsSet("help") {
 		fmt.Println(usage.Publish)
@@ -448,6 +456,22 @@ func Publish(c cli.Command) {
 		code = 1
 
 		fmt.Fprintf(os.Stderr, "jrnl: %s\n", err)
+	}
+
+	if !c.Flags.IsSet("draft") {
+		alias := c.Flags.GetString("remote")
+
+		if alias == "" {
+			alias = m.Default
+		}
+
+		if alias == "" {
+			util.Error("missing remote", nil)
+		}
+
+		remote := m.Remotes[alias]
+
+		publishToRemote(remote)
 	}
 
 	os.Exit(code)
