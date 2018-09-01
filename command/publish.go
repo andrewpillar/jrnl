@@ -14,6 +14,7 @@ import (
 
 	"github.com/andrewpillar/cli"
 
+	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/usage"
@@ -23,7 +24,9 @@ import (
 var (
 	journalTitle string
 
-	postIndexes = make(map[string]*post.Store)
+	categories []category.Category
+
+	postIndexes = make(map[string][]post.Post)
 
 	yearPattern = "[_site]/[0-9]{4}"
 
@@ -54,11 +57,50 @@ var (
 	categoryRegex = regexp.MustCompile(categoryPattern)
 )
 
+func indexPost(p post.Post, wg *sync.WaitGroup, m *sync.Mutex) {
+	defer wg.Done()
+
+	parts := strings.Split(filepath.Dir(p.SitePath), string(os.PathSeparator))
+
+	for i := range parts {
+		path := filepath.Join(parts[:len(parts) - i - 1]...)
+
+		if path == "" {
+			continue
+		}
+
+		m.Lock()
+
+		_, ok := postIndexes[path]
+
+		if !ok {
+			postIndexes[path] = make([]post.Post, 0)
+		}
+
+		postIndexes[path] = append(postIndexes[path], p)
+
+		m.Unlock()
+	}
+}
+
+func indexPosts(posts <-chan post.Post) *sync.WaitGroup {
+	wg := &sync.WaitGroup{}
+	m := &sync.Mutex{}
+
+	for p := range posts {
+		wg.Add(1)
+
+		go indexPost(p, wg, m)
+	}
+
+	return wg
+}
+
 func publishPost(
-	p *post.Post,
+	p post.Post,
 	wg *sync.WaitGroup,
-	published chan *post.Post,
-	errs chan error,
+	published chan post.Post,
+	errs chan<- error,
 ) {
 	defer wg.Done()
 
@@ -93,9 +135,9 @@ func publishPost(
 	published <- p
 }
 
-func publishPosts(posts post.Store, errs chan error) chan *post.Post {
+func publishPosts(posts []post.Post, errs chan<- error) chan post.Post {
 	wg := &sync.WaitGroup{}
-	published := make(chan *post.Post)
+	published := make(chan post.Post)
 
 	for _, p := range posts {
 		wg.Add(1)
@@ -111,96 +153,11 @@ func publishPosts(posts post.Store, errs chan error) chan *post.Post {
 	return published
 }
 
-func indexPost(p *post.Post, wg *sync.WaitGroup, m *sync.Mutex) {
-	defer wg.Done()
-
-	parts := strings.Split(filepath.Dir(p.SitePath), string(os.PathSeparator))
-
-	for i := range parts {
-		path := filepath.Join(parts[:len(parts) - i - 1]...)
-
-		if path == "" {
-			continue
-		}
-
-		m.Lock()
-
-		_, ok := postIndexes[path]
-
-		if !ok {
-			s := post.NewStore()
-
-			postIndexes[path] = &s
-		}
-
-		postIndexes[path].Put(p)
-
-		m.Unlock()
-	}
-}
-
-func indexPosts(posts chan *post.Post) *sync.WaitGroup {
-	wg := &sync.WaitGroup{}
-	m := &sync.Mutex{}
-
-	for p := range posts {
-		wg.Add(1)
-
-		go indexPost(p, wg, m)
-	}
-
-	return wg
-}
-
-func writeIndexFile(layout, index string, data interface{}) error {
-	if layout == "" {
-		return errors.New("no layout for index " + index)
-	}
-
-	if data == nil {
-		return errors.New("no data for index " + index)
-	}
-
-	flayout, err := os.Open(layout)
-
-	if err != nil {
-		return err
-	}
-
-	defer flayout.Close()
-
-	findex, err := os.OpenFile(index, os.O_TRUNC|os.O_CREATE|os.O_RDWR, 0660)
-
-	if err != nil {
-		return err
-	}
-
-	defer findex.Close()
-
-	b, err := ioutil.ReadAll(flayout)
-
-	if err != nil {
-		return err
-	}
-
-	t, err := template.New("index").Parse(string(b))
-
-	if err != nil {
-		return err
-	}
-
-	if err = t.Execute(findex, data); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func writeIndex(
 	dir string,
-	posts post.Store,
+	posts []post.Post,
 	wg *sync.WaitGroup,
-	errs chan error,
+	errs chan<- error,
 ) {
 	defer wg.Done()
 
@@ -209,15 +166,18 @@ func writeIndex(
 
 	var data interface{}
 
+	// The current directory we have is the top level _site directory.
 	if dir == meta.SiteDir {
 		layout = filepath.Join(meta.LayoutsDir, meta.IndexLayout)
 
 		data = struct{
-			Title string
-			Posts post.Store
+			Title      string
+			Posts      []post.Post
+			Categories []category.Category
 		}{
-			Title: journalTitle,
-			Posts: posts,
+			Title:      journalTitle,
+			Posts:      posts,
+			Categories: categories,
 		}
 
 		if err := writeIndexFile(layout, index, data); err != nil {
@@ -260,6 +220,8 @@ func writeIndex(
 		timeIndex = 1
 	}
 
+	// We aren't at a category directory, just an arbitrary date directory for
+	// posts which don't have a category.
 	if notCategory {
 		t, err := time.Parse(
 			timeFormat,
@@ -272,13 +234,15 @@ func writeIndex(
 		}
 
 		data = struct{
-			Title string
-			Time  time.Time
-			Posts post.Store
+			Title      string
+			Time       time.Time
+			Posts      []post.Post
+			Categories []category.Category
 		}{
-			Title: journalTitle,
-			Time:  t,
-			Posts: posts,
+			Title:      journalTitle,
+			Time:       t,
+			Posts:      posts,
+			Categories: categories,
 		}
 
 		if err = writeIndexFile(layout, index, data); err != nil {
@@ -314,8 +278,10 @@ func writeIndex(
 		timeIndex = 1
 	}
 
+	// We have a date directory for a category.
 	if categoryDate {
-		category := util.Deslug(strings.Join(parts[1:len(parts) - timeIndex], " "), " / ")
+		slug := strings.Join(parts[1:len(parts) - timeIndex], " ")
+		name := util.Deslug(slug, " / ")
 
 		t, err := time.Parse(
 			timeFormat,
@@ -328,15 +294,17 @@ func writeIndex(
 		}
 
 		data = struct{
-			Title    string
-			Category string
-			Time     time.Time
-			Posts    post.Store
+			Title      string
+			Category   string
+			Time       time.Time
+			Posts      []post.Post
+			Categories []category.Category
 		}{
-			Title:    journalTitle,
-			Category: category,
-			Time:     t,
-			Posts:    posts,
+			Title:      journalTitle,
+			Category:   name,
+			Time:       t,
+			Posts:      posts,
+			Categories: categories,
 		}
 
 		if err = writeIndexFile(layout, index, data); err != nil {
@@ -348,18 +316,21 @@ func writeIndex(
 	}
 
 	if categoryRegex.Match(pattern) {
-		category := util.Deslug(strings.Join(parts[1:], " "), " / ")
+		slug := strings.Join(parts[1:len(parts) - timeIndex], " ")
+		name := util.Deslug(slug, " / ")
 
 		layout = filepath.Join(meta.LayoutsDir, meta.CategoryIndexLayout)
 
 		data = struct{
-			Title    string
-			Category string
-			Posts    post.Store
+			Title      string
+			Category   string
+			Posts      []post.Post
+			Categories []category.Category
 		}{
-			Title:    journalTitle,
-			Category: category,
-			Posts:    posts,
+			Title:      journalTitle,
+			Category:   name,
+			Posts:      posts,
+			Categories: categories,
 		}
 
 		if err := writeIndexFile(layout, index, data); err != nil {
@@ -377,8 +348,52 @@ func writeIndexes(wg *sync.WaitGroup, errs chan error) {
 	for dir, posts := range postIndexes {
 		wg.Add(1)
 
-		go writeIndex(dir, *posts, wg, errs)
+		go writeIndex(dir, posts, wg, errs)
 	}
+}
+
+func writeIndexFile(layout, index string, data interface{}) error {
+	if layout == "" {
+		return errors.New("no layout for index " + index)
+	}
+
+	if data == nil {
+		return errors.New("no data for index " + index)
+	}
+
+	src, err := os.Open(layout)
+
+	if err != nil {
+		return err
+	}
+
+	defer src.Close()
+
+	dst, err := os.OpenFile(index, os.O_TRUNC|os.O_CREATE|os.O_RDWR, 0660)
+
+	if err != nil {
+		return err
+	}
+
+	defer dst.Close()
+
+	b, err := ioutil.ReadAll(src)
+
+	if err != nil {
+		return err
+	}
+
+	t, err := template.New("index").Parse(string(b))
+
+	if err != nil {
+		return err
+	}
+
+	if err = t.Execute(dst, data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func Publish(c cli.Command) {
@@ -398,6 +413,14 @@ func Publish(c cli.Command) {
 	m.Close()
 
 	journalTitle = m.Title
+
+	tmp, err := category.ResolveCategories()
+
+	if err != nil {
+		util.Error("failed to resolve categories", err)
+	}
+
+	categories = tmp
 
 	posts, err := post.ResolvePosts()
 

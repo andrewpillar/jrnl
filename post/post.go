@@ -37,7 +37,7 @@ type Post struct {
 	CreatedAt time.Time
 }
 
-func New(title, category string) *Post {
+func New(title, category string) Post {
 	createdAt := time.Now()
 
 	categorySlug := bytes.Buffer{}
@@ -61,7 +61,7 @@ func New(title, category string) *Post {
 		titleSlug + ".md",
 	)
 
-	return &Post{
+	return Post{
 		ID:         id,
 		Category:   category,
 		Title:      title,
@@ -70,13 +70,13 @@ func New(title, category string) *Post {
 	}
 }
 
-func Find(id string) (*Post, error) {
+func Find(id string) (Post, error) {
 	sourcePath := filepath.Join(meta.PostsDir, id + ".md")
 
 	_, err := os.Stat(sourcePath)
 
 	if err != nil {
-		return nil, err
+		return Post{}, err
 	}
 
 	parts := strings.Split(sourcePath, string(os.PathSeparator))
@@ -94,7 +94,7 @@ func Find(id string) (*Post, error) {
 	createdAt, err := time.Parse(dateSlug, string(titleSlug[:len(dateSlug)]))
 
 	if err != nil {
-		return nil, err
+		return Post{}, err
 	}
 
 	createdAtSlug := []rune(createdAt.Format(dateSlug))
@@ -111,7 +111,7 @@ func Find(id string) (*Post, error) {
 		"index.html",
 	)
 
-	return &Post{
+	return Post{
 		ID:         id,
 		Category:   category,
 		Title:      title,
@@ -119,6 +119,41 @@ func Find(id string) (*Post, error) {
 		SitePath:   sitePath,
 		CreatedAt:  createdAt,
 	}, nil
+}
+
+func ResolvePosts() ([]Post, error) {
+	posts := make([]Post, 0)
+
+	walk := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.Name() == meta.PostsDir || info.IsDir() {
+			return nil
+		}
+
+		id := strings.Replace(
+			path,
+			meta.PostsDir + string(os.PathSeparator),
+			"",
+			1,
+		)
+
+		p, err := Find(strings.Split(id, ".")[0])
+
+		if err != nil {
+			return err
+		}
+
+		posts = append(posts, p)
+
+		return nil
+	}
+
+	err := filepath.Walk(meta.PostsDir, walk)
+
+	return posts, err
 }
 
 func (p *Post) Convert() {
