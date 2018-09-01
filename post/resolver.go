@@ -8,35 +8,37 @@ import (
 	"github.com/andrewpillar/jrnl/meta"
 )
 
-type Resolver struct {
-	dir string
+func ResolvePosts() (Store, error) {
+	posts := NewStore()
 
-	posts Store
-}
+	walk := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 
-func NewResolver() *Resolver {
-	return &Resolver{
-		dir:   meta.PostsDir,
-		posts: NewStore(),
-	}
-}
+		if info.Name() == meta.PostsDir || info.IsDir() {
+			return nil
+		}
 
-func (r *Resolver) Resolve() Store {
-	filepath.Walk(r.dir, r.walk)
+		id := strings.Replace(
+			path,
+			meta.PostsDir + string(os.PathSeparator),
+			"",
+			1,
+		)
 
-	return r.posts
-}
+		p, err := Find(strings.Split(id, ".")[0])
 
-func (r *Resolver) walk(path string, info os.FileInfo, err error) error {
-	if info.Name() == r.dir || info.IsDir() {
+		if err != nil {
+			return err
+		}
+
+		posts.Put(p)
+
 		return nil
 	}
 
-	id := strings.Replace(path, r.dir + "/", "", 1)
+	err := filepath.Walk(meta.PostsDir, walk)
 
-	p, _ := Find(strings.Split(id, ".")[0])
-
-	r.posts.Put(p)
-
-	return nil
+	return posts, err
 }
