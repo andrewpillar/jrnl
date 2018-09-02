@@ -9,6 +9,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/util"
 
@@ -198,7 +199,11 @@ func (p *Post) Load() error {
 	return nil
 }
 
-func (p Post) Publish(title, layout string) error {
+func (p Post) Publish(
+	title string,
+	layout string,
+	categories []category.Category,
+) error {
 	dir := filepath.Dir(p.SitePath)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -224,11 +229,13 @@ func (p Post) Publish(title, layout string) error {
 	}
 
 	page := struct{
-		Title string
-		Post  Post
+		Title      string
+		Post       Post
+		Categories []category.Category
 	}{
-		Title: title,
-		Post:  p,
+		Title:      title,
+		Post:       p,
+		Categories: categories,
 	}
 
 	return t.Execute(f, page)
