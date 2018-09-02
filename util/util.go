@@ -81,28 +81,20 @@ func CopyFile(src, dst string, info os.FileInfo) error {
 	return err
 }
 
-func Deslug(s, sep string) string {
+func Deslug(str, sep string) string {
 	buf := bytes.Buffer{}
 
-	slugs := strings.Split(s, " ")
+	slugs := strings.Split(str, " ")
 
 	for i, s := range slugs {
-		parts := strings.Split(s, "-")
-
-		for j, p := range parts {
-			buf.WriteString(Ucfirst(p))
-
-			if j != len(parts) - 1 {
-				buf.WriteString(" ")
-			}
-		}
+		buf.WriteString(strings.Replace(s, "-", " ", -1))
 
 		if i != len(slugs) - 1 {
 			buf.WriteString(sep)
 		}
 	}
 
-	return buf.String()
+	return strings.Title(buf.String())
 }
 
 func DirEmpty(dir string) bool {
