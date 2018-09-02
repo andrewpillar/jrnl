@@ -83,19 +83,6 @@ func indexPost(p post.Post, wg *sync.WaitGroup, m *sync.Mutex) {
 	}
 }
 
-func indexPosts(posts <-chan post.Post) *sync.WaitGroup {
-	wg := &sync.WaitGroup{}
-	m := &sync.Mutex{}
-
-	for p := range posts {
-		wg.Add(1)
-
-		go indexPost(p, wg, m)
-	}
-
-	return wg
-}
-
 func publishPost(
 	p post.Post,
 	wg *sync.WaitGroup,
@@ -127,12 +114,10 @@ func publishPost(
 
 	p.Convert()
 
-	if err := p.Publish(journalTitle, string(b)); err != nil {
+	if err := p.Publish(journalTitle, string(b), categories); err != nil {
 		errs <- err
 		return
 	}
-
-	println("published post, now sending " + p.ID)
 
 	published <- p
 }
@@ -152,8 +137,8 @@ func publishPosts(posts []post.Post) (chan post.Post, chan error) {
 	go func() {
 		wg.Wait()
 
-		close(published)
 		close(errs)
+		close(published)
 	}()
 
 	return published, errs
@@ -456,13 +441,31 @@ func Publish(c cli.Command) {
 
 	published, errs := publishPosts(posts)
 
-	for err := range errs {
-		code = 1
+	wg := &sync.WaitGroup{}
+	mut := &sync.Mutex{}
 
-		fmt.Fprintf(os.Stderr, "jrnl: %s\n", err)
+	for {
+		select {
+			case err, ok := <-errs:
+				if !ok {
+					errs = nil
+				} else {
+					fmt.Fprintf(os.Stderr, "jrnl: %s\n", err)
+				}
+			case p, ok := <-published:
+				if !ok {
+					published = nil
+				} else {
+					wg.Add(1)
+
+					go indexPost(p, wg, mut)
+				}
+		}
+
+		if errs == nil && published == nil {
+			break
+		}
 	}
-
-	wg := indexPosts(published)
 
 	wg.Wait()
 
