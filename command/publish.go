@@ -474,7 +474,7 @@ func Publish(c cli.Command) {
 		fmt.Fprintf(os.Stderr, "jrnl: %s\n", err)
 	}
 
-	if !c.Flags.IsSet("draft") {
+	if !c.Flags.IsSet("draft") && code == 0 {
 		alias := c.Flags.GetString("remote")
 
 		if alias == "" {
