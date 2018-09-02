@@ -99,7 +99,7 @@ func indexPosts(posts <-chan post.Post) *sync.WaitGroup {
 func publishPost(
 	p post.Post,
 	wg *sync.WaitGroup,
-	published chan post.Post,
+	published chan<- post.Post,
 	errs chan<- error,
 ) {
 	defer wg.Done()
@@ -127,17 +127,21 @@ func publishPost(
 
 	p.Convert()
 
-	if err = p.Publish(journalTitle, string(b)); err != nil {
+	if err := p.Publish(journalTitle, string(b)); err != nil {
 		errs <- err
 		return
 	}
 
+	println("published post, now sending " + p.ID)
+
 	published <- p
 }
 
-func publishPosts(posts []post.Post, errs chan<- error) chan post.Post {
+func publishPosts(posts []post.Post) (chan post.Post, chan error) {
 	wg := &sync.WaitGroup{}
+
 	published := make(chan post.Post)
+	errs := make(chan error)
 
 	for _, p := range posts {
 		wg.Add(1)
@@ -147,10 +151,12 @@ func publishPosts(posts []post.Post, errs chan<- error) chan post.Post {
 
 	go func() {
 		wg.Wait()
+
 		close(published)
+		close(errs)
 	}()
 
-	return published
+	return published, errs
 }
 
 func writeIndex(
@@ -344,12 +350,22 @@ func writeIndex(
 	errs <- errors.New("could not match pattern to dir " + dir)
 }
 
-func writeIndexes(wg *sync.WaitGroup, errs chan error) {
+func writeIndexes(wg *sync.WaitGroup) chan error {
+	errs := make(chan error)
+
 	for dir, posts := range postIndexes {
 		wg.Add(1)
 
 		go writeIndex(dir, posts, wg, errs)
 	}
+
+	go func() {
+		wg.Wait()
+
+		close(errs)
+	}()
+
+	return errs
 }
 
 func writeIndexFile(layout, index string, data interface{}) error {
@@ -436,21 +452,21 @@ func Publish(c cli.Command) {
 		util.Error("failed to resolve posts", err)
 	}
 
-	errs := make(chan error)
+	code := 0
 
-	published := publishPosts(posts, errs)
+	published, errs := publishPosts(posts)
+
+	for err := range errs {
+		code = 1
+
+		fmt.Fprintf(os.Stderr, "jrnl: %s\n", err)
+	}
 
 	wg := indexPosts(published)
+
 	wg.Wait()
 
-	writeIndexes(wg, errs)
-
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	code := 0
+	errs = writeIndexes(wg)
 
 	for err := range errs {
 		code = 1
