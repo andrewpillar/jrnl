@@ -448,6 +448,7 @@ func Publish(c cli.Command) {
 		select {
 			case err, ok := <-errs:
 				if !ok {
+					code = 1
 					errs = nil
 				} else {
 					fmt.Fprintf(os.Stderr, "jrnl: %s\n", err)
