@@ -8,6 +8,7 @@ var (
 		<title>{{.Title}}</title>
 	</head>
 	<body>
+		<h1>{{.Title}}</h1>
 		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
@@ -26,8 +27,8 @@ var (
 		<title>Posts from {{.Time.Format "Mon 2 Jan 2006"}} - {{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<h1>Posts from {{.Time.Format "Mon 2 Jan 2006"}}</h1>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -45,8 +46,8 @@ var (
 		<title>Posts from {{.Time.Format "Jan 2006"}} - {{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<h1>Posts from {{.Time.Format "Jan 2006"}}</h1>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -64,8 +65,8 @@ var (
 		<title>Posts from {{.Time.Format "2006"}} - {{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<h1>Posts from {{.Time.Format "2006"}}</h1>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -83,8 +84,8 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<h1>{{.Category}}</h1>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -102,8 +103,8 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<h1>{{.Category}} - Posts from {{.Time.Format "Mon 2 Jan 2006"}}</h1>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -121,8 +122,8 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<h1>{{.Category}} - Posts from {{.Time.Format "Jan 2006"}}</h1>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -140,8 +141,8 @@ var (
 		<title>{{.Category}} - {{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<h1>{{.Category}} - Posts from {{.Time.Format "2006"}}</h1>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -159,12 +160,12 @@ var (
 		<title>{{.Title}}</title>
 	</head>
 	<body>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		{{if .Post.HasCategory}}
 			<h1>{{.Post.Category}} - {{.Post.Title}}</h1>
 		{{else}}
 			<h1>{{.Post.Title}}</h1>
 		{{end}}
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
 		<div>{{.Post.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
 		<div>{{.Post.Body}}</div>
 	</body>
