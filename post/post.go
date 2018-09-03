@@ -222,7 +222,12 @@ func (p Post) Publish(
 
 	defer f.Close()
 
-	t, err := template.New("post").Parse(layout)
+	funcs := template.FuncMap{
+		"printCategories":     category.PrintCategories,
+		"printHrefCategories": category.PrintHrefCategories,
+	}
+
+	t, err := template.New("post").Funcs(funcs).Parse(layout)
 
 	if err != nil {
 		return err

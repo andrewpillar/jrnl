@@ -384,7 +384,12 @@ func writeIndexFile(layout, index string, data interface{}) error {
 		return err
 	}
 
-	t, err := template.New("index").Parse(string(b))
+	funcs := template.FuncMap{
+		"printCategories":     category.PrintCategories,
+		"printHrefCategories": category.PrintHrefCategories,
+	}
+
+	t, err := template.New("index").Funcs(funcs).Parse(string(b))
 
 	if err != nil {
 		return err
