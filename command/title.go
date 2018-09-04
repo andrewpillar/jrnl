@@ -22,7 +22,19 @@ func Title(c cli.Command) {
 		util.Error("failed to open meta file", err)
 	}
 
-	m.Title = c.Args.Get(0)
+	title := c.Args.Get(0)
+
+	if title == "" {
+		if m.Title == "" {
+			fmt.Println("title not set, set the title with 'jrnl title'")
+			return
+		}
+
+		fmt.Println(m.Title)
+		return
+	}
+
+	m.Title = title
 
 	if err := m.Save(); err != nil {
 		util.Error("failed to save meta file", err)
