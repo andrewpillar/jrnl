@@ -207,4 +207,23 @@ func ThemeRm(c cli.Command) {
 	}
 
 	mustBeInitialized()
+
+	code := 0
+
+	for _, theme := range c.Args {
+		fname := filepath.Join(meta.ThemesDir, theme + ".tar.gz")
+
+		if err := os.Remove(fname); err != nil {
+			code = 1
+
+			fmt.Fprintf(
+				os.Stderr,
+				"jrnl: failed to remove theme %s: %s\n",
+				theme,
+				err,
+			)
+		}
+	}
+
+	os.Exit(code)
 }
