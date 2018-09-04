@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,10 @@ import (
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/usage"
 	"github.com/andrewpillar/jrnl/util"
+
+	"github.com/pkg/sftp"
+
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -402,11 +407,119 @@ func writeIndexFile(layout, index string, data interface{}) error {
 	return nil
 }
 
+func getHostKey(hostname string) (ssh.PublicKey, error) {
+	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+
+	var hostKey ssh.PublicKey
+
+	for s.Scan() {
+		fields := strings.Split(s.Text(), " ")
+
+		if len(fields) != 3 {
+			continue
+		}
+
+		if strings.Contains(fields[0], hostname) {
+			var err error
+
+			hostKey, _, _, _, err = ssh.ParseAuthorizedKey(s.Bytes())
+
+			if err != nil {
+				return nil, err
+			}
+
+			break
+		}
+	}
+
+	if hostKey == nil {
+		return nil, errors.New("no key for host " + hostname)
+	}
+
+	return hostKey, nil
+}
+
 func publishToRemote(remote meta.Remote) {
+	// Cheap way of checking for a local path over an SSH host.
 	if filepath.IsAbs(remote.Target) {
 		if err := util.Copy(meta.SiteDir, remote.Target); err != nil {
 			util.Error("failed to publish to " + remote.Target, err)
 		}
+	}
+
+	parts := strings.Split(remote.Target, "@")
+	index := 0
+
+	user := os.Getenv("USER")
+
+	if len(parts) > 1 {
+		user = parts[0]
+		index = 1
+	}
+
+	parts = strings.Split(parts[index], ":")
+
+	hostname := parts[0]
+	dir := parts[1]
+
+	addr := fmt.Sprintf("%s:%d", hostname, remote.Port)
+
+	if remote.Identity == "" {
+		remote.Identity = filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
+	}
+
+	key, err := ioutil.ReadFile(remote.Identity)
+
+	if err != nil {
+		util.Error("failed to get identity file", err)
+	}
+
+	signer, err := ssh.ParsePrivateKey(key)
+
+	if err != nil {
+		util.Error("failed to parse private key", err)
+	}
+
+	hostKey, err := getHostKey(hostname)
+
+	if err != nil {
+		util.Error("failed to find host key in known_hosts", err)
+	}
+
+	config := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.FixedHostKey(hostKey),
+	}
+
+	conn, err := ssh.Dial("tcp", addr, config)
+
+	if err != nil {
+		util.Error("failed to establish initial connection", err)
+	}
+
+	defer conn.Close()
+
+	scp, err := sftp.NewClient(conn)
+
+	if err != nil {
+		util.Error("failed to establish remote connection", err)
+	}
+
+	defer scp.Close()
+
+	if err := util.CopyToRemote(meta.SiteDir, dir, scp); err != nil {
+		util.Error("failed to copy to remote", err)
 	}
 }
 
@@ -453,9 +566,9 @@ func Publish(c cli.Command) {
 		select {
 			case err, ok := <-errs:
 				if !ok {
-					code = 1
 					errs = nil
 				} else {
+					code = 1
 					fmt.Fprintf(os.Stderr, "jrnl: %s\n", err)
 				}
 			case p, ok := <-published:
@@ -494,7 +607,11 @@ func Publish(c cli.Command) {
 			util.Error("missing remote", nil)
 		}
 
-		remote := m.Remotes[alias]
+		remote, ok := m.Remotes[alias]
+
+		if !ok {
+			util.Error("remote '" + alias + "' does not exist", nil)
+		}
 
 		publishToRemote(remote)
 	}
