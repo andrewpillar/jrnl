@@ -9,7 +9,7 @@ var (
 	</head>
 	<body>
 		<h1>{{.Title}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -28,7 +28,7 @@ var (
 	</head>
 	<body>
 		<h1>Posts from {{.Time.Format "Mon 2 Jan 2006"}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -47,7 +47,7 @@ var (
 	</head>
 	<body>
 		<h1>Posts from {{.Time.Format "Jan 2006"}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -66,7 +66,7 @@ var (
 	</head>
 	<body>
 		<h1>Posts from {{.Time.Format "2006"}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -85,7 +85,7 @@ var (
 	</head>
 	<body>
 		<h1>{{.Category}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -104,7 +104,7 @@ var (
 	</head>
 	<body>
 		<h1>{{.Category}} - Posts from {{.Time.Format "Mon 2 Jan 2006"}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -123,7 +123,7 @@ var (
 	</head>
 	<body>
 		<h1>{{.Category}} - Posts from {{.Time.Format "Jan 2006"}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
@@ -142,7 +142,7 @@ var (
 	</head>
 	<body>
 		<h1>{{.Category}} - Posts from {{.Time.Format "2006"}}</h1>
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		{{range $i, $p := .Posts}}
 			<div>
 				<a href="{{$p.Href}}">{{$p.Title}}</a>
