@@ -28,7 +28,12 @@ func rmPost(ids []string) {
 		p, err := post.Find(id)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "jrnl: failed to find post\n  %s\n", err)
+			fmt.Fprintf(
+				os.Stderr,
+				"jrnl: failed to find post %s: %v\n",
+				id,
+				err,
+			)
 
 			code = 1
 
@@ -36,7 +41,12 @@ func rmPost(ids []string) {
 		}
 
 		if err = p.Remove(); err != nil {
-			fmt.Fprintf(os.Stderr, "jrnl: failed to remove post\n  %s\n", err)
+			fmt.Fprintf(
+				os.Stderr,
+				"jrnl: failed to remove post %s: %v\n",
+				id,
+				err,
+			)
 
 			code = 1
 		}
