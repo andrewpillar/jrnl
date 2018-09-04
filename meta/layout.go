@@ -165,7 +165,7 @@ var (
 		{{else}}
 			<h1>{{.Post.Title}}</h1>
 		{{end}}
-		<ul>{{printHrefCategories .Categories "li" "ul"}}</li>
+		<ul>{{printHrefCategories .Categories "li" "ul"}}</ul>
 		<div>{{.Post.CreatedAt.Format "Mon 2 Jan 2006"}}</div>
 		<div>{{.Post.Body}}</div>
 	</body>
