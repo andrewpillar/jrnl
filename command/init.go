@@ -99,5 +99,5 @@ func Initialize(c cli.Command) {
 
 	m.Close()
 
-	fmt.Println("journal initialize, set the title with 'jrnl title'")
+	fmt.Println("journal initialized, set the title with 'jrnl title'")
 }
