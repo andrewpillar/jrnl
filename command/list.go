@@ -33,7 +33,7 @@ func List(c cli.Command) {
 			continue
 		}
 
-		if strings.ToLower(p.Category) == strings.ToLower(category) {
+		if strings.ToLower(p.Category.Name) == strings.ToLower(category) {
 			fmt.Println(p.ID)
 		}
 	}
