@@ -28,6 +28,24 @@ type Category struct {
 	Categories []Category
 }
 
+func Find(id string) (Category, error) {
+	sourcePath := filepath.Join(meta.PostsDir, id)
+
+	_, err := os.Stat(sourcePath)
+
+	if err != nil {
+		return Category{}, err
+	}
+
+	parts := strings.Split(id, string(os.PathSeparator))
+
+	return Category{
+		ID:         id,
+		Name:       util.Deslug(strings.Join(parts, " "), " / "),
+		Categories: make([]Category, 0),
+	}, err
+}
+
 func ResolveCategories() ([]Category, error) {
 	categories := make(map[string]*Category)
 
@@ -41,13 +59,12 @@ func ResolveCategories() ([]Category, error) {
 		}
 
 		parts := strings.Split(path, string(os.PathSeparator))
-
 		id := filepath.Join(parts[1:]...)
 
-		c := &Category{
-			ID:         id,
-			Name:       util.Deslug(strings.Join(parts[1:], " "), " / "),
-			Categories: make([]Category, 0),
+		c, err := Find(id)
+
+		if err != nil {
+			return err
 		}
 
 		if len(parts) > 2 {
@@ -61,12 +78,12 @@ func ResolveCategories() ([]Category, error) {
 
 			c.Name = util.Deslug(parts[len(parts) - 1], " / ")
 
-			parent.Categories = append(parent.Categories, *c)
+			parent.Categories = append(parent.Categories, c)
 
 			return nil
 		}
 
-		categories[id] = c
+		categories[id] = &c
 
 		return nil
 	}
