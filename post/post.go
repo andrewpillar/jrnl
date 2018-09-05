@@ -23,7 +23,7 @@ var dateSlug = "2006-01-02T15:04"
 type Post struct {
 	ID string
 
-	Category string
+	Category category.Category
 
 	Title string
 
@@ -64,7 +64,6 @@ func New(title, category string) Post {
 
 	return Post{
 		ID:         id,
-		Category:   category,
 		Title:      title,
 		SourcePath: sourcePath,
 		CreatedAt:  createdAt,
@@ -80,14 +79,24 @@ func Find(id string) (Post, error) {
 		return Post{}, err
 	}
 
-	parts := strings.Split(sourcePath, string(os.PathSeparator))
+	parts := strings.Split(id, string(os.PathSeparator))
 
 	categoryParts := []string{}
-	category := ""
+	categoryId := ""
 
-	if len(parts) >= 3 {
-		categoryParts = parts[1:len(parts) - 1]
-		category = util.Deslug(strings.Join(categoryParts, " "), " / ")
+	if len(parts) >= 2 {
+		categoryParts = parts[:len(parts) - 1]
+		categoryId = filepath.Join(categoryParts...)
+	}
+
+	postCategory := category.Category{}
+
+	if categoryId != "" {
+		postCategory, err = category.Find(categoryId)
+
+		if err != nil {
+			return Post{}, err
+		}
 	}
 
 	titleSlug := []rune(filepath.Base(sourcePath))
@@ -114,7 +123,7 @@ func Find(id string) (Post, error) {
 
 	return Post{
 		ID:         id,
-		Category:   category,
+		Category:   postCategory,
 		Title:      title,
 		SourcePath: sourcePath,
 		SitePath:   sitePath,
@@ -166,7 +175,7 @@ func (p *Post) Convert() {
 }
 
 func (p Post) HasCategory() bool {
-	return p.Category != ""
+	return p.Category.ID != "" && p.Category.Name != ""
 }
 
 func (p Post) Href() string {
