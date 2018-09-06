@@ -87,7 +87,11 @@ func ThemeSave(c cli.Command) {
 		string(os.PathSeparator),
 	)
 
-	m.Theme = slugify.Slugify(c.Args.Get(0))
+	theme := c.Args.Get(0)
+
+	if theme != "" {
+		m.Theme = slugify.Slugify(theme)
+	}
 
 	if m.Theme == "" {
 		util.Error("no theme specified", nil)
