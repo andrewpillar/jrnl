@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/mozillazg/go-slugify"
@@ -231,17 +231,6 @@ func (p Post) Publish(
 
 	defer f.Close()
 
-	funcs := template.FuncMap{
-		"printCategories":     category.PrintCategories,
-		"printHrefCategories": category.PrintHrefCategories,
-	}
-
-	t, err := template.New("post").Funcs(funcs).Parse(layout)
-
-	if err != nil {
-		return err
-	}
-
 	page := struct{
 		Title      string
 		Post       Post
@@ -250,6 +239,12 @@ func (p Post) Publish(
 		Title:      title,
 		Post:       p,
 		Categories: categories,
+	}
+
+	t, err := template.New("post", layout, page)
+
+	if err != nil {
+		return err
 	}
 
 	return t.Execute(f, page)
