@@ -17,6 +17,8 @@ var (
 
 	LayoutsDir string
 
+	PartialsDir string
+
 	AssetsDir string
 
 	ThemesDir string

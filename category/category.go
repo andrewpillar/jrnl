@@ -1,7 +1,6 @@
 package category
 
 import (
-	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
@@ -100,43 +99,6 @@ func ResolveCategories() ([]Category, error) {
 	}
 
 	return ret, err
-}
-
-func PrintCategories(categories []Category, item, nested string) string {
-	buf := bytes.Buffer{}
-
-	for _, c := range categories {
-		buf.WriteString("<" + item + ">" + c.Name)
-
-		if len(c.Categories) > 0 {
-			buf.WriteString("<" + nested + ">")
-			buf.WriteString(PrintCategories(c.Categories, item, nested))
-			buf.WriteString("</" + nested + ">")
-		}
-
-		buf.WriteString("</" + item + ">")
-	}
-
-	return buf.String()
-}
-
-func PrintHrefCategories(categories []Category, item, nested string) string {
-	buf := bytes.Buffer{}
-
-	for _, c := range categories {
-		link := "<a href=\"" + c.Href() + "\">" + c.Name + "</a>"
-		buf.WriteString("<" + item + ">" + link)
-
-		if len(c.Categories) > 0 {
-			buf.WriteString("<" + nested + ">")
-			buf.WriteString(PrintHrefCategories(c.Categories, item, nested))
-			buf.WriteString("</" + nested + ">")
-		}
-
-		buf.WriteString("</" + item + ">")
-	}
-
-	return buf.String()
 }
 
 func (c Category) Href() string {

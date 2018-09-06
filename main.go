@@ -15,6 +15,7 @@ func main() {
 	meta.PostsDir = "_posts"
 	meta.SiteDir = "_site"
 	meta.LayoutsDir = "_layouts"
+	meta.PartialsDir = filepath.Join(meta.LayoutsDir, "partials")
 	meta.AssetsDir = filepath.Join(meta.SiteDir, "assets")
 	meta.ThemesDir = "_themes"
 
@@ -22,6 +23,7 @@ func main() {
 		meta.PostsDir,
 		meta.SiteDir,
 		meta.LayoutsDir,
+		meta.PartialsDir,
 		meta.AssetsDir,
 		meta.ThemesDir,
 	}

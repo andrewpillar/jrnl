@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/andrewpillar/cli"
@@ -18,6 +17,7 @@ import (
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/post"
+	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/usage"
 	"github.com/andrewpillar/jrnl/util"
 
@@ -367,13 +367,11 @@ func writeIndexFile(layout, index string, data interface{}) error {
 		return errors.New("no data for index " + index)
 	}
 
-	src, err := os.Open(layout)
+	b, err := ioutil.ReadFile(layout)
 
 	if err != nil {
 		return err
 	}
-
-	defer src.Close()
 
 	dst, err := os.OpenFile(index, os.O_TRUNC|os.O_CREATE|os.O_RDWR, 0660)
 
@@ -383,18 +381,7 @@ func writeIndexFile(layout, index string, data interface{}) error {
 
 	defer dst.Close()
 
-	b, err := ioutil.ReadAll(src)
-
-	if err != nil {
-		return err
-	}
-
-	funcs := template.FuncMap{
-		"printCategories":     category.PrintCategories,
-		"printHrefCategories": category.PrintHrefCategories,
-	}
-
-	t, err := template.New("index").Funcs(funcs).Parse(string(b))
+	t, err := template.New(index, string(b), data)
 
 	if err != nil {
 		return err
