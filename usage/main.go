@@ -10,12 +10,10 @@ Commands:
 
   init     Initialize a new journal
   title    Set the journal's title
-  layout   Modify a layout file
   post     Create a post
   edit     Edit a post
   rm       Remove a post
   remote   Modify a remote
-  asset    Modify the journal's assets
   publish  Publish the journal's posts
   theme    Manage the journal's themes
 

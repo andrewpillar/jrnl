@@ -38,11 +38,6 @@ func main() {
 	c.Command("init", command.Initialize)
 	c.Command("title", command.Title)
 
-	layoutCmd := c.Command("layout", command.Layout)
-
-	layoutCmd.Command("ls", command.LayoutLs)
-	layoutCmd.Command("edit", command.LayoutEdit)
-
 	postCmd := c.Command("post", command.Post)
 
 	postCmd.AddFlag(&cli.Flag{
@@ -83,7 +78,7 @@ func main() {
 		Short:    "-p",
 		Long:     "--port",
 		Argument: true,
-		Default:  int64(22),
+		Default:  22,
 	})
 
 	remoteSetCmd.AddFlag(&cli.Flag{
@@ -95,31 +90,6 @@ func main() {
 	})
 
 	remoteCmd.Command("rm", command.RemoteRm)
-
-	assetCmd := c.Command("asset", command.Asset)
-
-	assetCmd.Command("ls", command.AssetLs)
-
-	assetAddCmd := assetCmd.Command("add", command.AssetAdd)
-
-	assetAddCmd.AddFlag(&cli.Flag{
-		Name:     "file",
-		Short:    "-f",
-		Long:     "--file",
-		Argument: true,
-		Default:  "",
-	})
-
-	assetAddCmd.AddFlag(&cli.Flag{
-		Name:     "dir",
-		Short:    "-d",
-		Long:     "--dir",
-		Argument: true,
-		Default:  "",
-	})
-
-	assetCmd.Command("edit", command.AssetEdit)
-	assetCmd.Command("rm", command.AssetRm)
 
 	publishCmd := c.Command("publish", command.Publish)
 
