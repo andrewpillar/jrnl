@@ -3,41 +3,30 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/command"
-	"github.com/andrewpillar/jrnl/meta"
 )
 
 func main() {
-	meta.PostsDir = "_posts"
-	meta.SiteDir = "_site"
-	meta.LayoutsDir = "_layouts"
-	meta.PartialsDir = filepath.Join(meta.LayoutsDir, "partials")
-	meta.AssetsDir = filepath.Join(meta.SiteDir, "assets")
-	meta.ThemesDir = "_themes"
-
-	meta.Dirs = []string{
-		meta.PostsDir,
-		meta.SiteDir,
-		meta.LayoutsDir,
-		meta.PartialsDir,
-		meta.AssetsDir,
-		meta.ThemesDir,
-	}
-
 	c := cli.New()
 
-	c.Main(command.Main)
-
 	c.AddFlag(&cli.Flag{
-		Name: "help",
-		Long: "--help",
+		Name:      "help",
+		Long:      "--help",
+		Exclusive: true,
+		Handler:   func(f cli.Flag, c cli.Command) {
+			if c.Name == "" {
+				fmt.Println("main usage")
+				return
+			}
+		},
 	})
 
-	c.Command("init", command.Initialize)
+	c.Main(nil)
+
+	c.Command("init", command.Init)
 	c.Command("title", command.Title)
 
 	postCmd := c.Command("post", command.Post)
@@ -50,12 +39,12 @@ func main() {
 		Default:  "",
 	})
 
-	c.Command("edit", command.ChangePost)
-	c.Command("rm", command.ChangePost)
+	c.Command("edit", command.Edit)
+	c.Command("rm", command.Rm)
 
-	listCmd := c.Command("ls", command.List)
+	lsCmd := c.Command("ls", command.Ls)
 
-	listCmd.AddFlag(&cli.Flag{
+	lsCmd.AddFlag(&cli.Flag{
 		Name:     "category",
 		Short:    "-c",
 		Long:     "--category",
@@ -63,9 +52,21 @@ func main() {
 		Default:  "",
 	})
 
-	remoteCmd := c.Command("remote", command.Remote)
+	lsCmd.AddFlag(&cli.Flag{
+		Name:  "verbose",
+		Short: "-v",
+		Long:  "--verbose",
+	})
 
-	remoteCmd.Command("ls", command.RemoteLs)
+	remoteCmd := c.Command("remote", nil)
+
+	remoteLsCmd := remoteCmd.Command("ls", command.RemoteLs)
+
+	remoteLsCmd.AddFlag(&cli.Flag{
+		Name:  "verbose",
+		Short: "-v",
+		Long:  "--verbose",
+	})
 
 	remoteSetCmd := remoteCmd.Command("set", command.RemoteSet)
 
@@ -76,14 +77,6 @@ func main() {
 	})
 
 	remoteSetCmd.AddFlag(&cli.Flag{
-		Name:     "port",
-		Short:    "-p",
-		Long:     "--port",
-		Argument: true,
-		Default:  22,
-	})
-
-	remoteSetCmd.AddFlag(&cli.Flag{
 		Name:     "identity",
 		Short:    "-i",
 		Long:     "--identity",
@@ -91,12 +84,20 @@ func main() {
 		Default:  "",
 	})
 
+	remoteSetCmd.AddFlag(&cli.Flag{
+		Name:     "port",
+		Short:    "-p",
+		Long:     "--port",
+		Argument: true,
+		Default:  22,
+	})
+
 	remoteCmd.Command("rm", command.RemoteRm)
 
 	publishCmd := c.Command("publish", command.Publish)
 
 	publishCmd.AddFlag(&cli.Flag{
-		Name: "draft",
+		Name:  "draft",
 		Short: "-d",
 		Long:  "--draft",
 	})
