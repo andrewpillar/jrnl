@@ -9,61 +9,51 @@ import (
 )
 
 var (
-	File = "_meta.yml"
+	File = "_meta.yaml"
 
-	PostsDir string
+	PostsDir = "_posts"
 
-	SiteDir string
+	SiteDir = "_site"
 
-	LayoutsDir string
+	LayoutsDir = "_layouts"
 
-	PartialsDir string
+	ThemesDir = "_themes"
 
-	AssetsDir string
+	AssetsDir = filepath.Join(SiteDir, "assets")
 
-	ThemesDir string
-
-	Dirs []string
-
-	IndexLayout = "index.html"
-
-	DayIndexLayout = "day_index.html"
-
-	MonthIndexLayout = "month_index.html"
-
-	YearIndexLayout = "year_index.html"
-
-	CategoryIndexLayout = "category_index.html"
-
-	CategoryDayIndexLayout = "category_day_index.html"
-
-	CategoryMonthIndexLayout = "category_month_index.html"
-
-	CategoryYearIndexLayout = "category_year_index.html"
-
-	PostLayout = "post.html"
-
-	Layouts = map[string]string{
-		IndexLayout:              index,
-		DayIndexLayout:           dayIndex,
-		MonthIndexLayout:         monthIndex,
-		YearIndexLayout:          yearIndex,
-		CategoryIndexLayout:      categoryIndex,
-		CategoryDayIndexLayout:   categoryDayIndex,
-		CategoryMonthIndexLayout: categoryMonthIndex,
-		CategoryYearIndexLayout:  categoryYearIndex,
-		PostLayout:               post,
+	Dirs = []string{
+		PostsDir,
+		SiteDir,
+		LayoutsDir,
+		ThemesDir,
+		AssetsDir,
 	}
 )
 
 type Meta struct {
-	f *os.File `yaml:"-"`
+	*os.File `yaml:"-"`
 
 	Title string
+
+	Editor string
 
 	Theme string
 
 	Default string
+
+	IndexLayout string
+
+	DayIndexLayout string
+
+	MonthIndexLayout string
+
+	YearIndexLayout string
+
+	CategoryDayIndexLayout string
+
+	CategoryMonthIndexLayout string
+
+	CategoryYearIndexLayout string
 
 	Remotes map[string]Remote
 }
@@ -85,7 +75,10 @@ func Init(dir string) (*Meta, error) {
 
 	defer f.Close()
 
-	m := &Meta{f: f}
+	m := &Meta{
+		File:   f,
+		Editor: os.Getenv("EDITOR"),
+	}
 
 	if err := m.Save(); err != nil {
 		return nil, err
@@ -101,9 +94,9 @@ func Open() (*Meta, error) {
 		return nil, err
 	}
 
-	m := &Meta{f: f}
+	m := &Meta{File: f}
 
-	dec := yaml.NewDecoder(f)
+	dec := yaml.NewDecoder(m)
 
 	if err := dec.Decode(m); err != nil {
 		return nil, err
@@ -113,23 +106,23 @@ func Open() (*Meta, error) {
 }
 
 func (m *Meta) Save() error {
-	info, err := m.f.Stat()
+	info, err := m.Stat()
 
 	if err != nil {
 		return err
 	}
 
 	if info.Size() > 0 {
-		if err := m.f.Truncate(0); err != nil {
+		if err := m.Truncate(0); err != nil {
 			return err
 		}
 	}
 
-	if _, err := m.f.Seek(0, io.SeekStart); err != nil {
+	if _, err := m.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 
-	enc := yaml.NewEncoder(m.f)
+	enc := yaml.NewEncoder(m)
 
 	if err := enc.Encode(m); err != nil {
 		return err
@@ -138,8 +131,4 @@ func (m *Meta) Save() error {
 	enc.Close()
 
 	return nil
-}
-
-func (m *Meta) Close() error {
-	return m.f.Close()
 }
