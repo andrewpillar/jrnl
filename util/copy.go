@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -99,14 +98,14 @@ func CopyToRemoteDir(
 ) error {
 	if dst != "" {
 		if err := conn.MkdirAll(dst); err != nil {
-			return fmt.Errorf("mkdirall: %s", err)
+			return err
 		}
 	}
 
 	files, err := ioutil.ReadDir(src)
 
 	if err != nil {
-		return fmt.Errorf("readdir: %s", err)
+		return err
 	}
 
 	for _, f := range files {
@@ -130,13 +129,13 @@ func CopyToRemoteFile(
 	dir := filepath.Dir(dst)
 
 	if err := conn.MkdirAll(dir); err != nil {
-		return fmt.Errorf("failed to create dir %s: %v", dir, err)
+		return err
 	}
 
 	fdst, err := conn.Create(dst)
 
 	if err != nil {
-		return fmt.Errorf("failed to create %s: %v", dst, err)
+		return err
 	}
 
 	defer fdst.Close()
@@ -144,7 +143,7 @@ func CopyToRemoteFile(
 	fsrc, err := os.Open(src)
 
 	if err != nil {
-		return fmt.Errorf("failed to open %s: %v", src, err)
+		return err
 	}
 
 	defer fsrc.Close()
@@ -152,7 +151,7 @@ func CopyToRemoteFile(
 	_, err = io.Copy(fdst, fsrc)
 
 	if err != nil {
-		return fmt.Errorf("failed to copy from %s to %s: %v", src, dst, err)
+		return err
 	}
 
 	return nil
