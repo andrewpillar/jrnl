@@ -2,23 +2,46 @@ package post
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
-	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/util"
 
-	"github.com/mozillazg/go-slugify"
-
+	"gopkg.in/yaml.v2"
 	"gopkg.in/russross/blackfriday.v2"
 )
 
-var dateSlug = "2006-01-02T15:04"
+var (
+	DateLayout = "2006-01-02T15:04"
+
+	frontMatterFmt = `---
+title: %s
+index: true
+createdAt: %s
+updatedAt: %s
+---`
+)
+
+type frontMatter struct {
+	Title string
+
+	Layout string
+
+	Index bool
+
+	CreatedAt string `yaml:"createdAt"`
+
+	UpdatedAt string `yaml:"updatedAt"`
+}
 
 type Post struct {
 	ID string
@@ -26,6 +49,10 @@ type Post struct {
 	Category category.Category
 
 	Title string
+
+	Layout string
+
+	Index bool
 
 	Preview string
 
@@ -36,38 +63,8 @@ type Post struct {
 	SitePath string
 
 	CreatedAt time.Time
-}
 
-func New(title, category string) Post {
-	createdAt := time.Now()
-
-	categorySlug := bytes.Buffer{}
-
-	parts := strings.Split(category, "/")
-
-	for i, p := range parts {
-		categorySlug.WriteString(slugify.Slugify(p))
-
-		if i != len(parts) - 1 {
-			categorySlug.WriteString(string(os.PathSeparator))
-		}
-	}
-
-	titleSlug := createdAt.Format(dateSlug) + "-" + slugify.Slugify(title)
-
-	id := filepath.Join(categorySlug.String(), titleSlug)
-	sourcePath := filepath.Join(
-		meta.PostsDir,
-		categorySlug.String(),
-		titleSlug + ".md",
-	)
-
-	return Post{
-		ID:         id,
-		Title:      title,
-		SourcePath: sourcePath,
-		CreatedAt:  createdAt,
-	}
+	UpdatedAt time.Time
 }
 
 func Find(id string) (Post, error) {
@@ -81,58 +78,115 @@ func Find(id string) (Post, error) {
 
 	parts := strings.Split(id, string(os.PathSeparator))
 
+	buf := bytes.Buffer{}
+
 	categoryParts := []string{}
 	categoryId := ""
 
 	if len(parts) >= 2 {
 		categoryParts = parts[:len(parts) - 1]
 		categoryId = filepath.Join(categoryParts...)
-	}
 
-	postCategory := category.Category{}
+		for i, p := range categoryParts {
+			buf.WriteString(p)
 
-	if categoryId != "" {
-		postCategory, err = category.Find(categoryId)
-
-		if err != nil {
-			return Post{}, err
+			if i != len(categoryParts) - 1 {
+				buf.WriteString(" / ")
+			}
 		}
 	}
 
-	titleSlug := []rune(filepath.Base(sourcePath))
+	categoryName := buf.String()
 
-	createdAt, err := time.Parse(dateSlug, string(titleSlug[:len(dateSlug)]))
+	f, err := os.Open(sourcePath)
 
 	if err != nil {
 		return Post{}, err
 	}
 
-	createdAtSlug := []rune(createdAt.Format(dateSlug))
+	defer f.Close()
 
-	title := util.Deslug(
-		string(titleSlug[len(dateSlug) + 1:len(titleSlug) - 3]), " ",
-	)
+	fm, err := unmarshalFrontMatter(f)
+
+	if err != nil {
+		return Post{}, err
+	}
+
+	createdAt, err := time.Parse(DateLayout, fm.CreatedAt)
+
+	if err != nil {
+		return Post{}, err
+	}
+
+	createdAtStr := string([]rune(fm.CreatedAt)[:10])
+
+	updatedAt, err := time.Parse(DateLayout, fm.UpdatedAt)
+
+	if err != nil {
+		return Post{}, err
+	}
 
 	sitePath := filepath.Join(
 		meta.SiteDir,
 		filepath.Join(categoryParts...),
-		filepath.Join(strings.Split(string(createdAtSlug[:10]), "-")...),
-		string(titleSlug[len(dateSlug) + 1:len(titleSlug) - 3]),
+		filepath.Join(strings.Split(createdAtStr, "-")...),
+		filepath.Base(id),
 		"index.html",
 	)
 
 	return Post{
 		ID:         id,
-		Category:   postCategory,
-		Title:      title,
+		Category:   category.Category{
+			ID:     categoryId,
+			Name:   categoryName,
+		},
+		Title:      fm.Title,
+		Layout:     fm.Layout,
+		Index:      fm.Index,
 		SourcePath: sourcePath,
 		SitePath:   sitePath,
 		CreatedAt:  createdAt,
+		UpdatedAt:  updatedAt,
 	}, nil
 }
 
+func New(title, categoryName string) Post {
+	date := time.Now()
+
+	buf := bytes.Buffer{}
+
+	parts := strings.Split(categoryName, "/")
+
+	for i, p := range parts {
+		buf.WriteString(util.Slug(p))
+
+		if i != len(parts) - 1 {
+			buf.WriteString(string(os.PathSeparator))
+		}
+	}
+
+	categoryId := buf.String()
+	titleSlug := util.Slug(title)
+
+	id := filepath.Join(categoryId, titleSlug)
+	sourcePath := filepath.Join(meta.PostsDir, categoryId, titleSlug + ".md")
+
+	return Post{
+		ID:         id,
+		Category:   category.Category{
+			ID:     categoryId,
+			Name:   categoryName,
+		},
+		Title:      title,
+		SourcePath: sourcePath,
+		CreatedAt:  date,
+		UpdatedAt:  date,
+	}
+}
+
 func ResolvePosts() ([]Post, error) {
-	posts := make([]Post, 0)
+	posts := make(map[string]Post)
+	order := make([]string, 0)
 
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -143,12 +197,8 @@ func ResolvePosts() ([]Post, error) {
 			return nil
 		}
 
-		id := strings.Replace(
-			path,
-			meta.PostsDir + string(os.PathSeparator),
-			"",
-			1,
-		)
+		root := meta.PostsDir + string(os.PathSeparator)
+		id := strings.Replace(path, root, "", 1)
 
 		p, err := Find(strings.Split(id, ".")[0])
 
@@ -156,36 +206,97 @@ func ResolvePosts() ([]Post, error) {
 			return err
 		}
 
-		posts = append(posts, p)
+		createdAt := p.CreatedAt.Format(DateLayout)
+
+		posts[createdAt] = p
+
+		order = append(order, createdAt)
 
 		return nil
 	}
 
 	err := filepath.Walk(meta.PostsDir, walk)
 
-	return posts, err
+	sort.Sort(sort.Reverse(sort.StringSlice(order)))
+
+	ret := make([]Post, len(posts), len(posts))
+
+	for i, key := range order {
+		ret[i] = posts[key]
+	}
+
+	return ret, err
+}
+
+func unmarshalFrontMatter(r io.Reader) (frontMatter, error) {
+	fm := frontMatter{}
+
+	buf := bytes.Buffer{}
+	tmp := make([]byte, 1)
+
+	bounds := 0
+
+	for {
+		_, err := r.Read(tmp)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			return fm, err
+		}
+
+		if bounds == 2 {
+			break
+		}
+
+		buf.Write(tmp)
+
+		for tmp[0] == '-' {
+			_, err = r.Read(tmp)
+
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+
+				return fm, err
+			}
+
+			buf.Write(tmp)
+
+			if tmp[0] == '\n' {
+				bounds++
+				break
+			}
+		}
+	}
+
+	dec := yaml.NewDecoder(&buf)
+
+	if err := dec.Decode(&fm); err != nil {
+		return fm, err
+	}
+
+	return fm, nil
 }
 
 func (p *Post) Convert() {
-	body := blackfriday.Run([]byte(p.Body))
-	preview := blackfriday.Run([]byte(p.Preview))
-
-	p.Body = string(body)
-	p.Preview = string(preview)
-}
-
-func (p Post) HasCategory() bool {
-	return p.Category.ID != "" && p.Category.Name != ""
-}
-
-func (p Post) Href() string {
-	href := []rune(p.SitePath)
-
-	return filepath.Dir(string(href[len(meta.SiteDir):]))
+	p.Body = string(blackfriday.Run([]byte(p.Body)))
+	p.Preview = string(blackfriday.Run([]byte(p.Preview)))
 }
 
 func (p *Post) Load() error {
 	f, err := os.Open(p.SourcePath)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	_, err = unmarshalFrontMatter(f)
 
 	if err != nil {
 		return err
@@ -198,7 +309,7 @@ func (p *Post) Load() error {
 	}
 
 	if len(b) > 2 {
-		i := bytes.Index(b, []byte("\n"))
+		i := bytes.IndexByte(b, '\n')
 
 		p.Preview = string(b[:i])
 	}
@@ -241,19 +352,29 @@ func (p Post) Publish(
 		Categories: categories,
 	}
 
-	t, err := template.New("post", layout, page)
-
-	if err != nil {
-		return err
+	if layout == "" {
+		return errors.New("no layout for post " + p.ID)
 	}
 
-	return t.Execute(f, page)
+	return util.RenderTemplate(f, "post-" + p.ID, layout, page)
 }
 
-func (p *Post) Remove() error {
+func (p Post) Remove() error {
 	if err := os.Remove(p.SourcePath); err != nil {
 		return err
 	}
 
 	return util.RemoveEmptyDirs(meta.PostsDir, filepath.Dir(p.SourcePath))
+}
+
+func (p Post) WriteFrontMatter(w io.Writer) error {
+	_, err := fmt.Fprintf(
+		w,
+		frontMatterFmt,
+		p.Title,
+		p.CreatedAt.Format(DateLayout),
+		p.UpdatedAt.Format(DateLayout),
+	)
+
+	return err
 }
