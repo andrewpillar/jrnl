@@ -1,30 +1,24 @@
 package util
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"text/template"
+
+	"github.com/andrewpillar/jrnl/meta"
 )
 
-func Deslug(str, sep string) string {
-	buf := bytes.Buffer{}
+var (
+	reslug = regexp.MustCompile("[^a-zA-Z0-9]")
 
-	slugs := strings.Split(str, " ")
-
-	for i, s := range slugs {
-		buf.WriteString(strings.Replace(s, "-", " ", -1))
-
-		if i != len(slugs) - 1 {
-			buf.WriteString(sep)
-		}
-	}
-
-	return strings.Title(buf.String())
-}
+	redup = regexp.MustCompile("-{2,}")
+)
 
 func DirEmpty(dir string) bool {
 	f, err := os.Open(dir)
@@ -44,18 +38,42 @@ func DirEmpty(dir string) bool {
 	return false
 }
 
-func Error(msg string, err error) {
-	fmt.Fprintf(os.Stderr, "jrnl: %s\n", msg)
+func Exit(msg string, err error) {
+	code := 0
+	w := os.Stdout
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "      %s\n", err)
+		code = 1
+		w = os.Stderr
 	}
 
-	os.Exit(1)
+	fmt.Fprintf(w, "%s: %s", os.Args[0], msg)
+
+	if err != nil {
+		fmt.Fprintf(w, ": %s", err)
+	}
+
+	fmt.Fprintf(w, "\n")
+
+	os.Exit(code)
 }
 
-func OpenInEditor(fname string) {
-	cmd := exec.Command(os.Getenv("EDITOR"), fname)
+func MustBeInitialized() {
+	for _, d := range meta.Dirs {
+		info, err := os.Stat(d)
+
+		if err != nil {
+			Exit("not fully initialized", err)
+		}
+
+		if !info.IsDir() {
+			Exit("unexpected non-directory file", errors.New(d))
+		}
+	}
+}
+
+func OpenInEditor(editor, fname string) {
+	cmd := exec.Command(editor, fname)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -81,4 +99,21 @@ func RemoveEmptyDirs(root, path string) error {
 	}
 
 	return nil
+}
+
+func RenderTemplate(w io.Writer, name, layout string, data interface{}) error {
+	t, err := template.New(name).Parse(layout)
+
+	if err != nil {
+		return err
+	}
+
+	return t.Execute(w, data)
+}
+
+func Slug(s string) string {
+	s = reslug.ReplaceAllString(s, "-")
+	s = redup.ReplaceAllString(s, "-")
+
+	return s
 }
