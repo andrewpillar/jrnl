@@ -15,10 +15,16 @@ import (
 )
 
 var (
+	redeslug = regexp.MustCompile("-")
+
 	reslug = regexp.MustCompile("[^a-zA-Z0-9]")
 
 	redup = regexp.MustCompile("-{2,}")
 )
+
+func Deslug(s string) string {
+	return redeslug.ReplaceAllString(s, " ")
+}
 
 func DirEmpty(dir string) bool {
 	f, err := os.Open(dir)
@@ -116,4 +122,31 @@ func Slug(s string) string {
 	s = redup.ReplaceAllString(s, "-")
 
 	return s
+}
+
+func Title(s string) string {
+	t := bytes.Buffer{}
+
+	parts := strings.Split(s, " ")
+
+	for i, p := range parts {
+		t.WriteString(Ucfirst(p))
+
+		if i != len(p) - 1 {
+			t.WriteString(" ")
+		}
+	}
+
+	return t.String()
+}
+
+func Ucfirst(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+
+	r := []rune(s)
+	u := string(unicode.ToUpper(r[0]))
+
+	return u + s[len(u):]
 }
