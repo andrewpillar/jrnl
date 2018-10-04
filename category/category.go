@@ -4,19 +4,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/andrewpillar/jrnl/meta"
-	"github.com/andrewpillar/jrnl/util"
-)
-
-var (
-	errInvalid = errors.New("invalid category")
-
-	pattern = "[_site]/[-a-zA-Z0-9/]+"
-
-	regex = regexp.MustCompile(pattern)
 )
 
 type Category struct {
@@ -36,17 +26,26 @@ func Find(id string) (Category, error) {
 		return Category{}, err
 	}
 
-	parts := strings.Split(id, string(os.PathSeparator))
+	parts := strings.Split(util.Deslug(id), string(os.PathSeparator))
+	name := bytes.Buffer{}
+
+	for i, p := range parts {
+		name.WriteString(util.Title(p))
+
+		if i != len(p) - 1 {
+			name.WriteString(" / ")
+		}
+	}
 
 	return Category{
 		ID:         id,
-		Name:       util.Deslug(strings.Join(parts, " "), " / "),
+		Name:       name.String(),
 		Categories: make([]Category, 0),
-	}, err
+	}, nil
 }
 
 func ResolveCategories() ([]Category, error) {
-	categories := make(map[string]*Category)
+	categories := make(map[string]Category)
 
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -60,7 +59,7 @@ func ResolveCategories() ([]Category, error) {
 		parts := strings.Split(path, string(os.PathSeparator))
 		id := filepath.Join(parts[1:]...)
 
-		c, err := Find(id)
+		c, err = Find(id)
 
 		if err != nil {
 			return err
@@ -75,14 +74,12 @@ func ResolveCategories() ([]Category, error) {
 				return errors.New("no parent found for " + path)
 			}
 
-			c.Name = util.Deslug(parts[len(parts) - 1], " / ")
-
 			parent.Categories = append(parent.Categories, c)
 
 			return nil
 		}
 
-		categories[id] = &c
+		categories[id] = c
 
 		return nil
 	}
@@ -93,8 +90,7 @@ func ResolveCategories() ([]Category, error) {
 	i := 0
 
 	for _, c := range categories {
-		ret[i] = *c
-
+		ret[i] = c
 		i++
 	}
 
