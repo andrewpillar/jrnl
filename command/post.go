@@ -8,48 +8,62 @@ import (
 
 	"github.com/andrewpillar/cli"
 
+	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/post"
-	"github.com/andrewpillar/jrnl/usage"
 	"github.com/andrewpillar/jrnl/util"
 )
 
 func Post(c cli.Command) {
-	if c.Flags.IsSet("help") || len(c.Args) == 0 {
-		fmt.Println(usage.Post)
-		return
+	util.MustBeInitialized()
+
+	m, err := meta.Open()
+
+	if err != nil {
+		util.Exit("failed to open meta file", err)
 	}
 
-	mustBeInitialized()
+	if m.Editor == "" {
+		util.Exit(
+			"could not find editor",
+			errors.New("set editor in _meta.yml"),
+		)
+	}
+
+	m.Close()
 
 	p := post.New(c.Args.Get(0), c.Flags.GetString("category"))
 
 	dir := filepath.Dir(p.SourcePath)
 
-	d, err := os.Stat(dir)
+	info, err := os.Stat(dir)
 
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err = os.MkdirAll(dir, os.ModePerm); err != nil {
-				util.Error("failed to create post directory", err)
+				util.Exit("failed to create directory", err)
 			}
 		} else {
-			util.Error("failed to stat post directory", err)
+			util.Exit("failed to stat directory", err)
 		}
 	}
 
-	if d != nil && !d.IsDir() {
-		util.Error("unexpected non-directory file", errors.New(dir))
+	if info != nil && !info.IsDir() {
+		util.Exit("unexpected non-directory file", errors.New(dir))
 	}
 
-	f, err := os.OpenFile(p.SourcePath, os.O_CREATE, os.ModePerm)
+	f, err := os.OpenFile(p.SourcePath, os.O_CREATE|os.O_RDWR, 0660)
 
 	if err != nil {
-		util.Error("failed to open post file", err)
+		util.Exit("failed to open post file", err)
 	}
 
-	defer f.Close()
+	if err := p.WriteFrontMatter(f); err != nil {
+		util.Exit("failed to write front matter", err)
+	}
 
-	util.OpenInEditor(p.SourcePath)
+	util.OpenInEditor(m.Editor, p.SourcePath)
+
+	f.Close()
 
 	fmt.Println("new post added", p.ID)
 }
