@@ -1,4 +1,4 @@
-package util
+package template
 
 import (
 	"bytes"
@@ -7,8 +7,27 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
 )
+
+func printCategories(categories []category.Category) string {
+	buf := bytes.Buffer{}
+
+	for _, c := range categories {
+		link := "<a href=\"" + c.Href() + "\">" + c.Name + "</a>"
+
+		buf.WriteString("<li>" + link)
+
+		if len(c.Categories) > 0 {
+			buf.WriteString("<ul>" + printCategories(c.Categories) + "</ul>")
+		}
+
+		buf.WriteString("</li>")
+	}
+
+	return buf.String()
+}
 
 func partial(name string, data interface{}) (string, error) {
 	path := filepath.Join(meta.LayoutsDir, name)
@@ -38,7 +57,7 @@ func partial(name string, data interface{}) (string, error) {
 	return buf.String(), nil
 }
 
-func RenderTemplate(w io.Writer, name, layout string, data interface{}) error {
+func Render(w io.Writer, name, layout string, data interface{}) error {
 	funcs := template.FuncMap{
 		"partial": partial,
 	}

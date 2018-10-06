@@ -14,6 +14,7 @@ import (
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/russross/blackfriday"
@@ -357,7 +358,7 @@ func (p Post) Publish(
 		return errors.New("no layout for post " + p.ID)
 	}
 
-	return util.RenderTemplate(f, "post-" + p.ID, layout, page)
+	return template.Render(f, "post-" + p.ID, layout, page)
 }
 
 func (p Post) Remove() error {

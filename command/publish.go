@@ -17,6 +17,7 @@ import (
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/post"
+	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/pkg/sftp"
@@ -503,7 +504,7 @@ func writeIndexFile(layout, fname string, data interface{}) error {
 
 	defer dst.Close()
 
-	return util.RenderTemplate(dst, fname, string(b), data)
+	return template.Render(dst, fname, string(b), data)
 }
 
 func Publish(c cli.Command) {
