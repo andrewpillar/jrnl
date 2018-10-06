@@ -1,12 +1,14 @@
 package category
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/util"
 )
 
 type Category struct {
@@ -59,7 +61,7 @@ func ResolveCategories() ([]Category, error) {
 		parts := strings.Split(path, string(os.PathSeparator))
 		id := filepath.Join(parts[1:]...)
 
-		c, err = Find(id)
+		c, err := Find(id)
 
 		if err != nil {
 			return err
