@@ -16,8 +16,9 @@ import (
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/util"
 
+	"github.com/russross/blackfriday"
+
 	"gopkg.in/yaml.v2"
-	"gopkg.in/russross/blackfriday.v2"
 )
 
 var (
