@@ -16,6 +16,12 @@ import (
 func Post(c cli.Command) {
 	util.MustBeInitialized()
 
+	title := c.Args.Get(0)
+
+	if title == "" {
+		util.Exit("missing title for post", nil)
+	}
+
 	m, err := meta.Open()
 
 	if err != nil {
@@ -31,7 +37,7 @@ func Post(c cli.Command) {
 
 	m.Close()
 
-	p := post.New(c.Args.Get(0), c.Flags.GetString("category"))
+	p := post.New(title, c.Flags.GetString("category"))
 
 	dir := filepath.Dir(p.SourcePath)
 
