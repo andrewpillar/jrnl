@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"text/template"
 	"unicode"
 
 	"github.com/andrewpillar/jrnl/meta"
@@ -107,16 +106,6 @@ func RemoveEmptyDirs(root, path string) error {
 	}
 
 	return nil
-}
-
-func RenderTemplate(w io.Writer, name, layout string, data interface{}) error {
-	t, err := template.New(name).Parse(layout)
-
-	if err != nil {
-		return err
-	}
-
-	return t.Execute(w, data)
 }
 
 func Slug(s string) string {
