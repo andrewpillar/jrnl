@@ -25,5 +25,9 @@ func Edit(c cli.Command) {
 		util.Exit("failed to find post", err)
 	}
 
+	if err := p.Touch(); err != nil {
+		util.Exit("failed to touch post", err)
+	}
+
 	util.OpenInEditor(m.Editor, p.SourcePath)
 }
