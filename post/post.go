@@ -230,6 +230,16 @@ func ResolvePosts() ([]Post, error) {
 	return ret, err
 }
 
+func marshalFrontMatter(fm *frontMatter, w io.Writer) error {
+	enc := yaml.NewEncoder(w)
+
+	if err := enc.Encode(fm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func unmarshalFrontMatter(r io.Reader) (frontMatter, error) {
 	fm := frontMatter{}
 
@@ -239,6 +249,10 @@ func unmarshalFrontMatter(r io.Reader) (frontMatter, error) {
 	bounds := 0
 
 	for {
+		if bounds == 2 {
+			break
+		}
+
 		_, err := r.Read(tmp)
 
 		if err != nil {
@@ -247,10 +261,6 @@ func unmarshalFrontMatter(r io.Reader) (frontMatter, error) {
 			}
 
 			return fm, err
-		}
-
-		if bounds == 2 {
-			break
 		}
 
 		buf.Write(tmp)
@@ -298,11 +308,30 @@ func (p *Post) Load() error {
 
 	defer f.Close()
 
-	_, err = unmarshalFrontMatter(f)
+	fm, err := unmarshalFrontMatter(f)
 
 	if err != nil {
 		return err
 	}
+
+	p.Title = fm.Title
+	p.Layout = fm.Layout
+	p.Index = fm.Index
+
+	createdAtTime, err := time.Parse(DateLayout, fm.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	updatedAtTime, err := time.Parse(DateLayout, fm.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	p.CreatedAt = createdAtTime
+	p.UpdatedAt = updatedAtTime
 
 	b, err := ioutil.ReadAll(f)
 
@@ -367,6 +396,41 @@ func (p Post) Remove() error {
 	}
 
 	return util.RemoveEmptyDirs(meta.PostsDir, filepath.Dir(p.SourcePath))
+}
+
+func (p *Post) Touch() error {
+	if err := p.Load(); err != nil {
+		return err
+	}
+
+	p.UpdatedAt = time.Now()
+
+	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR, os.ModePerm)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	fm := frontMatter{
+		Title:     p.Title,
+		Layout:    p.Layout,
+		Index:     p.Index,
+		CreatedAt: p.CreatedAt.Format(DateLayout),
+		UpdatedAt: p.UpdatedAt.Format(DateLayout),
+	}
+
+	f.Write([]byte("---\n"))
+
+	if err := marshalFrontMatter(&fm, f); err != nil {
+		return err
+	}
+
+	f.Write([]byte("---\n"))
+	f.Write([]byte(p.Body))
+
+	return nil
 }
 
 func (p Post) WriteFrontMatter(w io.Writer) error {
