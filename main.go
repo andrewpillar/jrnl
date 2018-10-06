@@ -7,7 +7,17 @@ import (
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/command"
+	"github.com/andrewpillar/jrnl/usage"
 )
+
+func usageHandler(c cli.Command) {
+	if c.Name == "" {
+		fmt.Println(usage.Jrnl)
+		return
+	}
+
+	fmt.Println(usage.Commands[c.FullName()])
+}
 
 func main() {
 	c := cli.New()
@@ -17,12 +27,11 @@ func main() {
 		Long:      "--help",
 		Exclusive: true,
 		Handler:   func(f cli.Flag, c cli.Command) {
-			if c.Name == "" {
-				fmt.Println("main usage")
-				return
-			}
+			usageHandler(c)
 		},
 	})
+
+	c.NilHandler(usageHandler)
 
 	c.Main(nil)
 
