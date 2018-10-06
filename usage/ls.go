@@ -1,6 +1,6 @@
 package usage
 
-var Ls = `jrnl ls - List all posts
+var Ls = `jrnl ls - List all journal posts
 
 Usage:
 
@@ -8,6 +8,7 @@ Usage:
 
 Options:
 
-  -c, --category  List posts in the given category
+  -c, --category=<category>  Only list posts in the given category
+  -v, --verbose              Display more information about each post
 
   --help  Display this usage message`

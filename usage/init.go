@@ -1,10 +1,10 @@
 package usage
 
-var Initialize = `jrnl init - Initialize a new journal
+var Init = `jrnl init - Initialize a new journal
 
 Usage:
 
-  jrnl init [target] [options...]
+  jrnl init [dir] [options...]
 
 Options:
 

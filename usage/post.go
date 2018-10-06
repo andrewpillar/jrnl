@@ -8,6 +8,6 @@ Usage:
 
 Options:
 
-  -c, --category  The category for the post
+  -c, --category=<category>  The category for the post
 
   --help  Display this usage message`

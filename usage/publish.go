@@ -8,8 +8,7 @@ Usage:
 
 Options:
 
-  -d, --draft           Publish a draft, this won't copy the site to the remote
-  -r, --remote=<alias>  The remote to copy the published site to. If none is
-                        given then the default will be used if set.
+  -d, --draft            Publish all posts, but don't copy them to the remote.
+  -r, --remote=<remote>  The remote to copy the published site to.
 
-  --help  Display this usage message.`
+  --help  Display this usage message`
