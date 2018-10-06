@@ -1,6 +1,7 @@
 package usage
 
-var Theme = `jrnl theme - Manage the journal's themes
+var (
+	Theme = `jrnl theme - Manage the journal's themes
 
 Usage:
 
@@ -19,7 +20,7 @@ Options:
 
 For more information on a command run 'jrnl theme [command] --help'`
 
-var ThemeLs = `jrnl theme ls - List available themes
+	ThemeLs = `jrnl theme ls - List available themes
 
 Usage:
 
@@ -29,7 +30,7 @@ Options:
 
   --help  Display this usage message`
 
-var ThemeSave = `jrnl theme save - Save the current theme
+	ThemeSave = `jrnl theme save - Save the current theme
 
 Usage:
 
@@ -39,7 +40,7 @@ Options:
 
   --help  Display this usage message`
 
-var ThemeUse = `jrnl theme use - Use a theme
+	ThemeUse = `jrnl theme use - Use a theme
 
 Usage:
 
@@ -49,12 +50,13 @@ Options:
 
   --help  Display this usage message`
 
-var ThemeRm = `jrnl theme rm - Remove a theme
+	ThemeRm = `jrnl theme rm - Remove a theme
 
 Usage:
 
-  jrnl theme rm [theme] [options...]
+  jrnl theme rm [themes...] [options...]
 
 Options:
 
   --help  Display this usage message`
+)

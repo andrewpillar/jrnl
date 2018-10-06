@@ -4,7 +4,7 @@ var Edit = `jrnl edit - Edit a post
 
 Usage:
 
-  jrnl edit [post]
+  jrnl edit [post] [options...]
 
 Options:
 

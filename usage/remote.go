@@ -1,6 +1,7 @@
 package usage
 
-var Remote = `jrnl remote - Modify a remote
+var (
+	Remote = `jrnl remote - Manage the journal's remotes
 
 Usage:
 
@@ -8,7 +9,7 @@ Usage:
 
 Commands:
 
-  ls   List available remotes
+  ls   List all journal remotes
   set  Set a remote
   rm   Remove a remote
 
@@ -16,9 +17,9 @@ Options:
 
   --help  Display this usage message
 
-For more information on a command run 'jrnl remote [command] --help`
+For more information on a command run 'jrnl remote [command] --help'`
 
-var RemoteLs = `jrnl remote ls - List available remotes
+	RemoteLs = `jrnl remote ls - List all journal remotes
 
 Usage:
 
@@ -26,28 +27,31 @@ Usage:
 
 Options:
 
+  -v, --verbose  Display more information about each remote
+
   --help  Display this usage message`
 
-var RemoteSet = `jrnl remote set - Set a remote
+	RemoteSet = `jrnl remote set - Set a remote
 
 Usage:
 
-  jrnl remote set [alias] [target] [options...]
+  jrnl remote set [remote] [target] [options...]
 
 Options:
 
-  -d, --default          Set the remote as the default
+  -d, --default          Set the remote as a default
   -i, --identity=<file>  The SSH identity file for the remote
-  -p, --port=<port>      The port for the remote
+  -p, --port=<port>      The SSH port of the remote
 
-  --help  Display this usage message`
+  --help Display this usage message`
 
-var RemoteRm = `jrnl remote rm - Remove a remot
+	RemoteRm = `jrnl remote rm - Remove a remot
 
 Usage:
 
-  jrnl remote rm [aliases...]
+  jrnl remote rm [remotes...]
 
 Options:
 
   --help  Display this usage message`
+)
