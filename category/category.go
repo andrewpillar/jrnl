@@ -34,7 +34,7 @@ func Find(id string) (Category, error) {
 	for i, p := range parts {
 		name.WriteString(util.Title(p))
 
-		if i != len(p) - 1 {
+		if i != len(parts) - 1 {
 			name.WriteString(" / ")
 		}
 	}
