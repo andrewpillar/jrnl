@@ -299,6 +299,16 @@ func (p *Post) Convert() {
 	p.Preview = string(blackfriday.Run([]byte(p.Preview)))
 }
 
+func (p Post) HasCategory() bool {
+	return p.Category.ID != "" && p.Category.Name != ""
+}
+
+func (p Post) Href() string {
+	href := []rune(p.SitePath)
+
+	return filepath.Dir(string(href[len(meta.SiteDir):]))
+}
+
 func (p *Post) Load() error {
 	f, err := os.Open(p.SourcePath)
 
