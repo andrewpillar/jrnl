@@ -112,7 +112,7 @@ func Slug(s string) string {
 	s = reslug.ReplaceAllString(s, "-")
 	s = redup.ReplaceAllString(s, "-")
 
-	return s
+	return strings.ToLower(s)
 }
 
 func Title(s string) string {
