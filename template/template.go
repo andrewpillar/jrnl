@@ -39,7 +39,8 @@ func partial(name string, data interface{}) (string, error) {
 	}
 
 	funcs := template.FuncMap{
-		"partial": partial,
+		"partial":         partial,
+		"printCategories": printCategories,
 	}
 
 	t, err := template.New("partial-" + name).Funcs(funcs).Parse(string(b))
@@ -59,7 +60,8 @@ func partial(name string, data interface{}) (string, error) {
 
 func Render(w io.Writer, name, layout string, data interface{}) error {
 	funcs := template.FuncMap{
-		"partial": partial,
+		"partial":         partial,
+		"printCategories": printCategories,
 	}
 
 	t, err := template.New(name).Funcs(funcs).Parse(layout)
