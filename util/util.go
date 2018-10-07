@@ -128,7 +128,7 @@ func Title(s string) string {
 		}
 	}
 
-	return t.String()
+	return strings.Trim(t.String(), " ")
 }
 
 func Ucfirst(s string) string {
