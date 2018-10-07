@@ -486,7 +486,7 @@ func writeIndexFile(layout, fname string, data interface{}) error {
 		return errors.New("no data for index " + fname)
 	}
 
-	if layout == meta.LayoutsDir {
+	if layout == meta.LayoutsDir || layout == "" {
 		return errors.New("no layout for index " + fname)
 	}
 
