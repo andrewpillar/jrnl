@@ -433,6 +433,8 @@ func writeIndex(
 	if categoryRegex.Match(pattern) {
 		id := strings.Join(parts[1:len(parts) - i], " ")
 
+		layout = filepath.Join(meta.LayoutsDir, m.CategoryIndexLayout)
+
 		c, err := category.Find(id)
 
 		if err != nil {

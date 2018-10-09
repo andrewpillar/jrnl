@@ -49,6 +49,8 @@ type Meta struct {
 
 	YearIndexLayout string
 
+	CategoryIndexLayout string
+
 	CategoryDayIndexLayout string
 
 	CategoryMonthIndexLayout string
