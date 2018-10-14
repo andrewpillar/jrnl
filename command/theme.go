@@ -18,11 +18,12 @@ func Theme(c cli.Command) {
 	util.MustBeInitialized()
 
 	m, err := meta.Open()
-	m.Close()
 
 	if err != nil {
 		util.Exit("failed to open meta file", err)
 	}
+
+	m.Close()
 
 	if m.Theme == "" {
 		fmt.Println("no theme being used")
