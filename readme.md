@@ -13,7 +13,7 @@ jrnl is a simple static site generator written in Go, designed mainly for bloggi
 * [Remotes](#remotes)
 * [Publishing](#publishing)
 
-## Installation {#installation}
+## Installation
 
 If you have Go installed, then you can install jrnl with `go get`.
 
@@ -21,7 +21,7 @@ If you have Go installed, then you can install jrnl with `go get`.
 $ go get github.com/andrewpillar/jrnl
 ```
 
-## Creating a Journal {#creating-a-journal}
+## Creating a Journal
 
 Now that jrnl has been installed we can go ahead and create our first journal with the command `jrnl init`. This will create a journal in the current directory from which the command is run. However we can pass a directory name to the `init` command to initialise a journal inside that directory.
 
@@ -32,7 +32,7 @@ journal initialized, set the title with 'jrnl title'
 
 This will create all the necessary files, and directories in the `blog` directory.
 
-## Directory Structure {#directory-structure}
+## Directory Structure
 
 Below is the directory layout of a journal once initialised.
 
@@ -81,7 +81,7 @@ introducing-jrnl
 $ jrnl edit introducing-jrnl
 ```
 
-## Categories {#categories}
+## Categories
 
 As mentioned above every post created with journal can belong to a single category via use of the category flag.
 
@@ -103,7 +103,7 @@ Sub-categories can also be created just by using a `/` as the delimeter between 
 $ jrnl post "Introducing jrnl" -c "Programming/Go"
 ```
 
-## Post Indexing {#post-indexing}
+## Post Indexing
 
 Posts in journal can be indexed if they have the `index: true` property set in their front-matter. What this means is that during the publishing phase an `index.html` page will be created with a list of all the posts that have been created. Journal provides the ability to generate multiple indexes for posts. For example you will have a site-wide index which will list *all* posts created across the site, then you will have a category-wide index for all posts in that category, and another index for all posts created on a day, and so on.
 
@@ -142,7 +142,7 @@ indexlayouts:
 
 These define the layout files to be used by the different indexes on your site if you wish to have posts index. For example the `indexlayouts.categoryday` would be used for creating an `index.html` page underneath a category, on a given day. This would display all of the indexed posts made on that day, within that category.
 
-## Themes {#themes}
+## Themes
 
 Simply put themese are just tarballs of the site's `assets` directory, and of the `_layouts` directory. The current theme in use will be stored in the `_meta.yml`, and new themes can be created, saved, and deleted via the `jrnl theme` command.
 
@@ -160,7 +160,7 @@ Themes can be loaded by running `jrnl theme use`. This will take the tarball fro
 
 All available themes can be listed with `jrnl theme ls`, and themes can be remove with `jrnl theme rm`.
 
-## Remotes {#remotes}
+## Remotes
 
 As mentioned previousl jrnl does not serve the content it generates. Instead it simply copies everything in the `_site` directory to a remote. Remotes are managed via the `jrnl remote` command. To create a new remote simply run `jrnl remote set`.
 
@@ -178,7 +178,7 @@ When setting up a remote we can also specify which identity file to use for the 
 $ jrnl remote set site me@andrewpillar.com: -d -p 1234 -i ~/.ssh/id_personal-site
 ```
 
-## Publishing {#publishing}
+## Publishing
 
 Posts can be published with the `jrnl publish` command. This will take all of the posts that have been created, and produce the necessary indexes, if any are being used, and transform them into HTML using the layouts that are specified in each post.
 
