@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 	"unicode"
 
 	"github.com/andrewpillar/jrnl/meta"
+
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -63,6 +66,46 @@ func Exit(msg string, err error) {
 	fmt.Fprintf(w, "\n")
 
 	os.Exit(code)
+}
+
+func GetHostKey(hostname string) (ssh.PublicKey, error) {
+	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+
+	var hostKey ssh.PublicKey
+
+	for s.Scan() {
+		fields := strings.Split(s.Text(), " ")
+
+		if len(fields) != 3 {
+			continue
+		}
+
+		if strings.Contains(fields[0], hostname) {
+			var err error
+
+			hostKey, _, _, _, err = ssh.ParseAuthorizedKey(s.Bytes())
+
+			if err != nil {
+				return nil, err
+			}
+
+			break
+		}
+	}
+
+	if hostKey == nil {
+		return nil, errors.New("no key for host " + hostname)
+	}
+
+	return hostKey, nil
 }
 
 func MustBeInitialized() {
