@@ -54,7 +54,7 @@ Below is the directory layout of a journal once initialised.
 | `_themes`      | Stores all available themes that can be used.                     |
 | `_meta.yml`    | File containing meta-data about the journal.                      |
 
-## Posts {#posts}
+## Posts
 
 Posts in journal are created with the `jrnl post` command. This will take the title of the new post, and optionally a category for the post if one is passed using either category flag `-c` or `--category`. This will drop you in an editor as specified in the `_meta.yml` file. Every post that is created will have a block of YAML at the top known as front-matter. This block of YAML will contain the title of the post, the time it was created, and updated at, as well as the layout to use for the post when publishing, and whether or not it should be indexed.
 
