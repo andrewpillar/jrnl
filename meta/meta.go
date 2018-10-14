@@ -41,21 +41,23 @@ type Meta struct {
 
 	Default string
 
-	IndexLayout string
+	IndexLayouts struct{
+		Index string
 
-	DayIndexLayout string
+		Day string
 
-	MonthIndexLayout string
+		Month string
 
-	YearIndexLayout string
+		Year string
 
-	CategoryIndexLayout string
+		Category string
 
-	CategoryDayIndexLayout string
+		CategoryDay string
 
-	CategoryMonthIndexLayout string
+		CategoryMonth string
 
-	CategoryYearIndexLayout string
+		CategoryYear string
+	}
 
 	Remotes map[string]Remote
 }
