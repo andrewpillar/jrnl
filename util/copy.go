@@ -90,12 +90,7 @@ func CopyToRemote(src, dst string, conn *sftp.Client) error {
 	return CopyToRemoteFile(src, dst, info, conn)
 }
 
-func CopyToRemoteDir(
-	src string,
-	dst string,
-	info os.FileInfo,
-	conn *sftp.Client,
-) error {
+func CopyToRemoteDir(src string, dst string, info os.FileInfo, conn *sftp.Client) error {
 	if dst != "" {
 		if err := conn.MkdirAll(dst); err != nil {
 			return err
@@ -120,12 +115,7 @@ func CopyToRemoteDir(
 	return nil
 }
 
-func CopyToRemoteFile(
-	src string,
-	dst string,
-	info os.FileInfo,
-	conn *sftp.Client,
-) error {
+func CopyToRemoteFile(src string, dst string, info os.FileInfo, conn *sftp.Client) error {
 	dir := filepath.Dir(dst)
 
 	if err := conn.MkdirAll(dir); err != nil {
