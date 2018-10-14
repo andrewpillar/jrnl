@@ -2,7 +2,6 @@ package post
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
-	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/russross/blackfriday"
@@ -186,10 +184,7 @@ func New(title, categoryName string) Post {
 	}
 }
 
-func ResolvePosts() ([]Post, error) {
-	posts := make(map[string]Post)
-	order := make([]string, 0)
-
+func Walk(fn func(p Post) error) error {
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -208,6 +203,21 @@ func ResolvePosts() ([]Post, error) {
 			return err
 		}
 
+		if err := fn(p); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return filepath.Walk(meta.PostsDir, walk)
+}
+
+func ResolvePosts() ([]Post, error) {
+	posts := make(map[string]Post)
+	order := make([]string, 0)
+
+	err := Walk(func(p Post) error {
 		createdAt := p.CreatedAt.Format(DateLayout)
 
 		posts[createdAt] = p
@@ -215,9 +225,11 @@ func ResolvePosts() ([]Post, error) {
 		order = append(order, createdAt)
 
 		return nil
-	}
+	})
 
-	err := filepath.Walk(meta.PostsDir, walk)
+	if err != nil {
+		return []Post{}, err
+	}
 
 	sort.Sort(sort.Reverse(sort.StringSlice(order)))
 
@@ -358,46 +370,6 @@ func (p *Post) Load() error {
 	p.Body = string(b)
 
 	return nil
-}
-
-func (p Post) Publish(
-	title string,
-	layout string,
-	categories []category.Category,
-) error {
-	dir := filepath.Dir(p.SitePath)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(
-		p.SitePath,
-		os.O_TRUNC|os.O_RDWR|os.O_CREATE,
-		os.ModePerm,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	page := struct{
-		Title      string
-		Post       Post
-		Categories []category.Category
-	}{
-		Title:      title,
-		Post:       p,
-		Categories: categories,
-	}
-
-	if layout == "" {
-		return errors.New("no layout for post " + p.ID)
-	}
-
-	return template.Render(f, "post-" + p.ID, layout, page)
 }
 
 func (p Post) Remove() error {
