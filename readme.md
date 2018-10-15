@@ -109,7 +109,7 @@ Posts in journal can be indexed if they have the `index: true` property set in t
 
 All of these indexes are specified in the `_meta.yml` file, along with which layout file should be used for each index that is created.
 
-## Layouts {#layouts}
+## Layouts
 
 Layouts are files that will define how parts of the site will look, whether it's a post or an index page. jrnl uses Go's `text/template` for templating, for more information on how to use them refer to the official [documentation](https://golang.org/pkg/text/template)
 
