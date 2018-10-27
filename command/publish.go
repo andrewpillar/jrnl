@@ -15,6 +15,7 @@ import (
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/util"
@@ -25,82 +26,52 @@ import (
 )
 
 var (
-	yearPattern = "[" + meta.SiteDir + "]/[0-9]{4}"
-
+	yearPattern  = "[" + meta.SiteDir + "]/[0-9]{4}"
 	monthPattern = yearPattern + "/[0-9]{2}"
+	dayPattern   = monthPattern + "/[0-9]{2}"
 
-	dayPattern = monthPattern + "/[0-9]{2}"
-
-	categoryPattern = "[" + meta.SiteDir + "]/[-a-z0-9/]+"
-
-	categoryYearPattern = categoryPattern + "/[0-9]{4}"
-
+	categoryPattern      = "[" + meta.SiteDir + "]/[-a-z0-9/]+"
+	categoryYearPattern  = categoryPattern + "/[0-9]{4}"
 	categoryMonthPattern = categoryYearPattern + "/[0-9]{2}"
+	categoryDayPattern   = categoryMonthPattern + "/[0-9]{2}"
 
-	categoryDayPattern = categoryMonthPattern + "/[0-9]{2}"
-
-	yearRegex = regexp.MustCompile(yearPattern)
-
+	yearRegex  = regexp.MustCompile(yearPattern)
 	monthRegex = regexp.MustCompile(monthPattern)
+	dayRegex   = regexp.MustCompile(dayPattern)
 
-	dayRegex = regexp.MustCompile(dayPattern)
-
-	categoryRegex = regexp.MustCompile(categoryPattern)
-
-	categoryYearRegex = regexp.MustCompile(categoryYearPattern)
-
+	categoryRegex      = regexp.MustCompile(categoryPattern)
+	categoryYearRegex  = regexp.MustCompile(categoryYearPattern)
 	categoryMonthRegex = regexp.MustCompile(categoryMonthPattern)
-
-	categoryDayRegex = regexp.MustCompile(categoryDayPattern)
+	categoryDayRegex   = regexp.MustCompile(categoryDayPattern)
 )
 
-type journal struct {
-	meta meta.Meta
-
-	mutex *sync.Mutex
-
-	// Posts will be indexed under the directories they're stored, e.g.
-	//     /2006/01/02  -> [post1]
-	//     /2006/01     -> [post1, post2]
-	//     /2006        -> [post1, post2, post3]
-	indexes map[string][]post.Post
-
+type indexData struct {
 	Title      string
 	Categories []category.Category
-}
-
-type postPage struct {
-	journal
-
-	Post post.Post
-}
-
-type indexPage struct {
-	journal
-
 	Posts      []post.Post
-	Categories []category.Category
 }
 
-type timeIndexPage struct {
-	indexPage
+type timeIndexData struct {
+	indexData
 
 	Time time.Time
 }
 
-type categoryTimeIndexPage struct {
-	timeIndexPage
+type categoryTimeIndexData struct {
+	timeIndexData
 
 	Category category.Category
 }
 
-type categoryIndexPage struct {
-	indexPage
+type categoryIndexData struct {
+	indexData
 
 	Category category.Category
 }
 
-func (j *journal) index(p post.Post) {
+func indexPost(p post.Post, indexes map[string][]post.Post, wg *sync.WaitGroup, m *sync.Mutex) {
+	defer wg.Done()
+
 	if !p.Index {
 		return
 	}
@@ -114,15 +85,135 @@ func (j *journal) index(p post.Post) {
 			continue
 		}
 
-		j.mutex.Lock()
-		j.indexes[key] = append(j.indexes[key], p)
-		j.mutex.Unlock()
+		m.Lock()
+		indexes[key] = append(indexes[key], p)
+		m.Unlock()
 	}
 }
 
-func (j journal) publish(p *post.Post) error {
+func publishIndex(m *meta.Meta, key string, posts []post.Post, categories []category.Category) error {
+	data := indexData{
+		Title:      m.Title,
+		Categories: categories,
+		Posts:      posts,
+	}
+
+	index := filepath.Join(key, "index.html")
+	layout := ""
+
+	if key == meta.SiteDir {
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Index)
+
+		return writeIndexFile(layout, index, data)
+	}
+
+	b := []byte(key)
+	parts := strings.Split(key, string(os.PathSeparator))
+
+	isDateIndex := false
+	timeFmt := ""
+	i := 0
+
+	if dayRegex.Match(b) {
+		isDateIndex = true
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Day)
+		timeFmt = filepath.Join("2006", "01", "02")
+		i = 3
+	} else if monthRegex.Match(b) {
+		isDateIndex = true
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Month)
+		timeFmt = filepath.Join("2006", "01")
+		i = 2
+	} else if yearRegex.Match(b) {
+		isDateIndex = true
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Year)
+		timeFmt = filepath.Join("2006", "01")
+		i = 1
+	}
+
+	if isDateIndex {
+		t, err := time.Parse(timeFmt, filepath.Join(parts[len(parts) - i:]...))
+
+		if err != nil {
+			return err
+		}
+
+		timeIndexData := timeIndexData{
+			indexData: data,
+			Time:      t,
+		}
+
+		return writeIndexFile(layout, index, timeIndexData)
+	}
+
+	isCategoryDateIndex := false
+
+	if categoryDayRegex.Match(b) {
+		isCategoryDateIndex = true
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.CategoryDay)
+		timeFmt = filepath.Join("2006", "01", "02")
+		i = 3
+	} else if categoryMonthRegex.Match(b) {
+		isCategoryDateIndex = true
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.CategoryMonth)
+		timeFmt = filepath.Join("2006", "01")
+		i = 2
+	} else if categoryYearRegex.Match(b) {
+		isCategoryDateIndex = true
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.CategoryYear)
+		timeFmt = filepath.Join("2006")
+		i = 1
+	}
+
+	if isCategoryDateIndex {
+		id := strings.Join(parts[1:len(parts) - i], string(os.PathSeparator))
+
+		c, err := category.Find(id)
+
+		if err != nil {
+			return err
+		}
+
+		t, err := time.Parse(timeFmt, filepath.Join(parts[len(parts) - i:]...))
+
+		if err != nil {
+			return err
+		}
+
+		categoryTimeIndexData := categoryTimeIndexData{
+			timeIndexData: timeIndexData{
+				indexData: data,
+				Time:      t,
+			},
+			Category: c,
+		}
+
+		return writeIndexFile(layout, index, categoryTimeIndexData)
+	}
+
+	if categoryRegex.Match(b) {
+		id := strings.Join(parts[1:len(parts) - i], string(os.PathSeparator))
+
+		c, err := category.Find(id)
+
+		if err != nil {
+			return err
+		}
+
+		categoryIndexData := categoryIndexData{
+			indexData: data,
+			Category:  c,
+		}
+
+		return writeIndexFile(layout, index, categoryIndexData)
+	}
+
+	return errors.New("could not match pattern to dir: " + key)
+}
+
+func publishPage(p page.Page, data interface{}) error {
 	if p.Layout == "" {
-		return errors.New("no layout for post " + p.ID)
+		return errors.New("no layout for " + p.ID)
 	}
 
 	if err := p.Load(); err != nil {
@@ -135,7 +226,7 @@ func (j journal) publish(p *post.Post) error {
 		return err
 	}
 
-	p.Convert()
+	p.Render()
 
 	dir := filepath.Dir(p.SitePath)
 
@@ -151,176 +242,115 @@ func (j journal) publish(p *post.Post) error {
 
 	defer f.Close()
 
-	page := postPage{
-		journal: j,
-		Post:    *p,
-	}
-
-	return template.Render(f, "post-" + p.ID, string(b), page)
+	return template.Render(f, p.ID, string(b), data)
 }
 
-func (j journal) writeIndex(key string) error {
-	posts, ok := j.indexes[key]
+func publishPages(title string, categories []category.Category) chan error {
+	published := make(chan page.Page)
+	errs := make(chan error)
 
-	if !ok {
-		return errors.New("no posts for index " + key)
-	}
+	wg := &sync.WaitGroup{}
 
-	indexData := indexPage{
-		journal:    j,
-		Posts:      posts,
-		Categories: j.Categories,
-	}
+	err := page.Walk(func(p page.Page) error {
+		wg.Add(1)
 
-	index := filepath.Join(key, "index.html")
-	layout := ""
+		go func() {
+			defer wg.Done()
 
-	if key == meta.SiteDir {
-		layout = filepath.Join(meta.LayoutsDir, j.meta.IndexLayouts.Index)
+			data := struct{
+				Title      string
+				Categories []category.Category
+				Body       string
+			}{
+				Title:      title,
+				Categories: categories,
+				Body:       p.Body,
+			}
 
-		return j.writeIndexFile(layout, index, indexData)
-	}
+			if err := publishPage(p, data); err != nil {
+				errs <- err
+				return
+			}
 
-	pattern := []byte(key)
-	parts := strings.Split(key, string(os.PathSeparator))
+			published <- p
+		}()
 
-	isDateIndex := false
-	timeFmt := ""
-	i := 0
-
-	if dayRegex.Match(pattern) {
-		isDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, j.meta.IndexLayouts.Day)
-		timeFmt = filepath.Join("2006", "01", "02")
-		i = 3
-	} else if monthRegex.Match(pattern) {
-		isDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, j.meta.IndexLayouts.Month)
-		timeFmt = filepath.Join("2006", "01")
-		i = 2
-	} else if yearRegex.Match(pattern) {
-		isDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, j.meta.IndexLayouts.Year)
-		timeFmt = filepath.Join("2006")
-		i = 1
-	}
-
-	if isDateIndex {
-		t, err := time.Parse(timeFmt, filepath.Join(parts[len(parts) - i:]...))
-
-		if err != nil {
-			return err
-		}
-
-		timeIndexData := timeIndexPage{
-			indexPage: indexData,
-			Time:      t,
-		}
-
-		return j.writeIndexFile(layout, index, timeIndexData)
-	}
-
-	isCategoryDateIndex := false
-
-	if categoryDayRegex.Match(pattern) {
-		isCategoryDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, j.meta.IndexLayouts.CategoryDay)
-		timeFmt = filepath.Join("2006", "01", "02")
-		i = 3
-	} else if categoryMonthRegex.Match(pattern) {
-		isCategoryDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, j.meta.IndexLayouts.CategoryMonth)
-		timeFmt = filepath.Join("2006", "01")
-		i = 2
-	} else if categoryYearRegex.Match(pattern) {
-		isCategoryDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, j.meta.IndexLayouts.CategoryYear)
-		timeFmt = filepath.Join("2006")
-		i = 1
-	}
-
-	if isCategoryDateIndex {
-		id := strings.Join(parts[1:len(parts) - i], " ")
-
-		c, err := category.Find(id)
-
-		if err != nil {
-			return err
-		}
-
-		t, err := time.Parse(timeFmt, filepath.Join(parts[len(parts) - i:]...))
-
-		if err != nil {
-			return err
-		}
-
-		timeIndexData := timeIndexPage{
-			indexPage: indexData,
-			Time:      t,
-		}
-
-		categoryTimeIndexData := categoryTimeIndexPage{
-			timeIndexPage: timeIndexData,
-			Category:      c,
-		}
-
-		return j.writeIndexFile(layout, index, categoryTimeIndexData)
-	}
-
-	if categoryRegex.Match(pattern) {
-		id := strings.Join(parts[1:len(parts) - i], " ")
-
-		c, err := category.Find(id)
-
-		if err != nil {
-			return err
-		}
-
-		categoryIndexData := categoryIndexPage{
-			indexPage: indexData,
-			Category:  c,
-		}
-
-		return j.writeIndexFile(layout, index, categoryIndexData)
-	}
-
-	return errors.New("could not match pattern to dir " + key)
-}
-
-func (j journal) writeIndexFile(layout, index string, data interface{}) error {
-	if data == nil {
-		return errors.New("no data for index " + index)
-	}
-
-	if layout == meta.LayoutsDir || layout == "" {
-		return errors.New("no layout for index " + index)
-	}
-
-	b, err := ioutil.ReadFile(layout)
+		return nil
+	})
 
 	if err != nil {
-		return err
+		go func() {
+			errs <- err
+		}()
 	}
 
-	dst, err := os.OpenFile(index, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.ModePerm)
+	go func() {
+		wg.Wait()
 
-	if err != nil {
-		return err
-	}
+		close(published)
+		close(errs)
+	}()
 
-	defer dst.Close()
-
-	return template.Render(dst, index, string(b), data)
+	return errs
 }
 
-func publishToRemote(remote meta.Remote) {
-	if filepath.IsAbs(remote.Target) {
-		if err := util.Copy(meta.SiteDir, remote.Target); err != nil {
-			util.Exit("failed to publish to " + remote.Target, err)
+func publishPosts(title string, categories []category.Category) (chan post.Post, chan error) {
+	published := make(chan post.Post)
+	errs := make(chan error)
+
+	wg := &sync.WaitGroup{}
+
+	err := post.Walk(func(p post.Post) error {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			data := struct{
+				Title      string
+				Categories []category.Category
+				Post       post.Post
+			}{
+				Title:      title,
+				Categories: categories,
+				Post:       p,
+			}
+
+			if err := publishPage(p.Page, data); err != nil {
+				errs <- err
+				return
+			}
+
+			published <- p
+		}()
+
+		return nil
+	})
+
+	if err != nil {
+		go func() {
+			errs <- err
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+
+		close(published)
+		close(errs)
+	}()
+
+	return published, errs
+}
+
+func publishToRemote(r meta.Remote) error {
+	if filepath.IsAbs(r.Target) {
+		if err := util.Copy(meta.SiteDir, r.Target); err != nil {
+			return err
 		}
 	}
 
-	parts := strings.Split(remote.Target, "@")
+	parts := strings.Split(r.Target, "@")
 	i := 0
 
 	user := os.Getenv("USER")
@@ -335,28 +365,28 @@ func publishToRemote(remote meta.Remote) {
 	hostname := parts[0]
 	dir := parts[1]
 
-	addr := fmt.Sprintf("%s:%d", hostname, remote.Port)
+	addr := fmt.Sprintf("%s:%d", hostname, r.Port)
 
-	if remote.Identity == "" {
-		remote.Identity = filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
+	if r.Identity == "" {
+		r.Identity = filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
 	}
 
-	key, err := ioutil.ReadFile(remote.Identity)
+	key, err := ioutil.ReadFile(r.Identity)
 
 	if err != nil {
-		util.Exit("failed to get identity file", err)
+		return err
 	}
 
 	signer, err := ssh.ParsePrivateKey(key)
 
 	if err != nil {
-		util.Exit("failed to parse private key", err)
+		return err
 	}
 
 	hostKey, err := util.GetHostKey(hostname)
 
 	if err != nil {
-		util.Exit("failed to find host key in known_hosts", err)
+		return err
 	}
 
 	config := &ssh.ClientConfig{
@@ -370,7 +400,7 @@ func publishToRemote(remote meta.Remote) {
 	conn, err := ssh.Dial("tcp", addr, config)
 
 	if err != nil {
-		util.Exit("failed to establish initial connection", err)
+		return err
 	}
 
 	defer conn.Close()
@@ -378,14 +408,42 @@ func publishToRemote(remote meta.Remote) {
 	scp, err := sftp.NewClient(conn)
 
 	if err != nil {
-		util.Exit("failed to establish connection", err)
+		return err
 	}
 
 	defer scp.Close()
 
 	if err := util.CopyToRemote(meta.SiteDir, dir, scp); err != nil {
-		util.Exit("failed to copy to remote", err)
+		return err
 	}
+
+	return nil
+}
+
+func writeIndexFile(layout, fname string, data interface{}) error {
+	if data == nil {
+		return errors.New("no data for index: " + fname)
+	}
+
+	if layout == meta.LayoutsDir || layout == "" {
+		return errors.New("no layout for index: " + fname)
+	}
+
+	b, err := ioutil.ReadFile(layout)
+
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(fname, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.ModePerm)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	return template.Render(f, fname, string(b), data)
 }
 
 func Publish(c cli.Command) {
@@ -399,102 +457,15 @@ func Publish(c cli.Command) {
 
 	m.Close()
 
-	categories, err := category.ResolveCategories()
+	categories, err := category.All()
 
 	if err != nil {
-		util.Exit("failed to resolve all categories", err)
-	}
-
-	j := journal{
-		meta:       *m,
-		mutex:      &sync.Mutex{},
-		indexes:    make(map[string][]post.Post),
-		Title:      m.Title,
-		Categories: categories,
+		util.Exit("failed to get all categories", err)
 	}
 
 	code := 0
 
-	wg := &sync.WaitGroup{}
-
-	published := make(chan post.Post)
-	errs := make(chan error)
-
-	post.Walk(func(p post.Post) error {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			if err := j.publish(&p); err != nil {
-				errs <- err
-				return
-			}
-
-			published <- p
-		}()
-
-		return nil
-	})
-
-	go func() {
-		wg.Wait()
-
-		close(published)
-		close(errs)
-	}()
-
-	indexWg := &sync.WaitGroup{}
-
-	for {
-		select {
-			case err, ok := <-errs:
-				if !ok {
-					errs = nil
-				} else {
-					code = 1
-					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
-				}
-			case p, ok := <-published:
-				if !ok {
-					published = nil
-				} else {
-					indexWg.Add(1)
-
-					go func() {
-						defer indexWg.Done()
-
-						j.index(p)
-					}()
-				}
-		}
-
-		if errs == nil && published == nil {
-			break
-		}
-	}
-
-	indexWg.Wait()
-
-	errs = make(chan error)
-
-	for key := range j.indexes {
-		indexWg.Add(1)
-
-		go func() {
-			defer indexWg.Done()
-
-			if err := j.writeIndex(key); err != nil {
-				errs <- err
-			}
-		}()
-	}
-
-	go func() {
-		indexWg.Wait()
-
-		close(errs)
-	}()
+	errs := publishPages(m.Title, categories)
 
 	for err := range errs {
 		code = 1
@@ -502,24 +473,73 @@ func Publish(c cli.Command) {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 	}
 
+	posts, errs := publishPosts(m.Title, categories)
+
+	wg := &sync.WaitGroup{}
+	mut := &sync.Mutex{}
+
+	indexes := make(map[string][]post.Post)
+
+	for {
+		select {
+			case err, ok := <-errs:
+				if !ok {
+					errs = nil
+				} else {
+					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
+				}
+			case p, ok := <-posts:
+				if !ok {
+					posts = nil
+				} else {
+					wg.Add(1)
+
+					go indexPost(p, indexes, wg, mut)
+				}
+		}
+
+		if posts == nil && errs == nil {
+			break
+		}
+	}
+
+	wg.Wait()
+
+	errs = make(chan error)
+
+	for key, posts := range indexes {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			if err := publishIndex(m, key, posts, categories); err != nil {
+				errs <- err
+				return
+			}
+		}()
+	}
+
 	if !c.Flags.IsSet("draft") {
-		remoteStr := c.Flags.GetString("remote")
+		remote := c.Flags.GetString("remote")
 
-		if remoteStr == "" {
-			remoteStr = m.Default
+		if remote == "" {
+			remote = m.Default
 		}
 
-		if remoteStr == "" {
-			util.Exit("missing remote", errors.New("no default set"))
+		if remote == "" {
+			util.Exit("failed to get remote", errors.New("no default set"))
 		}
 
-		remote, ok := m.Remotes[remoteStr]
+		r, ok := m.Remotes[remote]
 
 		if !ok {
-			util.Exit("failed to find remote", errors.New(remoteStr))
+			util.Exit("failed to find remote", errors.New(remote))
 		}
 
-		publishToRemote(remote)
+		if err := publishToRemote(r); err != nil {
+			util.Exit("failed to publish to remote", err)
+		}
 	}
 
 	os.Exit(code)
