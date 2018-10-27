@@ -48,6 +48,8 @@ func main() {
 		Default:  "",
 	})
 
+	c.Command("page", command.Page)
+
 	c.Command("edit", command.Edit)
 	c.Command("rm", command.Rm)
 
@@ -59,12 +61,6 @@ func main() {
 		Long:     "--category",
 		Argument: true,
 		Default:  "",
-	})
-
-	lsCmd.AddFlag(&cli.Flag{
-		Name:  "verbose",
-		Short: "-v",
-		Long:  "--verbose",
 	})
 
 	remoteCmd := c.Command("remote", nil)
