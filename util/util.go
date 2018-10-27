@@ -16,6 +16,8 @@ import (
 	"github.com/andrewpillar/jrnl/meta"
 
 	"golang.org/x/crypto/ssh"
+
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -183,4 +185,66 @@ func Ucfirst(s string) string {
 	u := string(unicode.ToUpper(r[0]))
 
 	return u + s[len(u):]
+}
+
+func MarshalFrontMatter(fm interface{}, w io.Writer) error {
+	enc := yaml.NewEncoder(w)
+
+	if err := enc.Encode(fm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UnmarshalFrontMatter(fm interface{}, r io.Reader) error {
+	buf := &bytes.Buffer{}
+	tmp := make([]byte, 1)
+
+	bounds := 0
+
+	for {
+		if bounds == 2 {
+			break
+		}
+
+		_, err := r.Read(tmp)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			return err
+		}
+
+		buf.Write(tmp)
+
+		for tmp[0] == '-' {
+			_, err = r.Read(tmp)
+
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+
+				return err
+			}
+
+			buf.Write(tmp)
+
+			if tmp[0] == '\n' {
+				bounds++
+				break
+			}
+		}
+	}
+
+	dec := yaml.NewDecoder(buf)
+
+	if err := dec.Decode(fm); err != nil {
+		return err
+	}
+
+	return nil
 }
