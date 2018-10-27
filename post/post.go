@@ -2,103 +2,61 @@ package post
 
 import (
 	"bytes"
-	"fmt"
-	"io"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/util"
-
-	"github.com/russross/blackfriday"
-
-	"gopkg.in/yaml.v2"
 )
 
-var (
-	DateLayout = "2006-01-02T15:04"
-
-	frontMatterFmt = `---
-title: %s
-index: true
-createdAt: %s
-updatedAt: %s
----`
-)
+var dateLayout = "2006-01-02T15:04"
 
 type frontMatter struct {
-	Title string
-
-	Layout string
-
-	Index bool
-
+	Title     string
+	Index     bool
+	Layout    string
 	CreatedAt string `yaml:"createdAt"`
-
 	UpdatedAt string `yaml:"updatedAt"`
 }
 
 type Post struct {
-	ID string
+	page.Page
 
-	Category category.Category
-
-	Title string
-
-	Layout string
-
-	Index bool
-
-	Preview string
-
-	Body string
-
-	SourcePath string
-
-	SitePath string
-
+	Index     bool
+	Preview   string
+	Category  category.Category
 	CreatedAt time.Time
-
 	UpdatedAt time.Time
 }
 
-func Find(id string) (Post, error) {
-	sourcePath := filepath.Join(meta.PostsDir, id + ".md")
+func All() ([]Post, error) {
+	posts := make([]Post, 0)
 
-	_, err := os.Stat(sourcePath)
+	err := Walk(func(p Post) error {
+		posts = append(posts, p)
+
+		return nil
+	})
+
+	return posts, err
+}
+
+func Find(id string) (Post, error) {
+	fname := filepath.Join(meta.PostsDir, id + ".md")
+
+	_, err := os.Stat(fname)
 
 	if err != nil {
 		return Post{}, err
 	}
 
-	parts := strings.Split(id, string(os.PathSeparator))
-
-	buf := bytes.Buffer{}
-
-	categoryParts := []string{}
-	categoryId := ""
-
-	if len(parts) >= 2 {
-		categoryParts = parts[:len(parts) - 1]
-		categoryId = filepath.Join(categoryParts...)
-
-		for i, p := range categoryParts {
-			buf.WriteString(p)
-
-			if i != len(categoryParts) - 1 {
-				buf.WriteString(" / ")
-			}
-		}
-	}
-
-	categoryName := buf.String()
-
-	f, err := os.Open(sourcePath)
+	f, err := os.Open(fname)
 
 	if err != nil {
 		return Post{}, err
@@ -106,59 +64,70 @@ func Find(id string) (Post, error) {
 
 	defer f.Close()
 
-	fm, err := unmarshalFrontMatter(f)
+	parts := strings.Split(id, string(os.PathSeparator))
+
+	categoryParts := []string{}
+
+	categoryId := ""
+	categoryName := ""
+
+	if len(parts) >= 2 {
+		categoryParts = parts[:len(parts) - 1]
+		categoryId = filepath.Join(categoryParts...)
+
+		categoryName = strings.Join(categoryParts, " / ")
+	}
+
+	fm := frontMatter{}
+
+	if err := util.UnmarshalFrontMatter(&fm, f); err != nil {
+		return Post{}, err
+	}
+
+	createdAt, err := time.Parse(dateLayout, fm.CreatedAt)
 
 	if err != nil {
 		return Post{}, err
 	}
 
-	createdAt, err := time.Parse(DateLayout, fm.CreatedAt)
+	updatedAt, err := time.Parse(dateLayout, fm.UpdatedAt)
+
+	date := string([]rune(fm.CreatedAt)[:10])
 
 	if err != nil {
 		return Post{}, err
 	}
 
-	createdAtStr := string([]rune(fm.CreatedAt)[:10])
+	categoryPath := filepath.Join(categoryParts...)
+	datePath := filepath.Join(strings.Split(date, "-")...)
 
-	updatedAt, err := time.Parse(DateLayout, fm.UpdatedAt)
-
-	if err != nil {
-		return Post{}, err
-	}
-
-	sitePath := filepath.Join(
-		meta.SiteDir,
-		filepath.Join(categoryParts...),
-		filepath.Join(strings.Split(createdAtStr, "-")...),
-		filepath.Base(id),
-		"index.html",
-	)
+	site := filepath.Join(meta.SiteDir, categoryPath, datePath, filepath.Base(id), "index.html")
 
 	return Post{
-		ID:         id,
-		Category:   category.Category{
-			ID:     categoryId,
-			Name:   categoryName,
+		Page: page.Page{
+			ID:         id,
+			Title:      fm.Title,
+			SourcePath: filepath.Join(meta.PostsDir, id + ".md"),
+			SitePath:   site,
 		},
-		Title:      fm.Title,
-		Layout:     fm.Layout,
-		Index:      fm.Index,
-		SourcePath: sourcePath,
-		SitePath:   sitePath,
-		CreatedAt:  createdAt,
-		UpdatedAt:  updatedAt,
+		Category: category.Category{
+			ID:   categoryId,
+			Name: categoryName,
+		},
+		Index:     fm.Index,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
 	}, nil
 }
 
-func New(title, categoryName string) Post {
-	date := time.Now()
+func New(p *page.Page, category_ string) Post {
+	now := time.Now()
 
 	buf := bytes.Buffer{}
+	parts := strings.Split(category_, "/")
 
-	parts := strings.Split(categoryName, "/")
-
-	for i, p := range parts {
-		buf.WriteString(util.Slug(p))
+	for i, prt := range parts {
+		buf.WriteString(util.Slug(prt))
 
 		if i != len(parts) - 1 {
 			buf.WriteString(string(os.PathSeparator))
@@ -166,21 +135,21 @@ func New(title, categoryName string) Post {
 	}
 
 	categoryId := buf.String()
-	titleSlug := util.Slug(title)
+	titleSlug := util.Slug(p.Title)
 
 	id := filepath.Join(categoryId, titleSlug)
-	sourcePath := filepath.Join(meta.PostsDir, categoryId, titleSlug + ".md")
+
+	p.ID = id
+	p.SourcePath = filepath.Join(meta.PostsDir, id + ".md")
 
 	return Post{
-		ID:         id,
-		Category:   category.Category{
-			ID:     categoryId,
-			Name:   categoryName,
+		Page:     *p,
+		Category: category.Category{
+			ID:   categoryId,
+			Name: category_,
 		},
-		Title:      title,
-		SourcePath: sourcePath,
-		CreatedAt:  date,
-		UpdatedAt:  date,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 }
 
@@ -194,8 +163,7 @@ func Walk(fn func(p Post) error) error {
 			return nil
 		}
 
-		root := meta.PostsDir + string(os.PathSeparator)
-		id := strings.Replace(path, root, "", 1)
+		id := strings.Replace(path, meta.PostsDir + string(os.PathSeparator), "", 1)
 
 		p, err := Find(strings.Split(id, ".")[0])
 
@@ -213,114 +181,6 @@ func Walk(fn func(p Post) error) error {
 	return filepath.Walk(meta.PostsDir, walk)
 }
 
-func ResolvePosts() ([]Post, error) {
-	posts := make(map[string]Post)
-	order := make([]string, 0)
-
-	err := Walk(func(p Post) error {
-		createdAt := p.CreatedAt.Format(DateLayout)
-
-		posts[createdAt] = p
-
-		order = append(order, createdAt)
-
-		return nil
-	})
-
-	if err != nil {
-		return []Post{}, err
-	}
-
-	sort.Sort(sort.Reverse(sort.StringSlice(order)))
-
-	ret := make([]Post, len(posts), len(posts))
-
-	for i, key := range order {
-		ret[i] = posts[key]
-	}
-
-	return ret, err
-}
-
-func marshalFrontMatter(fm *frontMatter, w io.Writer) error {
-	enc := yaml.NewEncoder(w)
-
-	if err := enc.Encode(fm); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func unmarshalFrontMatter(r io.Reader) (frontMatter, error) {
-	fm := frontMatter{}
-
-	buf := bytes.Buffer{}
-	tmp := make([]byte, 1)
-
-	bounds := 0
-
-	for {
-		if bounds == 2 {
-			break
-		}
-
-		_, err := r.Read(tmp)
-
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-
-			return fm, err
-		}
-
-		buf.Write(tmp)
-
-		for tmp[0] == '-' {
-			_, err = r.Read(tmp)
-
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-
-				return fm, err
-			}
-
-			buf.Write(tmp)
-
-			if tmp[0] == '\n' {
-				bounds++
-				break
-			}
-		}
-	}
-
-	dec := yaml.NewDecoder(&buf)
-
-	if err := dec.Decode(&fm); err != nil {
-		return fm, err
-	}
-
-	return fm, nil
-}
-
-func (p *Post) Convert() {
-	p.Body = string(blackfriday.Run([]byte(p.Body)))
-	p.Preview = string(blackfriday.Run([]byte(p.Preview)))
-}
-
-func (p Post) HasCategory() bool {
-	return p.Category.ID != "" && p.Category.Name != ""
-}
-
-func (p Post) Href() string {
-	href := []rune(p.SitePath)
-
-	return filepath.Dir(string(href[len(meta.SiteDir):]))
-}
-
 func (p *Post) Load() error {
 	f, err := os.Open(p.SourcePath)
 
@@ -330,30 +190,11 @@ func (p *Post) Load() error {
 
 	defer f.Close()
 
-	fm, err := unmarshalFrontMatter(f)
+	fm := frontMatter{}
 
-	if err != nil {
+	if err := util.UnmarshalFrontMatter(&fm, f); err != nil {
 		return err
 	}
-
-	p.Title = fm.Title
-	p.Layout = fm.Layout
-	p.Index = fm.Index
-
-	createdAtTime, err := time.Parse(DateLayout, fm.CreatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	updatedAtTime, err := time.Parse(DateLayout, fm.UpdatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	p.CreatedAt = createdAtTime
-	p.UpdatedAt = updatedAtTime
 
 	b, err := ioutil.ReadAll(f)
 
@@ -367,27 +208,62 @@ func (p *Post) Load() error {
 		p.Preview = string(b[:i])
 	}
 
+	createdAt, err := time.Parse(dateLayout, fm.CreatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	updatedAt, err := time.Parse(dateLayout, fm.UpdatedAt)
+
+	if err != nil {
+		return err
+	}
+
+	p.Title = fm.Title
 	p.Body = string(b)
+	p.CreatedAt = createdAt
+	p.UpdatedAt = updatedAt
 
 	return nil
 }
 
-func (p Post) Remove() error {
-	if err := os.Remove(p.SourcePath); err != nil {
+func (p *Post) Remove() error {
+	if err := p.Remove(); err != nil {
 		return err
 	}
 
-	return util.RemoveEmptyDirs(meta.PostsDir, filepath.Dir(p.SourcePath))
+	if err := util.RemoveEmptyDirs(meta.PostsDir, filepath.Dir(p.SourcePath)); err != nil {
+		return err
+	}
+
+	p.Index = false
+	p.Preview = ""
+	p.Category = category.Category{}
+	p.CreatedAt = time.Time{}
+	p.UpdatedAt = time.Time{}
+
+	return nil
 }
 
 func (p *Post) Touch() error {
-	if err := p.Load(); err != nil {
-		return err
+	info, err := os.Stat(p.SourcePath)
+
+	if err == nil {
+		if err := p.Load(); err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return errors.New("expected file, got directory for: " + p.SourcePath)
+		}
+	} else {
+		if !os.IsNotExist(err) {
+			return err
+		}
 	}
 
-	p.UpdatedAt = time.Now()
-
-	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR, os.ModePerm)
+	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, os.ModePerm)
 
 	if err != nil {
 		return err
@@ -397,15 +273,15 @@ func (p *Post) Touch() error {
 
 	fm := frontMatter{
 		Title:     p.Title,
-		Layout:    p.Layout,
 		Index:     p.Index,
-		CreatedAt: p.CreatedAt.Format(DateLayout),
-		UpdatedAt: p.UpdatedAt.Format(DateLayout),
+		Layout:    p.Layout,
+		CreatedAt: p.CreatedAt.Format(dateLayout),
+		UpdatedAt: time.Now().Format(dateLayout),
 	}
 
 	f.Write([]byte("---\n"))
 
-	if err := marshalFrontMatter(&fm, f); err != nil {
+	if err := util.MarshalFrontMatter(&fm, f); err != nil {
 		return err
 	}
 
@@ -413,16 +289,4 @@ func (p *Post) Touch() error {
 	f.Write([]byte(p.Body))
 
 	return nil
-}
-
-func (p Post) WriteFrontMatter(w io.Writer) error {
-	_, err := fmt.Fprintf(
-		w,
-		frontMatterFmt,
-		p.Title,
-		p.CreatedAt.Format(DateLayout),
-		p.UpdatedAt.Format(DateLayout),
-	)
-
-	return err
 }
