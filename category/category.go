@@ -46,7 +46,7 @@ func Find(id string) (Category, error) {
 	}, nil
 }
 
-func ResolveCategories() ([]Category, error) {
+func All() ([]Category, error) {
 	categories := make(map[string]Category)
 
 	walk := func(path string, info os.FileInfo, err error) error {
