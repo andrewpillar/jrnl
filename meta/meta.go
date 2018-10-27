@@ -13,6 +13,8 @@ var (
 
 	PostsDir = "_posts"
 
+	PagesDir = "_pages"
+
 	SiteDir = "_site"
 
 	LayoutsDir = "_layouts"
@@ -23,6 +25,7 @@ var (
 
 	Dirs = []string{
 		PostsDir,
+		PagesDir,
 		SiteDir,
 		LayoutsDir,
 		ThemesDir,
