@@ -67,15 +67,13 @@ func Find(id string) (Post, error) {
 	parts := strings.Split(id, string(os.PathSeparator))
 
 	categoryParts := []string{}
-
-	categoryId := ""
-	categoryName := ""
+	postCategory := category.Category{}
 
 	if len(parts) >= 2 {
 		categoryParts = parts[:len(parts) - 1]
-		categoryId = filepath.Join(categoryParts...)
+		categoryId := filepath.Join(categoryParts...)
 
-		categoryName = strings.Join(categoryParts, " / ")
+		postCategory, err = category.Find(categoryId)
 	}
 
 	fm := frontMatter{}
@@ -111,10 +109,7 @@ func Find(id string) (Post, error) {
 			SourcePath: filepath.Join(meta.PostsDir, id + ".md"),
 			SitePath:   site,
 		},
-		Category: category.Category{
-			ID:   categoryId,
-			Name: categoryName,
-		},
+		Category:  postCategory,
 		Index:     fm.Index,
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
