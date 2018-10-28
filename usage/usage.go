@@ -4,6 +4,7 @@ var (
 	Commands = map[string]string{
 		"init":       Init,
 		"title":      Title,
+		"page":       Page,
 		"post":       Post,
 		"edit":       Edit,
 		"rm":         Rm,
@@ -30,12 +31,13 @@ Commands:
 
   init     Initialize a new journal
   title    Set the journal's title
+  page     Create a page
   post     Create a post
-  edit     Edit a post
-  rm       Remove a post
-  ls       List all journal posts
+  edit     Edit a page, or post
+  rm       Remove a page, or post
+  ls       List all journal pages, and posts
   remote   Manage the journal's remotes
-  publish  Publish the journal's posts
+  publish  Publish the journal
   theme    Manage the journal's themes
 
 Options:
