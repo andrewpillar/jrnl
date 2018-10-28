@@ -263,6 +263,10 @@ func (p *Post) Touch() error {
 		}
 	}
 
+	if err := os.MkdirAll(filepath.Dir(p.SourcePath), os.ModePerm); err != nil {
+		return err
+	}
+
 	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, os.ModePerm)
 
 	if err != nil {
