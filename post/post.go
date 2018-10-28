@@ -107,6 +107,7 @@ func Find(id string) (Post, error) {
 		Page: page.Page{
 			ID:         id,
 			Title:      fm.Title,
+			Layout:     fm.Layout,
 			SourcePath: filepath.Join(meta.PostsDir, id + ".md"),
 			SitePath:   site,
 		},
@@ -179,6 +180,10 @@ func Walk(fn func(p Post) error) error {
 	}
 
 	return filepath.Walk(meta.PostsDir, walk)
+}
+
+func (p Post) HasCategory() bool {
+	return p.Category.ID != "" && p.Category.Name != ""
 }
 
 func (p *Post) Load() error {

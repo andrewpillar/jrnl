@@ -245,7 +245,7 @@ func publishPage(p page.Page, data interface{}) error {
 	return template.Render(f, p.ID, string(b), data)
 }
 
-func publishPages(title string, categories []category.Category) chan error {
+func publishPages(title string, categories []category.Category) (chan page.Page, chan error) {
 	published := make(chan page.Page)
 	errs := make(chan error)
 
@@ -257,14 +257,19 @@ func publishPages(title string, categories []category.Category) chan error {
 		go func() {
 			defer wg.Done()
 
+			if err := p.Load(); err != nil {
+				errs <- err
+				return
+			}
+
 			data := struct{
 				Title      string
 				Categories []category.Category
-				Body       string
+				Page       page.Page
 			}{
 				Title:      title,
 				Categories: categories,
-				Body:       p.Body,
+				Page:       p,
 			}
 
 			if err := publishPage(p, data); err != nil {
@@ -291,7 +296,7 @@ func publishPages(title string, categories []category.Category) chan error {
 		close(errs)
 	}()
 
-	return errs
+	return published, errs
 }
 
 func publishPosts(title string, categories []category.Category) (chan post.Post, chan error) {
@@ -305,6 +310,11 @@ func publishPosts(title string, categories []category.Category) (chan post.Post,
 
 		go func() {
 			defer wg.Done()
+
+			if err := p.Load(); err != nil {
+				errs <- err
+				return
+			}
 
 			data := struct{
 				Title      string
@@ -465,12 +475,26 @@ func Publish(c cli.Command) {
 
 	code := 0
 
-	errs := publishPages(m.Title, categories)
+	pages, errs := publishPages(m.Title, categories)
 
-	for err := range errs {
-		code = 1
+	for {
+		select {
+			case err, ok := <-errs:
+				if !ok {
+					errs = nil
+				} else {
+					code = 1
+					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
+				}
+			case _, ok := <-pages:
+				if !ok {
+					pages = nil
+				}
+		}
 
-		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
+		if pages == nil && errs == nil {
+			break
+		}
 	}
 
 	posts, errs := publishPosts(m.Title, categories)
@@ -486,6 +510,7 @@ func Publish(c cli.Command) {
 				if !ok {
 					errs = nil
 				} else {
+					code = 1
 					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 				}
 			case p, ok := <-posts:
@@ -518,6 +543,18 @@ func Publish(c cli.Command) {
 				return
 			}
 		}()
+	}
+
+	go func() {
+		wg.Wait()
+
+		close(errs)
+	}()
+
+	for err := range errs {
+		code = 1
+
+		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 	}
 
 	if !c.Flags.IsSet("draft") {
