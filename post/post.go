@@ -157,7 +157,7 @@ func Walk(fn func(p Post) error) error {
 			return err
 		}
 
-		if info.Name() == meta.PostsDir || info.IsDir() {
+		if info.IsDir() {
 			return nil
 		}
 
