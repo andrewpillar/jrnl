@@ -216,17 +216,11 @@ func publishPage(p page.Page, data interface{}) error {
 		return errors.New("no layout for " + p.ID)
 	}
 
-	if err := p.Load(); err != nil {
-		return err
-	}
-
 	b, err := ioutil.ReadFile(filepath.Join(meta.LayoutsDir, p.Layout))
 
 	if err != nil {
 		return err
 	}
-
-	p.Render()
 
 	dir := filepath.Dir(p.SitePath)
 
@@ -261,6 +255,8 @@ func publishPages(title string, categories []category.Category) (chan page.Page,
 				errs <- err
 				return
 			}
+
+			p.Render()
 
 			data := struct{
 				Title      string
@@ -315,6 +311,8 @@ func publishPosts(title string, categories []category.Category) (chan post.Post,
 				errs <- err
 				return
 			}
+
+			p.Render()
 
 			data := struct{
 				Title      string
