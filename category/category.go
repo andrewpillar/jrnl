@@ -12,8 +12,7 @@ import (
 )
 
 type Category struct {
-	ID string
-
+	ID   string
 	Name string
 
 	Categories []Category
