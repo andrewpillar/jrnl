@@ -1,0 +1,14 @@
+title: ""
+editor: vim
+theme: ""
+default: ""
+indexlayouts:
+  index: ""
+  day: ""
+  month: ""
+  year: ""
+  category: ""
+  categoryday: ""
+  categorymonth: ""
+  categoryyear: ""
+remotes: {}
