@@ -1,0 +1,10 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<title>{{.Title}}</title>
+	</head>
+	<body>
+{{.Post.Body}}
+	</body>
+</html>
