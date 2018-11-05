@@ -242,7 +242,7 @@ func (p *Post) Render() {
 }
 
 func (p *Post) Remove() error {
-	if err := p.Remove(); err != nil {
+	if err := p.Page.Remove(); err != nil {
 		return err
 	}
 
