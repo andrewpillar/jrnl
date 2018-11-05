@@ -147,8 +147,10 @@ func (p *Page) Remove() error {
 		return err
 	}
 
-	if err := os.Remove(p.SitePath); err != nil {
-		return err
+	if p.SitePath != "" {
+		if err := os.Remove(p.SitePath); err != nil {
+			return err
+		}
 	}
 
 	p.ID = ""
