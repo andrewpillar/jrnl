@@ -15,13 +15,10 @@ var (
 
 	postHref = "/2006/01/02/some-post"
 	categoryPostHref = "/some-category/2006/01/02/some-post"
-
-	categoryName = "Some Category"
-	subCategoryName = "Parent / Child"
 )
 
 func init() {
-	meta.PostsDir = "testdata/_posts"
+	meta.PostsDir = "../testdata/_posts"
 }
 
 func TestAll(t *testing.T) {
@@ -53,22 +50,14 @@ func TestFind(t *testing.T) {
 		t.Errorf("expected post %s to have category it did not\n", cp.ID)
 	}
 
-	if cp.Category.Name != categoryName {
-		t.Errorf("expected category name to be %s it was %s\n", categoryName, cp.Category.Name)
-	}
-
 	if cp.Href() != categoryPostHref {
 		t.Errorf("expected post href to be %s it was %s\n", categoryPostHref, cp.Href())
 	}
 
-	scp, err := Find(postSubCategoryId)
+	_, err = Find(postSubCategoryId)
 
 	if err != nil {
 		t.Errorf("expected to find post %s could not: %s\n", postSubCategoryId, err)
-	}
-
-	if scp.Category.Name != subCategoryName {
-		t.Errorf("expected category name to be %s it was %s\n", subCategoryName, scp.Category.Name)
 	}
 }
 
@@ -97,7 +86,7 @@ func TestLoad(t *testing.T) {
 		t.Errorf("failed to load post %s: %s\n", p.ID, err)
 	}
 
-	preview, err := ioutil.ReadFile("testdata/some-post-preview.golden")
+	preview, err := ioutil.ReadFile("../testdata/some-post-preview.golden")
 
 	if err != nil {
 		t.Errorf("failed to read file: %s\n", err)
@@ -126,7 +115,7 @@ func TestRender(t *testing.T) {
 
 	p.Render()
 
-	md, err := ioutil.ReadFile("testdata/some-post.golden")
+	md, err := ioutil.ReadFile("../testdata/some-post.golden")
 
 	if err != nil {
 		t.Errorf("failed to read file: %s\n", err)
