@@ -47,19 +47,19 @@ func Find(id string) (Category, error) {
 }
 
 func All() ([]Category, error) {
-	categories := make(map[string]Category)
+	categories := make(map[string]*Category)
 
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if info.Name() == meta.PostsDir || !info.IsDir() {
+		if path == meta.PostsDir || !info.IsDir() {
 			return nil
 		}
 
-		parts := strings.Split(path, string(os.PathSeparator))
-		id := filepath.Join(parts[1:]...)
+		id := strings.Replace(path, meta.PostsDir + string(os.PathSeparator), "", 1)
+		parts := strings.Split(id, string(os.PathSeparator))
 
 		c, err := Find(id)
 
@@ -67,8 +67,8 @@ func All() ([]Category, error) {
 			return err
 		}
 
-		if len(parts) > 2 {
-			parentId := filepath.Join(parts[1:len(parts) - 1]...)
+		if len(parts) >= 2 {
+			parentId := filepath.Join(parts[:len(parts) - 1]...)
 
 			parent, ok := categories[parentId]
 
@@ -81,7 +81,7 @@ func All() ([]Category, error) {
 			return nil
 		}
 
-		categories[id] = c
+		categories[id] = &c
 
 		return nil
 	}
@@ -92,7 +92,7 @@ func All() ([]Category, error) {
 	i := 0
 
 	for _, c := range categories {
-		ret[i] = c
+		ret[i] = *c
 		i++
 	}
 
