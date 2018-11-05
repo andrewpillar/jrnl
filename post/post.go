@@ -13,6 +13,8 @@ import (
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/util"
+
+	"github.com/russross/blackfriday"
 )
 
 var dateLayout = "2006-01-02T15:04"
@@ -181,6 +183,12 @@ func (p Post) HasCategory() bool {
 	return p.Category.ID != "" && p.Category.Name != ""
 }
 
+func (p Post) Href() string {
+	r := []rune(p.SitePath)
+
+	return filepath.Dir(string(r[len(meta.SiteDir):]))
+}
+
 func (p *Post) Load() error {
 	f, err := os.Open(p.SourcePath)
 
@@ -226,6 +234,11 @@ func (p *Post) Load() error {
 	p.UpdatedAt = updatedAt
 
 	return nil
+}
+
+func (p *Post) Render() {
+	p.Page.Render()
+	p.Preview = string(blackfriday.Run([]byte(p.Preview)))
 }
 
 func (p *Post) Remove() error {
