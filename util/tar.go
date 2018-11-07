@@ -33,10 +33,7 @@ func Tar(src string, w io.Writer) error {
 			return err
 		}
 
-		header.Name = strings.TrimPrefix(
-			strings.Replace(path, src, "", -1),
-			string(os.PathSeparator),
-		)
+		header.Name = strings.TrimPrefix(strings.Replace(path, src, "", -1), string(os.PathSeparator))
 
 		if err := tw.WriteHeader(header); err != nil {
 			return err
@@ -99,11 +96,9 @@ func Untar(dst string, r io.Reader) error {
 					}
 				}
 			case tar.TypeReg:
-				f, err := os.OpenFile(
-					target,
-					os.O_TRUNC|os.O_CREATE|os.O_RDWR,
-					os.FileMode(header.Mode),
-				)
+				mode := os.FileMode(header.Mode)
+
+				f, err := os.OpenFile(target, os.O_TRUNC|os.O_CREATE|os.O_RDWR, mode)
 
 				if err != nil {
 					return err
