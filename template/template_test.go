@@ -7,20 +7,26 @@ import (
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/post"
 )
 
-var postId = "some-post"
+var (
+	postId = "post"
+	pageId = "page"
+)
 
 func init() {
-	meta.PostsDir = "../testdata/_posts"
+	meta.PostsDir = "testdata/_posts"
+	meta.PagesDir = "testdata/_pages"
+	meta.LayoutsDir = "testdata/_layouts"
 }
 
-func TestRender(t *testing.T) {
+func TestPostRender(t *testing.T) {
 	p, err := post.Find(postId)
 
 	if err != nil {
-		t.Errorf("failed to find post %s:\n", postId)
+		t.Errorf("failed to find post %s: %s\n", postId, err)
 	}
 
 	if err := p.Load(); err != nil {
@@ -37,28 +43,74 @@ func TestRender(t *testing.T) {
 		Post:  p,
 	}
 
-	buf := &bytes.Buffer{}
-
-	b, err := ioutil.ReadFile("../testdata/_layouts/" + p.Layout)
+	layout, err := ioutil.ReadFile("testdata/_layouts/" + p.Layout)
 
 	if err != nil {
 		t.Errorf("failed to read file: %s\n", err)
 	}
 
-	if err := Render(buf, "test-template", string(b), data); err != nil {
+	buf := &bytes.Buffer{}
+
+	if err := Render(buf, "test-post", string(layout), data); err != nil {
 		t.Errorf("failed to render template: %s\n", err)
 	}
 
-	rendered, err := ioutil.ReadFile("../testdata/render.golden")
+	b, err := ioutil.ReadFile("testdata/post.golden")
 
 	if err != nil {
 		t.Errorf("failed to read file: %s\n", err)
 	}
 
-	if buf.String() != string(rendered) {
-		t.Errorf("rendered output did not match\n")
-		t.Errorf("expected:\n%s\n", rendered)
-		t.Errorf("recevied:\n%s\n", buf.String())
+	if buf.String() != string(b) {
+		t.Errorf("value mismatch\n")
+		t.Errorf("expected:\n%s\n", b)
+		t.Errorf("recieved:\n%s\n", buf.String())
+	}
+}
+
+func TestPageRender(t *testing.T) {
+	p, err := page.Find(pageId)
+
+	if err != nil {
+		t.Errorf("failed to find page %s: %s\n", pageId, err)
+	}
+
+	if err := p.Load(); err != nil {
+		t.Errorf("failed to load page %s: %s\n", p.ID, err)
+	}
+
+	p.Render()
+
+	data := struct{
+		Title string
+		Page  page.Page
+	}{
+		Title: "Some Page",
+		Page:  p,
+	}
+
+	layout, err := ioutil.ReadFile("testdata/_layouts/" + p.Layout)
+
+	if err != nil {
+		t.Errorf("failed to read file: %s\n", err)
+	}
+
+	buf := &bytes.Buffer{}
+
+	if err := Render(buf, "test-page", string(layout), data); err != nil {
+		t.Errorf("failed to render template: %s\n", err)
+	}
+
+	b, err := ioutil.ReadFile("testdata/page.golden")
+
+	if err != nil {
+		t.Errorf("failed to read file: %s\n", err)
+	}
+
+	if buf.String() != string(b) {
+		t.Errorf("value mismatch\n")
+		t.Errorf("expected:\n%s\n", b)
+		t.Errorf("recieved:\n%s\n", buf.String())
 	}
 }
 
@@ -69,20 +121,47 @@ func TestPrintCategories(t *testing.T) {
 		t.Errorf("failed to get categories: %s\n", err)
 	}
 
-	expected, err := ioutil.ReadFile("../testdata/categories.golden")
+	b, err := ioutil.ReadFile("testdata/categories.golden")
 
 	if err != nil {
 		t.Errorf("failed to read file: %s\n", err)
 	}
 
-	// Remove new-line
-	expected = expected[:len(expected) - 1]
+	b = b[:len(b) - 1]
 
 	categories := printCategories(c)
 
-	if categories != string(expected) {
-		t.Errorf("rendered output did not match\n")
-		t.Errorf("expected:\n%s\n", expected)
-		t.Errorf("received:\n%s\n", categories)
+	if categories != string(b) {
+		t.Errorf("value mismatch\n")
+		t.Errorf("expected:\n%s\n", b)
+		t.Errorf("recieved:\n%s\n", categories)
+	}
+}
+
+func TestPartial(t *testing.T) {
+	c, err := category.All()
+
+	if err != nil {
+		t.Errorf("failed to get categories: %s\n", err)
+	}
+
+	s, err := partial("partial", c)
+
+	if err != nil {
+		t.Errorf("failed to render partial: %s\n", err)
+	}
+
+	b, err := ioutil.ReadFile("testdata/partial.golden")
+
+	if err != nil {
+		t.Errorf("failed to read file: %s\n", err)
+	}
+
+//	b = b[:len(b) - 1]
+
+	if s != string(b) {
+		t.Errorf("value mismatch\n")
+		t.Errorf("expected:\n%s\n", b)
+		t.Errorf("recieved:\n%s\n", s)
 	}
 }

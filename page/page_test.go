@@ -2,22 +2,27 @@ package page
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/andrewpillar/jrnl/meta"
 )
 
-var pageId = "some-page"
+var pageId = "page"
 
 func init() {
-	meta.PagesDir = "../testdata/_pages"
+	meta.PagesDir = "testdata/_pages"
 }
 
 func TestAll(t *testing.T) {
-	_, err := All()
+	p, err := All()
 
 	if err != nil {
-		t.Errorf("failed to get all pages: %s\n", err)
+		t.Errorf("failed to get pages: %s\n", err)
+	}
+
+	if len(p) != 1 {
+		t.Errorf("expected 1 page got %d\n", len(p))
 	}
 }
 
@@ -39,13 +44,31 @@ func TestLoad(t *testing.T) {
 	if err := p.Load(); err != nil {
 		t.Errorf("failed to load page %s: %s\n", p.ID, err)
 	}
+
+	b, err := ioutil.ReadFile("testdata/page_plain.golden")
+
+	if err != nil {
+		t.Errorf("failed to read file: %s\n", err)
+	}
+
+	if p.Body != string(b) {
+		t.Errorf("value mismatch\n")
+		t.Errorf("expected:\n%s\n", b)
+		t.Errorf("recieved:\n%s\n", p.Body)
+	}
 }
 
 func TestTouchRemove(t *testing.T) {
 	p := New("new page")
 
 	if err := p.Touch(); err != nil {
-		t.Errorf("failed to touch page %s: %s\n", p.ID, err)
+		t.Errorf("failed to touch new page %s: %s\n", p.ID, err)
+	}
+
+	_, err := os.Stat(p.SourcePath)
+
+	if err != nil {
+		t.Errorf("failed to stat file: %s\n", err)
 	}
 
 	if err := p.Remove(); err != nil {
@@ -66,15 +89,15 @@ func TestRender(t *testing.T) {
 
 	p.Render()
 
-	md, err := ioutil.ReadFile("../testdata/some-page.golden")
+	b, err := ioutil.ReadFile("testdata/page.golden")
 
 	if err != nil {
 		t.Errorf("failed to read file: %s\n", err)
 	}
 
-	if p.Body != string(md) {
-		t.Errorf("rendered output did not match\n")
-		t.Errorf("expected:\n\t%s\n", md)
-		t.Errorf("received:\n\t%s\n", p.Body)
+	if p.Body != string(b) {
+		t.Errorf("value mismatch\n")
+		t.Errorf("expected:\n%s\n", b)
+		t.Errorf("recieved:\n%s\n", p.Body)
 	}
 }
