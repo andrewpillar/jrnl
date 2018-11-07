@@ -7,25 +7,29 @@ import (
 )
 
 var (
-	categoryId = "some-category"
-	subCategoryId = "parent/child"
+	categoryId    = "category"
+	subCategoryId = "category-one/category-two"
 
-	categoryHref = "/some-category"
-	subCategoryHref = "/parent/child"
+	categoryName    = "Category"
+	subCategoryName = "Category One / Category Two"
 
-	categoryName = "Some Category"
-	subCategoryName = "Parent / Child"
+	categoryHref    = "/category"
+	subCategoryHref = "/category-one/category-two"
 )
 
 func init() {
-	meta.PostsDir = "../testdata/_posts"
+	meta.PostsDir = "testdata/_posts"
 }
 
 func TestAll(t *testing.T) {
-	_, err := All()
+	c, err := All()
 
 	if err != nil {
 		t.Errorf("failed to get categories: %s\n", err)
+	}
+
+	if len(c) != 2 {
+		t.Errorf("expected 2 categories but found %d\n", len(c))
 	}
 }
 
@@ -33,7 +37,7 @@ func TestFind(t *testing.T) {
 	c, err := Find(categoryId)
 
 	if err != nil {
-		t.Errorf("failed to find category %s: %s\n", categoryId, err)
+		t.Errorf("failed to find cateogry %s: %s\n", categoryId, err)
 	}
 
 	if c.Name != categoryName {
@@ -41,20 +45,20 @@ func TestFind(t *testing.T) {
 	}
 
 	if c.Href() != categoryHref {
-		t.Errorf("expected category href to be %s it was %s\n", categoryHref, c.Href())
+		t.Errorf("expected category href to be %s it was %s\n", c.Href(), categoryHref)
 	}
 
 	sc, err := Find(subCategoryId)
 
 	if err != nil {
-		t.Errorf("failed to find sub-category %s: %s\n", subCategoryId, err)
-	}
-
-	if sc.Href() != subCategoryHref {
-		t.Errorf("expected category href to be %s it was %s\n", subCategoryHref, sc.Href())
+		t.Errorf("failed to find category %s: %s\n", subCategoryId, err)
 	}
 
 	if sc.Name != subCategoryName {
-		t.Errorf("expected sub-category name to be %s it was %s\n", subCategoryName, sc.Name)
+		t.Errorf("expected category name to be %s it was %s\n", subCategoryName, sc.Name)
+	}
+
+	if sc.Href() != subCategoryHref {
+		t.Errorf("expected category href to be %s it was %s\n", sc.Href(), subCategoryHref)
 	}
 }
