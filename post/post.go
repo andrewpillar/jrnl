@@ -183,12 +183,6 @@ func (p Post) HasCategory() bool {
 	return p.Category.ID != "" && p.Category.Name != ""
 }
 
-func (p Post) Href() string {
-	r := []rune(p.SitePath)
-
-	return filepath.Dir(string(r[len(meta.SiteDir):]))
-}
-
 func (p *Post) Load() error {
 	f, err := os.Open(p.SourcePath)
 
