@@ -8,7 +8,11 @@ import (
 	"github.com/andrewpillar/jrnl/meta"
 )
 
-var pageId = "page"
+var (
+	pageId = "page"
+
+	pageHref = "/page"
+)
 
 func init() {
 	meta.PagesDir = "testdata/_pages"
@@ -27,10 +31,14 @@ func TestAll(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	_, err := Find(pageId)
+	p, err := Find(pageId)
 
 	if err != nil {
 		t.Errorf("failed to find page %s: %s\n", pageId, err)
+	}
+
+	if p.Href() != pageHref {
+		t.Errorf("expected page href to be %s it was %s\n", pageHref, p.Href())
 	}
 }
 

@@ -111,6 +111,12 @@ func Walk(fn func(p Page) error) error {
 	return filepath.Walk(meta.PagesDir, walk)
 }
 
+func (p Page) Href() string {
+	r := []rune(p.SitePath)
+
+	return filepath.Dir(string(r[len(meta.SiteDir):]))
+}
+
 func (p *Page) Load() error {
 	f, err := os.Open(p.SourcePath)
 
