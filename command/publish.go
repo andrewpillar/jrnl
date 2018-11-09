@@ -48,6 +48,7 @@ var (
 type indexData struct {
 	Title      string
 	Categories []category.Category
+	Pages      []page.Page
 	Posts      []post.Post
 }
 
@@ -91,10 +92,11 @@ func indexPost(p post.Post, indexes map[string][]post.Post, wg *sync.WaitGroup, 
 	}
 }
 
-func publishIndex(m *meta.Meta, key string, posts []post.Post, categories []category.Category) error {
+func publishIndex(m *meta.Meta, key string, posts []post.Post, categories []category.Category, pages []page.Page) error {
 	data := indexData{
 		Title:      m.Title,
 		Categories: categories,
+		Pages:      pages,
 		Posts:      posts,
 	}
 
@@ -239,7 +241,7 @@ func publishPage(p page.Page, data interface{}) error {
 	return template.Render(f, p.ID, string(b), data)
 }
 
-func publishPages(title string, categories []category.Category) (chan page.Page, chan error) {
+func publishPages(title string, categories []category.Category, pages []page.Page) (chan page.Page, chan error) {
 	published := make(chan page.Page)
 	errs := make(chan error)
 
@@ -261,10 +263,12 @@ func publishPages(title string, categories []category.Category) (chan page.Page,
 			data := struct{
 				Title      string
 				Categories []category.Category
+				Pages      []page.Page
 				Page       page.Page
 			}{
 				Title:      title,
 				Categories: categories,
+				Pages:      pages,
 				Page:       p,
 			}
 
@@ -295,7 +299,7 @@ func publishPages(title string, categories []category.Category) (chan page.Page,
 	return published, errs
 }
 
-func publishPosts(title string, categories []category.Category) (chan post.Post, chan error) {
+func publishPosts(title string, categories []category.Category, pages []page.Page) (chan post.Post, chan error) {
 	published := make(chan post.Post)
 	errs := make(chan error)
 
@@ -317,10 +321,12 @@ func publishPosts(title string, categories []category.Category) (chan post.Post,
 			data := struct{
 				Title      string
 				Categories []category.Category
+				Pages      []page.Page
 				Post       post.Post
 			}{
 				Title:      title,
 				Categories: categories,
+				Pages:      pages,
 				Post:       p,
 			}
 
@@ -471,9 +477,15 @@ func Publish(c cli.Command) {
 		util.Exit("failed to get all categories", err)
 	}
 
+	pages, err := page.All()
+
+	if err != nil {
+		util.Exit("failed to get all categories", err)
+	}
+
 	code := 0
 
-	pages, errs := publishPages(m.Title, categories)
+	pagesCh, errs := publishPages(m.Title, categories, pages)
 
 	for {
 		select {
@@ -484,18 +496,18 @@ func Publish(c cli.Command) {
 					code = 1
 					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 				}
-			case _, ok := <-pages:
+			case _, ok := <-pagesCh:
 				if !ok {
-					pages = nil
+					pagesCh = nil
 				}
 		}
 
-		if pages == nil && errs == nil {
+		if pagesCh == nil && errs == nil {
 			break
 		}
 	}
 
-	posts, errs := publishPosts(m.Title, categories)
+	postsCh, errs := publishPosts(m.Title, categories, pages)
 
 	wg := &sync.WaitGroup{}
 	mut := &sync.Mutex{}
@@ -511,9 +523,9 @@ func Publish(c cli.Command) {
 					code = 1
 					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 				}
-			case p, ok := <-posts:
+			case p, ok := <-postsCh:
 				if !ok {
-					posts = nil
+					postsCh = nil
 				} else {
 					wg.Add(1)
 
@@ -521,7 +533,7 @@ func Publish(c cli.Command) {
 				}
 		}
 
-		if posts == nil && errs == nil {
+		if postsCh == nil && errs == nil {
 			break
 		}
 	}
@@ -536,7 +548,7 @@ func Publish(c cli.Command) {
 		go func() {
 			defer wg.Done()
 
-			if err := publishIndex(m, key, posts, categories); err != nil {
+			if err := publishIndex(m, key, posts, categories, pages); err != nil {
 				errs <- err
 				return
 			}
