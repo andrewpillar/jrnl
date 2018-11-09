@@ -194,6 +194,7 @@ func publishIndex(m *meta.Meta, key string, posts []post.Post, categories []cate
 	}
 
 	if categoryRegex.Match(b) {
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Category)
 		id := strings.Join(parts[1:len(parts) - i], string(os.PathSeparator))
 
 		c, err := category.Find(id)
@@ -545,14 +546,14 @@ func Publish(c cli.Command) {
 	for key, posts := range indexes {
 		wg.Add(1)
 
-		go func() {
+		go func(key string) {
 			defer wg.Done()
 
 			if err := publishIndex(m, key, posts, categories, pages); err != nil {
 				errs <- err
 				return
 			}
-		}()
+		}(key)
 	}
 
 	go func() {
