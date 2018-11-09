@@ -290,13 +290,10 @@ func (p *Post) Touch() error {
 		UpdatedAt: time.Now().Format(dateLayout),
 	}
 
-	f.Write([]byte("---\n"))
-
 	if err := util.MarshalFrontMatter(&fm, f); err != nil {
 		return err
 	}
 
-	f.Write([]byte("---\n"))
 	f.Write([]byte(p.Body))
 
 	return nil
