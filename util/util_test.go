@@ -144,5 +144,7 @@ func TestTar(t *testing.T) {
 		t.Errorf("failed to untar file: %s\n", err)
 	}
 
+	os.Remove(tarOut)
+
 	r.Close()
 }
