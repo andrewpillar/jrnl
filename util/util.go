@@ -188,11 +188,15 @@ func Ucfirst(s string) string {
 }
 
 func MarshalFrontMatter(fm interface{}, w io.Writer) error {
+	w.Write([]byte("---\n"))
+
 	enc := yaml.NewEncoder(w)
 
 	if err := enc.Encode(fm); err != nil {
 		return err
 	}
+
+	w.Write([]byte("---\n"))
 
 	return nil
 }

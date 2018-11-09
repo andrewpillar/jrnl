@@ -199,13 +199,10 @@ func (p *Page) Touch() error {
 		Layout: p.Layout,
 	}
 
-	f.Write([]byte("---\n"))
-
 	if err := util.MarshalFrontMatter(&fm, f); err != nil {
 		return err
 	}
 
-	f.Write([]byte("---\n"))
 	f.Write([]byte(p.Body))
 
 	return nil
