@@ -33,7 +33,7 @@ func TestPostRender(t *testing.T) {
 		t.Errorf("failed to load post %s: %s\n", p.ID, err)
 	}
 
-	p.Render()
+	p.Render("")
 
 	data := struct{
 		Title string
@@ -79,7 +79,7 @@ func TestPageRender(t *testing.T) {
 		t.Errorf("failed to load page %s: %s\n", p.ID, err)
 	}
 
-	p.Render()
+	p.Render("")
 
 	data := struct{
 		Title string
