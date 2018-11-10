@@ -231,10 +231,10 @@ func (p *Post) Load() error {
 	return nil
 }
 
-func (p *Post) Render() {
-	p.Page.Render()
+func (p *Post) Render(style string) {
+	p.Page.Render(style)
 
-	r := render.New()
+	r := render.New(style)
 	md := blackfriday.Run([]byte(p.Preview), blackfriday.WithRenderer(r))
 
 	p.Preview = string(md)

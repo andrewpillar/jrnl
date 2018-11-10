@@ -95,7 +95,7 @@ func TestRender(t *testing.T) {
 		t.Errorf("failed to load page %s: %s\n", p.ID, err)
 	}
 
-	p.Render()
+	p.Render("")
 
 	b, err := ioutil.ReadFile("testdata/page.golden")
 

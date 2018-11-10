@@ -145,8 +145,8 @@ func (p *Page) Load() error {
 	return nil
 }
 
-func (p *Page) Render() {
-	r := render.New()
+func (p *Page) Render(style string) {
+	r := render.New(style)
 	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
 
 	p.Body = string(md)

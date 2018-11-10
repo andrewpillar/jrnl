@@ -242,7 +242,7 @@ func publishPage(p page.Page, data interface{}) error {
 	return template.Render(f, p.ID, string(b), data)
 }
 
-func publishPages(title string, categories []category.Category, pages []page.Page) (chan page.Page, chan error) {
+func publishPages(title, style string, categories []category.Category, pages []page.Page) (chan page.Page, chan error) {
 	published := make(chan page.Page)
 	errs := make(chan error)
 
@@ -259,7 +259,7 @@ func publishPages(title string, categories []category.Category, pages []page.Pag
 				return
 			}
 
-			p.Render()
+			p.Render(style)
 
 			data := struct{
 				Title      string
@@ -300,7 +300,7 @@ func publishPages(title string, categories []category.Category, pages []page.Pag
 	return published, errs
 }
 
-func publishPosts(title string, categories []category.Category, pages []page.Page) (chan post.Post, chan error) {
+func publishPosts(title, style string, categories []category.Category, pages []page.Page) (chan post.Post, chan error) {
 	published := make(chan post.Post)
 	errs := make(chan error)
 
@@ -317,7 +317,7 @@ func publishPosts(title string, categories []category.Category, pages []page.Pag
 				return
 			}
 
-			p.Render()
+			p.Render(style)
 
 			data := struct{
 				Title      string
@@ -486,7 +486,7 @@ func Publish(c cli.Command) {
 
 	code := 0
 
-	pagesCh, errs := publishPages(m.Title, categories, pages)
+	pagesCh, errs := publishPages(m.Title, m.Style, categories, pages)
 
 	for {
 		select {
@@ -508,7 +508,7 @@ func Publish(c cli.Command) {
 		}
 	}
 
-	postsCh, errs := publishPosts(m.Title, categories, pages)
+	postsCh, errs := publishPosts(m.Title, m.Style, categories, pages)
 
 	wg := &sync.WaitGroup{}
 	mut := &sync.Mutex{}

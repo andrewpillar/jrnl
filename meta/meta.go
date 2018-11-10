@@ -34,6 +34,7 @@ type Meta struct {
 	Title   string
 	Editor  string
 	Theme   string
+	Style   string
 	Default string
 
 	IndexLayouts struct {

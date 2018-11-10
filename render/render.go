@@ -26,14 +26,14 @@ type Renderer struct {
 	Errs []error
 }
 
-func New() *Renderer {
+func New(s string) *Renderer {
 	params := blackfriday.HTMLRendererParameters{
 		Flags: blackfriday.CommonHTMLFlags,
 	}
 
 	r := blackfriday.NewHTMLRenderer(params)
 
-	style := styles.Get("monokai")
+	style := styles.Get(s)
 
 	if style == nil {
 		style = styles.Fallback

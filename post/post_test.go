@@ -145,7 +145,7 @@ func TestRender(t *testing.T) {
 		t.Errorf("failed to load post %s: %s\n", p.ID, err)
 	}
 
-	p.Render()
+	p.Render("")
 
 	pb, err := ioutil.ReadFile("testdata/preview.golden")
 
