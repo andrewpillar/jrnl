@@ -9,19 +9,14 @@ import (
 )
 
 var (
-	File = "_meta.yaml"
+	File = "_meta.yml"
 
-	PostsDir = "_posts"
-
-	PagesDir = "_pages"
-
-	SiteDir = "_site"
-
+	PostsDir   = "_posts"
+	PagesDir   = "_pages"
+	SiteDir    = "_site"
 	LayoutsDir = "_layouts"
-
-	ThemesDir = "_themes"
-
-	AssetsDir = filepath.Join(SiteDir, "assets")
+	ThemesDir  = "_themes"
+	AssetsDir  = filepath.Join(SiteDir, "assets")
 
 	Dirs = []string{
 		PostsDir,
@@ -36,40 +31,31 @@ var (
 type Meta struct {
 	*os.File `yaml:"-"`
 
-	Title string
-
-	Editor string
-
-	Theme string
-
+	Title   string
+	Editor  string
+	Theme   string
 	Default string
 
-	IndexLayouts struct{
+	IndexLayouts struct {
 		Index string
-
-		Day string
-
+		Day   string
 		Month string
+		Year  string
 
-		Year string
-
-		Category string
-
-		CategoryDay string
-
-		CategoryMonth string
-
-		CategoryYear string
-	}
+		Category struct {
+			Index string
+			Day   string
+			Month string
+			Year  string
+		}
+	} `yaml:"indexLayouts"`
 
 	Remotes map[string]Remote
 }
 
 type Remote struct {
-	Target string
-
-	Port int
-
+	Target   string
+	Port     int
 	Identity string
 }
 
