@@ -12,6 +12,7 @@ import (
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/meta"
 	"github.com/andrewpillar/jrnl/page"
+	"github.com/andrewpillar/jrnl/render"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/russross/blackfriday"
@@ -231,8 +232,10 @@ func (p *Post) Load() error {
 }
 
 func (p *Post) Render() {
-	p.Page.Render()
-	p.Preview = string(blackfriday.Run([]byte(p.Preview)))
+	r := render.New()
+	md := blackfriday.Run([]byte(p.Preview), blackfriday.WithRenderer(r))
+
+	p.Preview = string(md)
 }
 
 func (p *Post) Remove() error {
