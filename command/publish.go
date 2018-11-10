@@ -152,17 +152,17 @@ func publishIndex(m *meta.Meta, key string, posts []post.Post, categories []cate
 
 	if categoryDayRegex.Match(b) {
 		isCategoryDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.CategoryDay)
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Category.Day)
 		timeFmt = filepath.Join("2006", "01", "02")
 		i = 3
 	} else if categoryMonthRegex.Match(b) {
 		isCategoryDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.CategoryMonth)
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Category.Month)
 		timeFmt = filepath.Join("2006", "01")
 		i = 2
 	} else if categoryYearRegex.Match(b) {
 		isCategoryDateIndex = true
-		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.CategoryYear)
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Category.Year)
 		timeFmt = filepath.Join("2006")
 		i = 1
 	}
@@ -194,7 +194,7 @@ func publishIndex(m *meta.Meta, key string, posts []post.Post, categories []cate
 	}
 
 	if categoryRegex.Match(b) {
-		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Category)
+		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Category.Index)
 		id := strings.Join(parts[1:len(parts) - i], string(os.PathSeparator))
 
 		c, err := category.Find(id)
