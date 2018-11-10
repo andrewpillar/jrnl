@@ -1,7 +1,10 @@
 module github.com/andrewpillar/jrnl
 
 require (
+	github.com/alecthomas/chroma v0.6.0
 	github.com/andrewpillar/cli v1.0.7
+	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
+	github.com/dlclark/regexp2 v1.1.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/pkg/sftp v1.8.3

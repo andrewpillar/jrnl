@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/render"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/russross/blackfriday"
@@ -145,7 +146,10 @@ func (p *Page) Load() error {
 }
 
 func (p *Page) Render() {
-	p.Body = string(blackfriday.Run([]byte(p.Body)))
+	r := render.New()
+	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
+
+	p.Body = string(md)
 }
 
 func (p *Page) Remove() error {
