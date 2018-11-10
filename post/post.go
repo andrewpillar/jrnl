@@ -232,6 +232,8 @@ func (p *Post) Load() error {
 }
 
 func (p *Post) Render() {
+	p.Page.Render()
+
 	r := render.New()
 	md := blackfriday.Run([]byte(p.Preview), blackfriday.WithRenderer(r))
 
