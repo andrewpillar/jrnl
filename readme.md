@@ -10,6 +10,8 @@ jrnl is a simple static site generator written in Go. It takes posts written in 
 * [Post Indexing](#post-indexing)
 * [Layouts](#layouts)
 * [Themes](#themes)
+* [Remotes](#remotes)
+* [Publishing](#publishing)
 
 ## Creating a Journal
 
