@@ -1,0 +1,16 @@
+title: ""
+editor: ""
+theme: test-theme
+style: ""
+default: ""
+indexLayouts:
+  index: ""
+  day: ""
+  month: ""
+  year: ""
+  category:
+    index: ""
+    day: ""
+    month: ""
+    year: ""
+remotes: {}
