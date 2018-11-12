@@ -99,27 +99,26 @@ func (t Theme) Save() error {
 
 	m.Theme = t.Name
 
-	assets := strings.Replace(meta.AssetsDir, meta.SiteDir, "", -1)
-	assets = strings.TrimPrefix(assets, string(os.PathSeparator))
+	assets := filepath.Join(meta.ThemesDir, t.Name, meta.AssetsDir)
+	assets = strings.Replace(assets, meta.SiteDir, "", -1)
 
-	path := filepath.Join(meta.ThemesDir, t.Name)
-	tmp := filepath.Join(path, assets)
+	layouts := filepath.Join(meta.ThemesDir, t.Name, meta.LayoutsDir)
 
-	if err := util.Copy(meta.AssetsDir, tmp); err != nil {
+	if err := util.Copy(meta.AssetsDir, assets); err != nil {
 		return err
 	}
 
-	tmp = filepath.Join(path, meta.LayoutsDir)
-
-	if err := util.Copy(meta.LayoutsDir, tmp); err != nil {
+	if err := util.Copy(meta.LayoutsDir, layouts); err != nil {
 		return err
 	}
 
-	if err := tar(path, t); err != nil {
+	dir := filepath.Join(meta.ThemesDir, t.Name)
+
+	if err := tar(dir, t); err != nil {
 		return err
 	}
 
-	if err := os.RemoveAll(path); err != nil {
+	if err := os.RemoveAll(dir); err != nil {
 		return err
 	}
 
@@ -145,22 +144,28 @@ func (t Theme) Use() error {
 		return err
 	}
 
-	assets := strings.Replace(meta.AssetsDir, meta.SiteDir, "", -1)
-	assets = strings.TrimPrefix(assets, string(os.PathSeparator))
+	assets := filepath.Join(meta.ThemesDir, meta.AssetsDir)
+	assets = strings.Replace(assets, meta.SiteDir, "", -1)
 
-	tmp := filepath.Join(meta.ThemesDir, assets)
+	layouts := filepath.Join(meta.ThemesDir, meta.LayoutsDir)
 
-	if err := util.Copy(tmp, meta.AssetsDir); err != nil {
+	if err := util.Copy(assets, meta.AssetsDir); err != nil {
 		return err
 	}
 
-	tmp = filepath.Join(meta.ThemesDir, meta.LayoutsDir)
-
-	if err := util.Copy(tmp, meta.LayoutsDir); err != nil {
+	if err := util.Copy(layouts, meta.LayoutsDir); err != nil {
 		return err
 	}
 
 	if err := m.Save(); err != nil {
+		return err
+	}
+
+	if err := os.RemoveAll(assets); err != nil {
+		return err
+	}
+
+	if err := os.RemoveAll(layouts); err != nil {
 		return err
 	}
 
