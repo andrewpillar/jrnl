@@ -116,35 +116,3 @@ func TestCopy(t *testing.T) {
 		t.Errorf("failed to remove dir %s: %s\n", copyDst, err)
 	}
 }
-
-func TestTar(t *testing.T) {
-	w, err := os.OpenFile(tarOut, os.O_CREATE|os.O_RDWR, os.ModePerm)
-
-	if err != nil {
-		t.Errorf("failed to open file: %s\n", err)
-	}
-
-	if err := Tar(tarIn, w); err != nil {
-		t.Errorf("failed to create tarball: %s\n", err)
-	}
-
-	w.Close()
-
-	if _, err := os.Stat(tarOut); err != nil {
-		t.Errorf("failed to stat file: %s\n", err)
-	}
-
-	r, err := os.Open(tarOut)
-
-	if err != nil {
-		t.Errorf("failed to open file: %s\n", err)
-	}
-
-	if err := Untar(tarIn, r); err != nil {
-		t.Errorf("failed to untar file: %s\n", err)
-	}
-
-	os.Remove(tarOut)
-
-	r.Close()
-}

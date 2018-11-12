@@ -112,6 +112,10 @@ func GetHostKey(hostname string) (ssh.PublicKey, error) {
 
 func MustBeInitialized() {
 	for _, d := range meta.Dirs {
+		if d == meta.SiteDir || d == meta.AssetsDir {
+			continue
+		}
+
 		info, err := os.Stat(d)
 
 		if err != nil {
