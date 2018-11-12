@@ -18,6 +18,7 @@ import (
 	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/template"
+	"github.com/andrewpillar/jrnl/theme"
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/pkg/sftp"
@@ -471,6 +472,30 @@ func Publish(c cli.Command) {
 	}
 
 	m.Close()
+
+	_, err = os.Stat(meta.SiteDir)
+
+	if err != nil {
+		if !os.IsNotExist(err) {
+			util.Exit("failed to stat directory", err)
+		}
+
+		if err := os.MkdirAll(meta.AssetsDir, os.ModePerm); err != nil {
+			util.Exit("failed to create directory", err)
+		}
+
+		t, err := theme.Find(m.Theme)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to find theme %s: %s\n", m.Theme, err)
+		} else {
+			defer t.Close()
+
+			if err := t.Use(); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to use theme %s: %s", t.Name, err)
+			}
+		}
+	}
 
 	categories, err := category.All()
 

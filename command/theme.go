@@ -1,18 +1,16 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/theme"
 	"github.com/andrewpillar/jrnl/util"
 )
-
-var errThemeRemoveFmt = "%s: failed to remove theme %s: %s\n"
 
 func Theme(c cli.Command) {
 	util.MustBeInitialized()
@@ -36,24 +34,14 @@ func Theme(c cli.Command) {
 func ThemeLs(c cli.Command) {
 	util.MustBeInitialized()
 
-	walk := func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	themes, err := theme.All()
 
-		parts := strings.Split(path, string(os.PathSeparator))
-
-		if len(parts) == 2 {
-			theme := strings.Split(parts[1], ".")[0]
-
-			fmt.Println(theme)
-		}
-
-		return nil
+	if err != nil {
+		util.Exit("failed to get all themes", err)
 	}
 
-	if err := filepath.Walk(meta.ThemesDir, walk); err != nil {
-		util.Exit("error whilst walking themes", err)
+	for _, t := range themes {
+		fmt.Println(t.Name)
 	}
 }
 
@@ -68,120 +56,59 @@ func ThemeSave(c cli.Command) {
 
 	defer m.Close()
 
-	assetsDir := strings.TrimPrefix(
-		strings.Replace(meta.AssetsDir, meta.SiteDir, "", -1),
-		string(os.PathSeparator),
-	)
+	name := c.Args.Get(0)
 
-	theme := c.Args.Get(0)
-
-	if theme != "" {
-		m.Theme = util.Slug(theme)
+	if name != "" {
+		m.Theme = util.Slug(name)
 	}
 
 	if m.Theme == "" {
-		util.Exit("no theme specified", nil)
+		util.Exit("failed to save theme", errors.New("no theme specified"))
 	}
 
-	path := filepath.Join(meta.ThemesDir, m.Theme)
-	tmp := filepath.Join(path, assetsDir)
-
-	if err := util.Copy(meta.AssetsDir, tmp); err != nil {
-		util.Exit("failed to copy dir", err)
-	}
-
-	tmp = filepath.Join(path, meta.LayoutsDir)
-
-	if err := util.Copy(meta.LayoutsDir, tmp); err != nil {
-		util.Exit("failed to copy dir", err)
-	}
-
-	f, err := os.OpenFile(
-		path + ".tar.gz",
-		os.O_TRUNC|os.O_CREATE|os.O_RDWR,
-		0660,
-	)
+	t, err := theme.Find(m.Theme)
 
 	if err != nil {
-		util.Exit("failed to open tarball", err)
+		if !os.IsNotExist(err) {
+			util.Exit("failed to find theme", err)
+		}
+
+		t, err = theme.New(m.Theme)
+
+		if err != nil {
+			util.Exit("failed to create theme", err)
+		}
 	}
 
-	defer f.Close()
-
-	if err := util.Tar(path, f); err != nil {
-		util.Exit("failed to create tarball", err)
+	if err := t.Save(); err != nil {
+		util.Exit("failed to save theme", err)
 	}
 
-	if err := os.RemoveAll(path); err != nil {
-		util.Exit("failed to remove dir", err)
-	}
+	defer t.Close()
 
-	if err := m.Save(); err != nil {
-		util.Exit("failed to save meta file", err)
-	}
-
-	fmt.Println("saved theme: " + m.Theme)
+	fmt.Println("saved theme: " + t.Name)
 }
 
 func ThemeUse(c cli.Command) {
 	util.MustBeInitialized()
 
-	m, err := meta.Open()
+	name := util.Slug(c.Args.Get(0))
 
-	if err != nil {
-		util.Exit("failed to open meta file", err)
-	}
-
-	defer m.Close()
-
-	m.Theme = util.Slug(c.Args.Get(0))
-
-	path := filepath.Join(meta.ThemesDir, m.Theme + ".tar.gz")
-
-	_, err = os.Stat(path)
+	t, err := theme.Find(name)
 
 	if err != nil {
 		if os.IsNotExist(err) {
-			util.Exit("theme does not exist", nil)
+			util.Exit("theme does not exist", errors.New(name))
 		}
 
-		util.Exit("error stating tar", err)
+		util.Exit("failed to use theme", err)
 	}
 
-	f, err := os.Open(path)
-
-	if err != nil {
-		util.Exit("failed to open tar", err)
+	if err := t.Use(); err != nil {
+		util.Exit("failed to use theme", err)
 	}
 
-	defer f.Close()
-
-	if err := util.Untar(meta.ThemesDir, f); err != nil {
-		util.Exit("failed to untar theme", err)
-	}
-
-	assetsDir := strings.TrimPrefix(
-		strings.Replace(meta.AssetsDir, meta.SiteDir, "", -1),
-		string(os.PathSeparator),
-	)
-
-	tmp := filepath.Join(meta.ThemesDir, assetsDir)
-
-	if err := util.Copy(tmp, meta.AssetsDir); err != nil {
-		util.Exit("failed to copy dir", err)
-	}
-
-	tmp = filepath.Join(meta.ThemesDir, meta.LayoutsDir)
-
-	if err := util.Copy(tmp, meta.AssetsDir); err != nil {
-		util.Exit("failed to copy dir", err)
-	}
-
-	if err = m.Save(); err != nil {
-		util.Exit("failed to save meta file", err)
-	}
-
-	fmt.Println("using theme: " + m.Theme)
+	fmt.Println("using theme: " + t.Name)
 }
 
 func ThemeRm(c cli.Command) {
@@ -189,13 +116,20 @@ func ThemeRm(c cli.Command) {
 
 	code := 0
 
-	for _, theme := range c.Args {
-		fname := filepath.Join(meta.ThemesDir, theme + ".tar.gz")
+	for _, name := range c.Args {
+		t, err := theme.Find(name)
 
-		if err := os.Remove(fname); err != nil {
+		if err != nil {
 			code = 1
 
-			fmt.Fprintf(os.Stderr, errThemeRemoveFmt, os.Args[0], theme, err)
+			fmt.Fprintf(os.Stderr, "%s: failed to remove theme %s: %s\n", os.Args[0], name, err)
+			continue
+		}
+
+		if err := os.Remove(t.Path); err != nil {
+			code = 1
+
+			fmt.Fprintf(os.Stderr, "%s: failed to remove theme %s: %s\n", os.Args[0], name, err)
 		}
 	}
 
