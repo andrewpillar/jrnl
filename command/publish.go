@@ -130,7 +130,7 @@ func publishIndex(m *meta.Meta, key string, posts []post.Post, categories []cate
 	} else if yearRegex.Match(b) {
 		isDateIndex = true
 		layout = filepath.Join(meta.LayoutsDir, m.IndexLayouts.Year)
-		timeFmt = filepath.Join("2006", "01")
+		timeFmt = filepath.Join("2006")
 		i = 1
 	}
 
@@ -569,16 +569,17 @@ func Publish(c cli.Command) {
 	errs = make(chan error)
 
 	for key, posts := range indexes {
+
 		wg.Add(1)
 
-		go func(key string) {
+		go func(key string, posts []post.Post) {
 			defer wg.Done()
 
 			if err := publishIndex(m, key, posts, categories, pages); err != nil {
 				errs <- err
 				return
 			}
-		}(key)
+		}(key, posts)
 	}
 
 	go func() {
