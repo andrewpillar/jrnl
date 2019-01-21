@@ -13,8 +13,6 @@ import (
 )
 
 type Theme struct {
-	style string
-
 	Name string
 	Path string
 }
@@ -233,12 +231,6 @@ func (t *Theme) Save() error {
 	if err != nil {
 		return err
 	}
-
-	if t.style != "" {
-		f.Write([]byte(t.style))
-	}
-
-	f.Write([]byte("\n"))
 
 	defer f.Close()
 
