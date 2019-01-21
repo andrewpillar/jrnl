@@ -7,10 +7,16 @@ import (
 	"github.com/andrewpillar/cli"
 
 	"github.com/andrewpillar/jrnl/cmd"
+	"github.com/andrewpillar/jrnl/usage"
 )
 
 func usageHandler(c cli.Command) {
+	if c.Name == "" {
+		fmt.Println(usage.Jrnl)
+		return
+	}
 
+	fmt.Println(usage.Commands[c.FullName()])
 }
 
 func main() {
