@@ -1,7 +1,0 @@
----
-title: Front Matter
-layout: none
----
-File for testing front matter.
-
-These following lines should be ignored during the unmarshalling of the front matter.

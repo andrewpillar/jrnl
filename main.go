@@ -6,17 +6,11 @@ import (
 
 	"github.com/andrewpillar/cli"
 
-	"github.com/andrewpillar/jrnl/command"
-	"github.com/andrewpillar/jrnl/usage"
+	"github.com/andrewpillar/jrnl/cmd"
 )
 
 func usageHandler(c cli.Command) {
-	if c.Name == "" {
-		fmt.Println(usage.Jrnl)
-		return
-	}
 
-	fmt.Println(usage.Commands[c.FullName()])
 }
 
 func main() {
@@ -32,74 +26,29 @@ func main() {
 	})
 
 	c.NilHandler(usageHandler)
-
 	c.Main(nil)
 
-	c.Command("init", command.Init)
-	c.Command("title", command.Title)
+	c.Command("init", cmd.Init)
+	c.Command("title", cmd.Title)
 
-	postCmd := c.Command("post", command.Post)
-
-	postCmd.AddFlag(&cli.Flag{
+	categoryFlag := &cli.Flag{
 		Name:     "category",
 		Short:    "-c",
 		Long:     "--category",
 		Argument: true,
-		Default:  "",
-	})
+	}
 
-	c.Command("page", command.Page)
+	c.Command("page", cmd.Page)
+	c.Command("post", cmd.Post).AddFlag(categoryFlag)
 
-	c.Command("edit", command.Edit)
-	c.Command("rm", command.Rm)
+	c.Command("ls", cmd.Ls).AddFlag(categoryFlag)
 
-	lsCmd := c.Command("ls", command.Ls)
+	c.Command("edit", cmd.Edit)
+	c.Command("rm", cmd.Rm)
 
-	lsCmd.AddFlag(&cli.Flag{
-		Name:     "category",
-		Short:    "-c",
-		Long:     "--category",
-		Argument: true,
-		Default:  "",
-	})
+	c.Command("remote-set", cmd.RemoteSet)
 
-	remoteCmd := c.Command("remote", nil)
-
-	remoteLsCmd := remoteCmd.Command("ls", command.RemoteLs)
-
-	remoteLsCmd.AddFlag(&cli.Flag{
-		Name:  "verbose",
-		Short: "-v",
-		Long:  "--verbose",
-	})
-
-	remoteSetCmd := remoteCmd.Command("set", command.RemoteSet)
-
-	remoteSetCmd.AddFlag(&cli.Flag{
-		Name:  "default",
-		Short: "-d",
-		Long:  "--default",
-	})
-
-	remoteSetCmd.AddFlag(&cli.Flag{
-		Name:     "identity",
-		Short:    "-i",
-		Long:     "--identity",
-		Argument: true,
-		Default:  "",
-	})
-
-	remoteSetCmd.AddFlag(&cli.Flag{
-		Name:     "port",
-		Short:    "-p",
-		Long:     "--port",
-		Argument: true,
-		Default:  22,
-	})
-
-	remoteCmd.Command("rm", command.RemoteRm)
-
-	publishCmd := c.Command("publish", command.Publish)
+	publishCmd := c.Command("publish", cmd.Publish)
 
 	publishCmd.AddFlag(&cli.Flag{
 		Name:  "draft",
@@ -107,20 +56,14 @@ func main() {
 		Long:  "--draft",
 	})
 
-	publishCmd.AddFlag(&cli.Flag{
-		Name:     "remote",
-		Short:    "-r",
-		Long:     "--remote",
-		Argument: true,
-		Default:  "",
-	})
+	themeCmd := c.Command("theme", cmd.Theme)
 
-	themeCmd := c.Command("theme", command.Theme)
+	themeCmd.Command("ls", cmd.ThemeLs)
+	themeCmd.Command("save", cmd.ThemeSave)
+	themeCmd.Command("use", cmd.ThemeUse)
+	themeCmd.Command("rm", cmd.ThemeRm)
 
-	themeCmd.Command("ls", command.ThemeLs)
-	themeCmd.Command("save", command.ThemeSave)
-	themeCmd.Command("use", command.ThemeUse)
-	themeCmd.Command("rm", command.ThemeRm)
+	c.Command("gen-style", cmd.GenStyle)
 
 	if err := c.Run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)

@@ -2,23 +2,19 @@ package post
 
 import (
 	"bytes"
-	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/andrewpillar/jrnl/category"
-	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/page"
-	"github.com/andrewpillar/jrnl/render"
 	"github.com/andrewpillar/jrnl/util"
-
-	"github.com/russross/blackfriday"
 )
 
-var dateLayout = "2006-01-02T15:04"
+var iso8601 = "2006-01-02T15:04"
 
 type frontMatter struct {
 	Title     string
@@ -29,7 +25,7 @@ type frontMatter struct {
 }
 
 type Post struct {
-	page.Page
+	*page.Page
 
 	Index     bool
 	Preview   string
@@ -38,10 +34,10 @@ type Post struct {
 	UpdatedAt time.Time
 }
 
-func All() ([]Post, error) {
-	posts := make([]Post, 0)
+func All() ([]*Post, error) {
+	posts := make([]*Post, 0)
 
-	err := Walk(func(p Post) error {
+	err := Walk(func(p *Post) error {
 		posts = append(posts, p)
 
 		return nil
@@ -50,19 +46,13 @@ func All() ([]Post, error) {
 	return posts, err
 }
 
-func Find(id string) (Post, error) {
-	fname := filepath.Join(meta.PostsDir, id + ".md")
+func Find(id string) (*Post, error) {
+	path := filepath.Join(config.PostsDir, id + ".md")
 
-	_, err := os.Stat(fname)
-
-	if err != nil {
-		return Post{}, err
-	}
-
-	f, err := os.Open(fname)
+	f, err := os.Open(path)
 
 	if err != nil {
-		return Post{}, err
+		return nil, err
 	}
 
 	defer f.Close()
@@ -77,40 +67,42 @@ func Find(id string) (Post, error) {
 		categoryId := filepath.Join(categoryParts...)
 
 		postCategory, err = category.Find(categoryId)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	fm := frontMatter{}
+	fm := &frontMatter{}
 
-	if err := util.UnmarshalFrontMatter(&fm, f); err != nil {
-		return Post{}, err
+	if err := util.UnmarshalFrontMatter(fm, f); err != nil {
+		return nil, err
 	}
 
-	createdAt, err := time.Parse(dateLayout, fm.CreatedAt)
+	createdAt, err := time.Parse(iso8601, fm.CreatedAt)
 
 	if err != nil {
-		return Post{}, err
+		return nil, err
 	}
 
-	updatedAt, err := time.Parse(dateLayout, fm.UpdatedAt)
+	updatedAt, err := time.Parse(iso8601, fm.UpdatedAt)
+
+	if err != nil {
+		return nil, err
+	}
 
 	date := string([]rune(fm.CreatedAt)[:10])
-
-	if err != nil {
-		return Post{}, err
-	}
 
 	categoryPath := filepath.Join(categoryParts...)
 	datePath := filepath.Join(strings.Split(date, "-")...)
 
-	site := filepath.Join(meta.SiteDir, categoryPath, datePath, filepath.Base(id), "index.html")
-
-	return Post{
-		Page: page.Page{
+	return &Post{
+		Page: &page.Page{
 			ID:         id,
 			Title:      fm.Title,
 			Layout:     fm.Layout,
-			SourcePath: filepath.Join(meta.PostsDir, id + ".md"),
-			SitePath:   site,
+			SourcePath: filepath.Join(config.PostsDir, id + ".md"),
+			SitePath:   filepath.Join(config.SiteDir, categoryPath, datePath, filepath.Base(id), "index.html"),
 		},
 		Category:  postCategory,
 		Index:     fm.Index,
@@ -119,40 +111,36 @@ func Find(id string) (Post, error) {
 	}, nil
 }
 
-func New(p *page.Page, category_ string) Post {
+func New(p *page.Page, categoryName string) *Post {
 	now := time.Now()
 
 	buf := bytes.Buffer{}
-	parts := strings.Split(category_, "/")
+	parts := strings.Split(categoryName, "/")
+	end := len(parts) - 1
 
-	for i, prt := range parts {
-		buf.WriteString(util.Slug(prt))
+	for i, p := range parts {
+		buf.WriteString(util.Slug(p))
 
-		if i != len(parts) - 1 {
+		if i != end {
 			buf.WriteString(string(os.PathSeparator))
 		}
 	}
 
-	categoryId := buf.String()
-	titleSlug := util.Slug(p.Title)
+	p.ID = filepath.Join(buf.String(), util.Slug(p.Title))
+	p.SourcePath = filepath.Join(config.PostsDir, p.ID + ".md")
 
-	id := filepath.Join(categoryId, titleSlug)
-
-	p.ID = id
-	p.SourcePath = filepath.Join(meta.PostsDir, id + ".md")
-
-	return Post{
-		Page:     *p,
+	return &Post{
+		Page: p,
 		Category: category.Category{
-			ID:   categoryId,
-			Name: category_,
+			ID:   buf.String(),
+			Name: categoryName,
 		},
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
 }
 
-func Walk(fn func(p Post) error) error {
+func Walk(fn func(p *Post) error) error {
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -162,7 +150,11 @@ func Walk(fn func(p Post) error) error {
 			return nil
 		}
 
-		id := strings.Replace(path, meta.PostsDir + string(os.PathSeparator), "", 1)
+		if strings.Contains(path, config.IndexDir) {
+			return nil
+		}
+
+		id := strings.Replace(path, config.PostsDir + string(os.PathSeparator), "", 1)
 
 		p, err := Find(strings.Split(id, ".")[0])
 
@@ -170,40 +162,18 @@ func Walk(fn func(p Post) error) error {
 			return err
 		}
 
-		if err := fn(p); err != nil {
-			return err
-		}
-
-		return nil
+		return fn(p)
 	}
 
-	return filepath.Walk(meta.PostsDir, walk)
-}
-
-func (p Post) HasCategory() bool {
-	return p.Category.ID != "" && p.Category.Name != ""
+	return filepath.Walk(config.PostsDir, walk)
 }
 
 func (p *Post) Load() error {
-	f, err := os.Open(p.SourcePath)
-
-	if err != nil {
+	if err := p.Page.Load(); err != nil {
 		return err
 	}
 
-	defer f.Close()
-
-	fm := frontMatter{}
-
-	if err := util.UnmarshalFrontMatter(&fm, f); err != nil {
-		return err
-	}
-
-	b, err := ioutil.ReadAll(f)
-
-	if err != nil {
-		return err
-	}
+	b := []byte(p.Body)
 
 	if len(b) > 2 {
 		i := bytes.IndexByte(b, '\n')
@@ -211,33 +181,7 @@ func (p *Post) Load() error {
 		p.Preview = string(b[:i])
 	}
 
-	createdAt, err := time.Parse(dateLayout, fm.CreatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	updatedAt, err := time.Parse(dateLayout, fm.UpdatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	p.Title = fm.Title
-	p.Body = string(b)
-	p.CreatedAt = createdAt
-	p.UpdatedAt = updatedAt
-
 	return nil
-}
-
-func (p *Post) Render(style string) {
-	p.Page.Render(style)
-
-	r := render.New(style)
-	md := blackfriday.Run([]byte(p.Preview), blackfriday.WithRenderer(r))
-
-	p.Preview = string(md)
 }
 
 func (p *Post) Remove() error {
@@ -245,41 +189,39 @@ func (p *Post) Remove() error {
 		return err
 	}
 
-	if err := util.RemoveEmptyDirs(meta.PostsDir, filepath.Dir(p.SourcePath)); err != nil {
-		return err
-	}
+	parts := strings.Split(filepath.Dir(p.SourcePath), string(os.PathSeparator))
 
-	p.Index = false
-	p.Preview = ""
-	p.Category = category.Category{}
-	p.CreatedAt = time.Time{}
-	p.UpdatedAt = time.Time{}
+	for i := range parts {
+		dir := filepath.Join(parts[:len(parts) - i]...)
+
+		if dir == config.PostsDir {
+			break
+		}
+
+		f, err := os.Open(dir)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		if _, err := f.Readdirnames(1); err == io.EOF {
+			if err := os.Remove(dir); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
 
 func (p *Post) Touch() error {
-	info, err := os.Stat(p.SourcePath)
-
-	if err == nil {
-		if err := p.Load(); err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return errors.New("expected file, got directory for: " + p.SourcePath)
-		}
-	} else {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	}
-
-	if err := os.MkdirAll(filepath.Dir(p.SourcePath), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(p.SourcePath), config.DirMode); err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, os.ModePerm)
+	f, err := p.Page.Open()
 
 	if err != nil {
 		return err
@@ -287,19 +229,19 @@ func (p *Post) Touch() error {
 
 	defer f.Close()
 
-	fm := frontMatter{
+	fm := &frontMatter{
 		Title:     p.Title,
 		Index:     p.Index,
 		Layout:    p.Layout,
-		CreatedAt: p.CreatedAt.Format(dateLayout),
-		UpdatedAt: time.Now().Format(dateLayout),
+		CreatedAt: p.CreatedAt.Format(iso8601),
+		UpdatedAt: time.Now().Format(iso8601),
 	}
 
-	if err := util.MarshalFrontMatter(&fm, f); err != nil {
+	if err := util.MarshalFrontMatter(fm, f); err != nil {
 		return err
 	}
 
-	f.Write([]byte(p.Body))
+	_, err = f.Write([]byte(p.Body))
 
 	return nil
 }

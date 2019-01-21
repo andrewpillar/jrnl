@@ -12,43 +12,27 @@ import (
 	"github.com/russross/blackfriday"
 )
 
-var (
-	styleTag      = []byte("<style type=\"text/css\">")
-	styleCloseTag = []byte("</style>")
-)
-
 type Renderer struct {
 	*blackfriday.HTMLRenderer
 
-	style     *chroma.Style
-	formatter *html.Formatter
-
-	Errs []error
+	Formatter *html.Formatter
 }
 
-func New(s string) *Renderer {
+func New() *Renderer {
 	params := blackfriday.HTMLRendererParameters{
 		Flags: blackfriday.CommonHTMLFlags,
 	}
 
 	r := blackfriday.NewHTMLRenderer(params)
 
-	style := styles.Get(s)
-
-	if style == nil {
-		style = styles.Fallback
-	}
-
 	return &Renderer{
 		HTMLRenderer: r,
-		style:        style,
-		formatter:    html.New(html.WithClasses()),
-		Errs:         make([]error, 0),
+		Formatter:    html.New(html.WithClasses()),
 	}
 }
 
 func (r *Renderer) getLexer(b []byte) chroma.Lexer {
-	var lexer chroma.Lexer
+	var lxr chroma.Lexer
 
 	if len(b) > 0 {
 		i := bytes.IndexAny(b, "\t ")
@@ -59,39 +43,33 @@ func (r *Renderer) getLexer(b []byte) chroma.Lexer {
 
 		lang := string(b[:i])
 
-		lexer = lexers.Get(lang)
+		lxr = lexers.Get(lang)
 	}
 
-	if lexer == nil {
-		lexer = lexers.Fallback
+	if lxr == nil {
+		lxr = lexers.Fallback
 	}
 
-	return lexer
+	return lxr
 }
 
 func (r *Renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
 		case blackfriday.CodeBlock:
-			lexer := r.getLexer(node.Info)
+			lxr := r.getLexer(node.Info)
 
-			w.Write(styleTag)
-			r.formatter.WriteCSS(w, r.style)
-			w.Write(styleCloseTag)
-
-			iterator, err := lexer.Tokenise(nil, string(node.Literal))
+			iterator, err := lxr.Tokenise(nil, string(node.Literal))
 
 			if err != nil {
-				r.Errs = append(r.Errs, err)
+				return blackfriday.Terminate
 			}
 
-			if err := r.formatter.Format(w, r.style, iterator); err != nil {
-				r.Errs = append(r.Errs, err)
+			if err := r.Formatter.Format(w, styles.Fallback, iterator); err != nil {
+				return blackfriday.Terminate
 			}
 
-			break
+			return blackfriday.GoToNext
 		default:
 			return r.HTMLRenderer.RenderNode(w, node, entering)
 	}
-
-	return blackfriday.GoToNext
 }

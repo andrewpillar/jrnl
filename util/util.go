@@ -1,135 +1,180 @@
 package util
 
 import (
-	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"os/exec"
 	"regexp"
 	"strings"
-	"unicode"
 
-	"github.com/andrewpillar/jrnl/meta"
-
-	"golang.org/x/crypto/ssh"
+	"github.com/pkg/sftp"
 
 	"gopkg.in/yaml.v2"
 )
 
 var (
 	redeslug = regexp.MustCompile("-")
-
-	reslug = regexp.MustCompile("[^a-zA-Z0-9]")
-
-	redup = regexp.MustCompile("-{2,}")
+	reslug   = regexp.MustCompile("[^a-zA-Z0-9]")
+	redup    = regexp.MustCompile("-{2,}")
 )
 
-func Deslug(s string) string {
-	return redeslug.ReplaceAllString(s, " ")
+func Copy(dst, src string) error {
+	info, err := os.Stat(src)
+
+	if err != nil {
+		return err
+	}
+
+	if info.IsDir() {
+		return CopyDir(dst, src, info)
+	}
+
+	return CopyFile(dst, src, info)
 }
 
-func DirEmpty(dir string) bool {
-	f, err := os.Open(dir)
+func CopyDir(dst, src string, info os.FileInfo) error {
+	if err := os.MkdirAll(dst, info.Mode()); err != nil {
+		return err
+	}
+
+	files, err := ioutil.ReadDir(src)
 
 	if err != nil {
-		return false
+		return err
 	}
 
-	defer f.Close()
+	for _, f := range files {
+		fdst := filepath.Join(dst, f.Name())
+		fsrc := filepath.Join(src, f.Name())
 
-	_, err = f.Readdirnames(1)
-
-	if err == io.EOF {
-		return true
-	}
-
-	return false
-}
-
-func Exit(msg string, err error) {
-	code := 0
-	w := os.Stdout
-
-	if err != nil {
-		code = 1
-		w = os.Stderr
-	}
-
-	fmt.Fprintf(w, "%s: %s", os.Args[0], msg)
-
-	if err != nil {
-		fmt.Fprintf(w, ": %s", err)
-	}
-
-	fmt.Fprintf(w, "\n")
-
-	os.Exit(code)
-}
-
-func GetHostKey(hostname string) (ssh.PublicKey, error) {
-	f, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"))
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer f.Close()
-
-	s := bufio.NewScanner(f)
-
-	var hostKey ssh.PublicKey
-
-	for s.Scan() {
-		fields := strings.Split(s.Text(), " ")
-
-		if len(fields) != 3 {
-			continue
-		}
-
-		if strings.Contains(fields[0], hostname) {
-			var err error
-
-			hostKey, _, _, _, err = ssh.ParseAuthorizedKey(s.Bytes())
-
-			if err != nil {
-				return nil, err
-			}
-
-			break
+		if err := Copy(fdst, fsrc); err != nil {
+			return err
 		}
 	}
 
-	if hostKey == nil {
-		return nil, errors.New("no key for host " + hostname)
-	}
-
-	return hostKey, nil
+	return nil
 }
 
-func MustBeInitialized() {
-	for _, d := range meta.Dirs {
-		if d == meta.SiteDir || d == meta.AssetsDir {
-			continue
-		}
+func CopyFile(dst, src string, info os.FileInfo) error {
+	if err := os.MkdirAll(filepath.Dir(dst), info.Mode()); err != nil {
+			return err
+	}
 
-		info, err := os.Stat(d)
+	fdst, err := os.Create(dst)
+
+	if err != nil {
+		return err
+	}
+
+	defer fdst.Close()
+
+	if err = os.Chmod(fdst.Name(), info.Mode()); err != nil {
+		return err
+	}
+
+	fsrc, err := os.Open(src)
+
+	if err != nil {
+		return err
+	}
+
+	defer fsrc.Close()
+
+	_, err = io.Copy(fdst, fsrc)
+
+	return err
+}
+
+func CopyToRemote(cli *sftp.Client, dst, src string) error {
+	info, err := os.Stat(src)
+
+	if err != nil {
+		return err
+	}
+
+	if info.IsDir() {
+		return CopyToRemoteDir(cli, dst, src, info)
+	}
+
+	return CopyToRemoteFile(cli, dst, src, info)
+}
+
+func CopyToRemoteDir(cli *sftp.Client, dst, src string, info os.FileInfo) error {
+	if dst != "" {
+		if err := cli.MkdirAll(dst); err != nil {
+			return err
+		}
+	}
+
+	files, err := ioutil.ReadDir(src)
+
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		fdst := filepath.Join(dst, f.Name())
+		fsrc := filepath.Join(src, f.Name())
+
+		if err := CopyToRemote(cli, fdst, fsrc); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CopyToRemoteFile(cli *sftp.Client, dst, src string, info os.FileInfo) error {
+	if err := cli.MkdirAll(filepath.Dir(dst)); err != nil {
+		return err
+	}
+
+	fdst, err := cli.Create(dst)
+
+	if err != nil {
+		return err
+	}
+
+	defer fdst.Close()
+
+	fsrc, err := os.Open(src)
+
+	if err != nil {
+		return err
+	}
+
+	defer fsrc.Close()
+
+	_, err = io.Copy(fdst, fsrc)
+
+	return err
+}
+
+func ExitError(msg string, err error) {
+	fmt.Fprintf(os.Stderr, "%s:", os.Args[0])
+
+	if msg != "" {
+		fmt.Fprintf(os.Stderr, " %s", msg)
 
 		if err != nil {
-			Exit("not fully initialized", err)
-		}
-
-		if !info.IsDir() {
-			Exit("unexpected non-directory file", errors.New(d))
+			fmt.Fprintf(os.Stderr, ":")
 		}
 	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, " %s", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "\n")
+	os.Exit(1)
 }
 
-func OpenInEditor(editor, fname string) {
-	cmd := exec.Command(editor, fname)
+func OpenInEditor(path string) {
+	cmd := exec.Command(os.Getenv("EDITOR"), path)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -137,58 +182,17 @@ func OpenInEditor(editor, fname string) {
 	cmd.Run()
 }
 
-func RemoveEmptyDirs(root, path string) error {
-	parts := strings.Split(path, string(os.PathSeparator))
-
-	for i := range parts {
-		dir := filepath.Join(parts[:len(parts) - i]...)
-
-		if dir == root {
-			break
-		}
-
-		if DirEmpty(dir) {
-			if err := os.Remove(dir); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+func Deslug(s string) string {
+	return redeslug.ReplaceAllString(s, " ")
 }
 
 func Slug(s string) string {
+	s = strings.TrimSpace(s)
+
 	s = reslug.ReplaceAllString(s, "-")
 	s = redup.ReplaceAllString(s, "-")
 
 	return strings.ToLower(s)
-}
-
-func Title(s string) string {
-	t := bytes.Buffer{}
-
-	parts := strings.Split(s, " ")
-
-	for i, p := range parts {
-		t.WriteString(Ucfirst(p))
-
-		if i != len(p) - 1 {
-			t.WriteString(" ")
-		}
-	}
-
-	return strings.Trim(t.String(), " ")
-}
-
-func Ucfirst(s string) string {
-	if len(s) == 0 {
-		return ""
-	}
-
-	r := []rune(s)
-	u := string(unicode.ToUpper(r[0]))
-
-	return u + s[len(u):]
 }
 
 func MarshalFrontMatter(fm interface{}, w io.Writer) error {
@@ -200,9 +204,9 @@ func MarshalFrontMatter(fm interface{}, w io.Writer) error {
 		return err
 	}
 
-	w.Write([]byte("---\n"))
+	_, err := w.Write([]byte("---\n"))
 
-	return nil
+	return err
 }
 
 func UnmarshalFrontMatter(fm interface{}, r io.Reader) error {

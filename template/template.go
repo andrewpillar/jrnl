@@ -7,43 +7,21 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/andrewpillar/jrnl/category"
-	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/config"
 )
 
-func printCategories(categories []category.Category) string {
-	buf := bytes.Buffer{}
-
-	for _, c := range categories {
-		link := "<a href=\"" + c.Href() + "\">" + c.Name + "</a>"
-
-		buf.WriteString("<li>" + link)
-
-		if len(c.Categories) > 0 {
-			buf.WriteString("<ul>" + printCategories(c.Categories) + "</ul>")
-		}
-
-		buf.WriteString("</li>")
-	}
-
-	return buf.String()
-}
-
-func partial(name string, data interface{}) (string, error) {
-	path := filepath.Join(meta.LayoutsDir, name)
-
-	b, err := ioutil.ReadFile(path)
+func partial(path string, data interface{}) (string, error) {
+	b, err := ioutil.ReadFile(filepath.Join(config.LayoutsDir, path))
 
 	if err != nil {
 		return "", err
 	}
 
 	funcs := template.FuncMap{
-		"partial":         partial,
-		"printCategories": printCategories,
+		"partial": partial,
 	}
 
-	t, err := template.New("partial-" + name).Funcs(funcs).Parse(string(b))
+	t, err := template.New(path).Funcs(funcs).Parse(string(b))
 
 	if err != nil {
 		return "", err
@@ -60,8 +38,7 @@ func partial(name string, data interface{}) (string, error) {
 
 func Render(w io.Writer, name, layout string, data interface{}) error {
 	funcs := template.FuncMap{
-		"partial":         partial,
-		"printCategories": printCategories,
+		"partial": partial,
 	}
 
 	t, err := template.New(name).Funcs(funcs).Parse(layout)
