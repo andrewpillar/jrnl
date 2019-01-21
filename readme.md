@@ -63,7 +63,7 @@ So we have a post, and a layout file. Next let's set a title for our journal, we
 $ jrnl title "My Blog"
 ```
 
-Now, before we can publish our jrnl we need to set a remote. A remote can either be a local filesystem path, or a remote SCP URL for copying the HTML files to. To keep things simple lets just use a local filesystem path for now.
+Now, before we can publish our journal we need to set a remote. A remote can either be a local filesystem path, or a remote SCP URL for copying the HTML files to. To keep things simple lets just use a local filesystem path for now.
 
 ```
 $ jrnl remote-set /tmp/blog-remote
