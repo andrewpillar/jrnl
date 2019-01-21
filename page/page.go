@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/render"
 	"github.com/andrewpillar/jrnl/util"
 
@@ -28,10 +28,10 @@ type Page struct {
 	Body       string
 }
 
-func All() ([]Page, error) {
-	pages := make([]Page, 0)
+func All() ([]*Page, error) {
+	pages := make([]*Page, 0)
 
-	err := Walk(func(p Page) error {
+	err := Walk(func(p *Page) error {
 		pages = append(pages, p)
 
 		return nil
@@ -40,61 +40,57 @@ func All() ([]Page, error) {
 	return pages, err
 }
 
-func Find(id string) (Page, error) {
-	fname := filepath.Join(meta.PagesDir, id + ".md")
+func Find(id string) (*Page, error) {
+	return Resolve(filepath.Join(config.PagesDir, id + ".md"))
+}
 
-	_, err := os.Stat(fname)
-
-	if err != nil {
-		return Page{}, err
-	}
-
-	f, err := os.Open(fname)
+func Resolve(path string) (*Page, error) {
+	f, err := os.Open(path)
 
 	if err != nil {
-		return Page{}, err
+		return nil, err
 	}
 
 	defer f.Close()
 
-	fm := frontMatter{}
+	fm := &frontMatter{}
 
-	if err := util.UnmarshalFrontMatter(&fm, f); err != nil {
-		return Page{}, err
+	if err := util.UnmarshalFrontMatter(fm, f); err != nil {
+		return nil, err
 	}
 
-	site := filepath.Join(meta.SiteDir, filepath.Base(id), "index.html")
+	id := strings.Split(filepath.Base(path), ".")[0]
 
-	return Page{
+	return &Page{
 		ID:         id,
 		Title:      fm.Title,
 		Layout:     fm.Layout,
-		SourcePath: fname,
-		SitePath:   site,
+		SourcePath: path,
+		SitePath:   filepath.Join(config.SiteDir, filepath.Base(id), "index.html"),
 	}, nil
 }
 
-func New(title string) Page {
+func New(title string) *Page {
 	id := util.Slug(title)
 
-	return Page{
+	return &Page{
 		ID:         id,
 		Title:      title,
-		SourcePath: filepath.Join(meta.PagesDir, id + ".md"),
+		SourcePath: filepath.Join(config.PagesDir, id + ".md"),
 	}
 }
 
-func Walk(fn func(p Page) error) error {
+func Walk(fn func(p *Page) error) error {
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if info.Name() == meta.PagesDir || info.IsDir() {
+		if info.Name() == config.PagesDir || info.IsDir() {
 			return nil
 		}
 
-		id := strings.Replace(path, meta.PagesDir + string(os.PathSeparator), "", 1)
+		id := strings.Replace(path, config.PagesDir + string(os.PathSeparator), "", 1)
 
 		p, err := Find(strings.Split(id, ".")[0])
 
@@ -102,20 +98,16 @@ func Walk(fn func(p Page) error) error {
 			return err
 		}
 
-		if err := fn(p); err != nil {
-			return err
-		}
-
-		return nil
+		return fn(p)
 	}
 
-	return filepath.Walk(meta.PagesDir, walk)
+	return filepath.Walk(config.PagesDir, walk)
 }
 
-func (p Page) Href() string {
+func (p *Page) Href() string {
 	r := []rune(p.SitePath)
 
-	return filepath.Dir(string(r[len(meta.SiteDir):]))
+	return filepath.Dir(string(r[len(config.SiteDir):]))
 }
 
 func (p *Page) Load() error {
@@ -127,9 +119,9 @@ func (p *Page) Load() error {
 
 	defer f.Close()
 
-	fm := frontMatter{}
+	fm := &frontMatter{}
 
-	if err := util.UnmarshalFrontMatter(&fm, f); err != nil {
+	if err := util.UnmarshalFrontMatter(fm, f); err != nil {
 		return err
 	}
 
@@ -140,57 +132,59 @@ func (p *Page) Load() error {
 	}
 
 	p.Title = fm.Title
+	p.Layout = fm.Layout
 	p.Body = string(b)
 
 	return nil
 }
 
-func (p *Page) Render(style string) {
-	r := render.New(style)
-	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
-
-	p.Body = string(md)
-}
-
-func (p *Page) Remove() error {
-	if err := os.Remove(p.SourcePath); err != nil {
-		return err
-	}
-
-	if p.SitePath != "" {
-		if err := os.Remove(p.SitePath); err != nil {
-			return err
-		}
-	}
-
-	p.ID = ""
-	p.Title = ""
-	p.Layout = ""
-	p.SourcePath = ""
-	p.SitePath = ""
-	p.Body = ""
-
-	return nil
-}
-
-func (p *Page) Touch() error {
+func (p *Page) Open() (*os.File, error) {
 	info, err := os.Stat(p.SourcePath)
+
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
 
 	if err == nil {
 		if err := p.Load(); err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return errors.New("expected file, got directory for: " + p.SourcePath)
-		}
-	} else {
-		if !os.IsNotExist(err) {
-			return err
+			return nil, err
 		}
 	}
 
-	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if info != nil && info.IsDir() {
+		return nil, errors.New("not a proper file " + p.SourcePath)
+	}
+
+	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, config.FileMode)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
+func (p *Page) Remove() error {
+	if _, err := os.Stat(p.SitePath); err == nil {
+		return os.Remove(p.SitePath)
+	}
+
+	return os.Remove(p.SourcePath)
+}
+
+func (p *Page) Render(theme string) {
+	r := render.New()
+	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
+
+	p.Body = string(md)
+//	md := blackfriday.Run([]byte(p.Body))
+//	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
+//
+//	p.Body = string(md)
+}
+
+func (p *Page) Touch() error {
+	f, err := p.Open()
 
 	if err != nil {
 		return err
@@ -198,16 +192,16 @@ func (p *Page) Touch() error {
 
 	defer f.Close()
 
-	fm := frontMatter{
+	fm := &frontMatter{
 		Title:  p.Title,
 		Layout: p.Layout,
 	}
 
-	if err := util.MarshalFrontMatter(&fm, f); err != nil {
+	if err := util.MarshalFrontMatter(fm, f); err != nil {
 		return err
 	}
 
-	f.Write([]byte(p.Body))
+	_, err = f.Write([]byte(p.Body))
 
-	return nil
+	return err
 }

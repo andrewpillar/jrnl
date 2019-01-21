@@ -7,42 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/util"
 )
 
 type Category struct {
-	ID   string
-	Name string
-
+	ID         string
+	Name       string
 	Categories []Category
-}
-
-func Find(id string) (Category, error) {
-	sourcePath := filepath.Join(meta.PostsDir, id)
-
-	_, err := os.Stat(sourcePath)
-
-	if err != nil {
-		return Category{}, err
-	}
-
-	parts := strings.Split(util.Deslug(id), string(os.PathSeparator))
-	name := bytes.Buffer{}
-
-	for i, p := range parts {
-		name.WriteString(util.Title(p))
-
-		if i != len(parts) - 1 {
-			name.WriteString(" / ")
-		}
-	}
-
-	return Category{
-		ID:         id,
-		Name:       name.String(),
-		Categories: make([]Category, 0),
-	}, nil
 }
 
 func All() ([]Category, error) {
@@ -53,11 +25,11 @@ func All() ([]Category, error) {
 			return err
 		}
 
-		if path == meta.PostsDir || !info.IsDir() {
+		if path == config.PostsDir || !info.IsDir() || strings.Contains(path, config.IndexDir) {
 			return nil
 		}
 
-		id := strings.Replace(path, meta.PostsDir + string(os.PathSeparator), "", 1)
+		id := strings.Replace(path, config.PostsDir + string(os.PathSeparator), "", 1)
 		parts := strings.Split(id, string(os.PathSeparator))
 
 		c, err := Find(id)
@@ -76,16 +48,14 @@ func All() ([]Category, error) {
 			}
 
 			parent.Categories = append(parent.Categories, c)
-
 			return nil
 		}
 
 		categories[id] = &c
-
 		return nil
 	}
 
-	err := filepath.Walk(meta.PostsDir, walk)
+	err := filepath.Walk(config.PostsDir, walk)
 
 	ret := make([]Category, len(categories), len(categories))
 	i := 0
@@ -98,6 +68,40 @@ func All() ([]Category, error) {
 	return ret, err
 }
 
+func Find(id string) (Category, error) {
+	path := filepath.Join(config.PostsDir, id)
+
+	_, err := os.Stat(path)
+
+	if err != nil {
+		return Category{}, err
+	}
+
+	parts := strings.Split(util.Deslug(id), string(os.PathSeparator))
+	name := bytes.Buffer{}
+	end := len(parts) - 1
+
+	for i, p := range parts {
+		name.WriteString(strings.Title(p))
+
+		if i != end {
+			name.WriteString(" / ")
+		}
+	}
+
+	return Category{
+		ID:         id,
+		Name:       name.String(),
+		Categories: make([]Category, 0),
+	}, nil
+}
+
 func (c Category) Href() string {
-	return "/" + c.ID
+	return ""
+}
+
+func (c Category) IsZero() bool {
+	return	c.ID == ""   &&
+			c.Name == "" &&
+			len(c.Categories) == 0
 }

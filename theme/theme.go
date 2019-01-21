@@ -1,66 +1,133 @@
 package theme
 
 import (
+	artar "archive/tar"
+	"compress/gzip"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/andrewpillar/jrnl/meta"
+	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/util"
 )
 
 type Theme struct {
-	*os.File
+	style string
 
 	Name string
 	Path string
 }
 
+func tar(w io.Writer, src string) error {
+	if _, err := os.Stat(src); err != nil {
+		return err
+	}
+
+	gzw := gzip.NewWriter(w)
+
+	defer gzw.Close()
+
+	tw := artar.NewWriter(gzw)
+
+	defer tw.Close()
+
+	walk := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		header, err := artar.FileInfoHeader(info, info.Name())
+
+		if err != nil {
+			return err
+		}
+
+		header.Name = strings.TrimPrefix(strings.Replace(path, src, "", -1), string(os.PathSeparator))
+
+		if err := tw.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if !info.Mode().IsRegular() {
+			return nil
+		}
+
+		f, err := os.Open(path)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		_, err = io.Copy(tw, f)
+
+		return err
+	}
+
+	return filepath.Walk(src, walk)
+}
+
+func untar(dst string, r io.Reader) error {
+	gzr, err := gzip.NewReader(r)
+
+	if err != nil {
+		return err
+	}
+
+	defer gzr.Close()
+
+	tr := artar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+
+		switch {
+			case err == io.EOF:
+				return nil
+			case err != nil:
+				return err
+			case header == nil:
+				continue
+		}
+
+		target := filepath.Join(dst, header.Name)
+
+		switch header.Typeflag {
+			case artar.TypeDir:
+				_, err = os.Stat(target)
+
+				if err != nil {
+					if os.IsNotExist(err) {
+						if err := os.MkdirAll(target, config.DirMode); err != nil {
+							return err
+						}
+
+						continue
+					}
+
+					return err
+				}
+			case artar.TypeReg:
+				f, err := os.OpenFile(target, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+
+				if err != nil {
+					return err
+				}
+
+				defer f.Close()
+
+				if _, err = io.Copy(f, tr); err != nil {
+					return err
+				}
+		}
+	}
+}
+
 func All() ([]*Theme, error) {
 	themes := make([]*Theme, 0)
 
-	err := Walk(func(t *Theme) error {
-		themes = append(themes, t)
-
-		return nil
-	})
-
-	return themes, err
-}
-
-func New(name string) (*Theme, error) {
-	path := filepath.Join(meta.ThemesDir, name + ".tar.gz")
-
-	f, err := os.OpenFile(path, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.ModePerm)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &Theme{
-		File: f,
-		Name: name,
-		Path: path,
-	}, nil
-}
-
-func Find(name string) (*Theme, error) {
-	path := filepath.Join(meta.ThemesDir, name + ".tar.gz")
-
-	f, err := os.OpenFile(path, os.O_RDWR, os.ModePerm)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &Theme{
-		File: f,
-		Name: name,
-		Path: path,
-	}, nil
-}
-
-func Walk(fn func(t *Theme) error) error {
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -70,7 +137,7 @@ func Walk(fn func(t *Theme) error) error {
 			return nil
 		}
 
-		id := strings.Replace(path, meta.ThemesDir + string(os.PathSeparator), "", 1)
+		id := strings.Replace(path, config.ThemesDir + string(os.PathSeparator), "", 1)
 
 		t, err := Find(strings.Split(id, ".")[0])
 
@@ -78,86 +145,59 @@ func Walk(fn func(t *Theme) error) error {
 			return err
 		}
 
-		if err := fn(t); err != nil {
-			return err
-		}
+		themes = append(themes, t)
 
 		return nil
 	}
 
-	return filepath.Walk(meta.ThemesDir, walk)
+	err := filepath.Walk(config.ThemesDir, walk)
+
+	return themes, err
 }
 
-func (t Theme) Save() error {
-	m, err := meta.Open()
+func Find(name string) (*Theme, error) {
+	path := filepath.Join(config.ThemesDir, name + ".tar.gz")
+
+	_, err := os.Stat(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Theme{
+		Name:  name,
+		Path:  path,
+	}, nil
+}
+
+func New(name string) *Theme {
+	return &Theme{
+		Name:  name,
+		Path:  filepath.Join(config.ThemesDir, name + ".tar.gz"),
+	}
+}
+
+func (t *Theme) Load() error {
+	f, err := os.Open(filepath.Join(config.ThemesDir, t.Name + ".tar.gz"))
 
 	if err != nil {
 		return err
 	}
 
-	defer m.Close()
+	defer f.Close()
 
-	m.Theme = t.Name
-
-	assets := filepath.Join(meta.ThemesDir, t.Name, meta.AssetsDir)
-	assets = strings.Replace(assets, meta.SiteDir, "", -1)
-
-	layouts := filepath.Join(meta.ThemesDir, t.Name, meta.LayoutsDir)
-
-	if err := util.Copy(meta.AssetsDir, assets); err != nil {
+	if err := untar(config.ThemesDir, f); err != nil {
 		return err
 	}
 
-	if err := util.Copy(meta.LayoutsDir, layouts); err != nil {
+	assets := strings.Replace(filepath.Join(config.ThemesDir, config.AssetsDir), config.SiteDir, "", -1)
+	layouts := filepath.Join(config.ThemesDir, config.LayoutsDir)
+
+	if err := util.Copy(config.AssetsDir, assets); err != nil {
 		return err
 	}
 
-	dir := filepath.Join(meta.ThemesDir, t.Name)
-
-	if err := tar(dir, t); err != nil {
-		return err
-	}
-
-	if err := os.RemoveAll(dir); err != nil {
-		return err
-	}
-
-	if err := m.Save(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (t Theme) Use() error {
-	m, err := meta.Open()
-
-	if err != nil {
-		return err
-	}
-
-	defer m.Close()
-
-	m.Theme = t.Name
-
-	if err := untar(meta.ThemesDir, t); err != nil {
-		return err
-	}
-
-	assets := filepath.Join(meta.ThemesDir, meta.AssetsDir)
-	assets = strings.Replace(assets, meta.SiteDir, "", -1)
-
-	layouts := filepath.Join(meta.ThemesDir, meta.LayoutsDir)
-
-	if err := util.Copy(assets, meta.AssetsDir); err != nil {
-		return err
-	}
-
-	if err := util.Copy(layouts, meta.LayoutsDir); err != nil {
-		return err
-	}
-
-	if err := m.Save(); err != nil {
+	if err := util.Copy(config.LayoutsDir, layouts); err != nil {
 		return err
 	}
 
@@ -165,9 +205,48 @@ func (t Theme) Use() error {
 		return err
 	}
 
-	if err := os.RemoveAll(layouts); err != nil {
+	return os.RemoveAll(layouts)
+}
+
+func (t *Theme) Save() error {
+	cfg, err := config.Open()
+
+	if err != nil {
 		return err
 	}
 
-	return nil
+	defer cfg.Close()
+
+	assets := strings.Replace(filepath.Join(config.ThemesDir, t.Name, config.AssetsDir), config.SiteDir, "", -1)
+	layouts := filepath.Join(config.ThemesDir, t.Name, config.LayoutsDir)
+
+	if err := util.Copy(assets, config.AssetsDir); err != nil {
+		return err
+	}
+
+	if err := util.Copy(layouts, config.LayoutsDir); err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(t.Path, os.O_TRUNC|os.O_CREATE|os.O_RDWR, config.FileMode)
+
+	if err != nil {
+		return err
+	}
+
+	if t.style != "" {
+		f.Write([]byte(t.style))
+	}
+
+	f.Write([]byte("\n"))
+
+	defer f.Close()
+
+	dir := filepath.Join(config.ThemesDir, t.Name)
+
+	if err := tar(f, dir); err != nil {
+		return err
+	}
+
+	return os.RemoveAll(dir)
 }
