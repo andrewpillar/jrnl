@@ -97,7 +97,7 @@ func Find(id string) (Category, error) {
 }
 
 func (c Category) Href() string {
-	return ""
+	return "/" + c.ID
 }
 
 func (c Category) IsZero() bool {
