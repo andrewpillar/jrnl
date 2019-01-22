@@ -26,8 +26,9 @@ func Rm(c cli.Command) {
 			if err := pg.Remove(); err != nil {
 				code = 1
 				fmt.Fprintf(os.Stderr, "%s: failed to remove page %s: %s\n", os.Args[0], id, err)
-				continue
 			}
+
+			continue
 		}
 
 		if !os.IsNotExist(err) {
