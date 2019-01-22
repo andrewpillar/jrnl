@@ -177,10 +177,6 @@ func (p *Page) Render(theme string) {
 	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
 
 	p.Body = string(md)
-//	md := blackfriday.Run([]byte(p.Body))
-//	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
-//
-//	p.Body = string(md)
 }
 
 func (p *Page) Touch() error {

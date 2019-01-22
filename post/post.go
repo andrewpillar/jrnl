@@ -10,8 +10,11 @@ import (
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/config"
+	"github.com/andrewpillar/jrnl/render"
 	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/util"
+
+	"github.com/russross/blackfriday"
 )
 
 var iso8601 = "2006-01-02T15:04"
@@ -168,6 +171,10 @@ func Walk(fn func(p *Post) error) error {
 	return filepath.Walk(config.PostsDir, walk)
 }
 
+func (p *Post) HasCategory() bool {
+	return p.Category.ID != "" && p.Category.Name != ""
+}
+
 func (p *Post) Load() error {
 	if err := p.Page.Load(); err != nil {
 		return err
@@ -177,8 +184,11 @@ func (p *Post) Load() error {
 
 	if len(b) > 2 {
 		i := bytes.IndexByte(b, '\n')
+		r := render.New()
 
-		p.Preview = string(b[:i])
+		md := blackfriday.Run(b[:i], blackfriday.WithRenderer(r))
+
+		p.Preview = string(md)
 	}
 
 	return nil
