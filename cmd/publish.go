@@ -179,24 +179,6 @@ func publishPosts(s site.Site, theme string, posts []*post.Post) (chan *post.Pos
 	return published, errs
 }
 
-func indexPost(index map[string][]*post.Post, p *post.Post) {
-	if !p.Index {
-		return
-	}
-
-	parts := strings.Split(filepath.Dir(p.SitePath), string(os.PathSeparator))
-
-	for i := range parts {
-		key := filepath.Join(parts[:len(parts) - i - 1]...)
-
-		if key == "" {
-			break
-		}
-
-		index[key] = append(index[key], p)
-	}
-}
-
 func Publish(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
 		util.ExitError("not initialized", err)
