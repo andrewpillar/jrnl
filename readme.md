@@ -43,8 +43,8 @@ This will caused jrnl to drop you into a text editor, as specified via `$EDITOR`
 title: Introducing jrnl
 index: false
 layout: post
-createdAt: 2006-01-02T15:04:05
-updatedAt: 2006-01-02T15:04:05
+createdAt: 2006-01-02T15:04
+updatedAt: 2006-01-02T15:04
 ---
 jrnl is a simple static site generator. It takes posts and pages written in Markdown...
 ```
