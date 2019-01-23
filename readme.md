@@ -140,7 +140,7 @@ Posts are similar to pages in how they are created. The main difference is that 
 $ jrnl post "Introducing jrnl"
 ```
 
-Whenever a page or post is created, or edited jrnl will open up the source Markdown file in the editor that you havbe set via the `$EDITOR` environment variable. Upon creation of a new page or post the source Markdown file will be pre-populated with some [front matter](#front-matter) which will store some meta-data about the page or post.
+Whenever a page or post is created, or edited jrnl will open up the source Markdown file in the editor that you have set via the `$EDITOR` environment variable. Upon creation of a new page or post the source Markdown file will be pre-populated with some [front matter](#front-matter) which will store some meta-data about the page or post.
 
 Each time a page or post is created its ID will be written to `stdout`. All of the posts and pages that have been created can be viewed with the `jrnl ls` command.
 
@@ -157,7 +157,7 @@ These IDs can then be passed to either `jrnl edit` or `jrnl rm` for modification
 jrnl allows for posts to be stored in categories, and sub-categories. To add a post to a category simply pass the `-c` flag to the `jrnl post` command.
 
 ```
-$ jrnl post "Pengun One, Us Zero" -c "TV Shows / The Leftovers"
+$ jrnl post "Penguin One, Us Zero" -c "TV Shows / The Leftovers"
 ```
 
 This will store the post Markdown file in a sub-directory beneath the `_posts` directory.
@@ -292,7 +292,7 @@ Themes can be used by running the `jrnl theme use` command, and passing it the n
 
 All available themes can be listed with `jrnl theme ls`, and themes can be deleted with `jrnl theme rm`.
 
->**Note:** Right now there is a limitation surrounding themes, and index layouts. The index layouts will currently be ignored during theme creation, as they are intrinsically tied to the posts that have been created. Right now if you wish to have an index layout be part of a theme the solution is to store the index layouts in the `_layouts` directory, and call `partial` in the main index layout file to include the layout itself.
+>**Note:** Right now there is a limitation surrounding themes, and index layouts. The index layouts will currently be ignored during theme creation, as they are intrinsically tied to the posts that have been created. If you wish to have an index layout be part of a theme the solution is to store the index layouts in the `_layouts` directory, and call `partial` in the main index layout file to include the layout itself.
 
 ## Remote
 
