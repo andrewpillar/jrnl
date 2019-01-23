@@ -4,7 +4,7 @@ set -ex
 
 DIR=$(mktemp -d)
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init > /dev/null
 
@@ -29,6 +29,6 @@ done <<EOF
 $slugs
 EOF
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR"

@@ -21,7 +21,7 @@ cat_title="Penguin One, Us Zero"
 cat_id="tv-shows/the-leftovers/penguin-one-us-zero"
 cat="TV Shows / The Leftovers"
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 EDITOR=./tests/editor.sh jrnl post "$title"
@@ -42,6 +42,6 @@ EDITOR=./tests/editor.sh jrnl post -c "$cat" "$cat_title"
 jrnl ls | grep "$cat_id"
 touch _posts/"$cat_id".md
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR" "$expected" "$actual"

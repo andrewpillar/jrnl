@@ -11,7 +11,7 @@ _posts
 _site
 _themes"
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 
@@ -31,6 +31,6 @@ done <<EOF
 $jrnl_dirs
 EOF
 
-popd > /dev/null
+cd -
 
 rm -r "$DIR"

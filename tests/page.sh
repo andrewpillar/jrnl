@@ -12,7 +12,7 @@ layout: \"\"
 title="About"
 id="about"
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 EDITOR=./tests/editor.sh jrnl page "$title" > /dev/null
@@ -27,6 +27,6 @@ head -n 4 _pages/"$id".md > "$actual"
 
 diff -u "$expected" "$actual"
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR" "$expected" "$actual"
