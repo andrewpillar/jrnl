@@ -253,5 +253,5 @@ func (p *Post) Touch() error {
 
 	_, err = f.Write([]byte(p.Body))
 
-	return nil
+	return err
 }
