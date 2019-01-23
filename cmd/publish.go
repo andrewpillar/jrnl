@@ -210,9 +210,12 @@ func Publish(c cli.Command) {
 		Pages:      pages,
 	}
 
+	code := 0
+
 	errs := publishPages(s, cfg.Theme)
 
 	for err := range errs {
+		code = 1
 		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 	}
 
@@ -238,6 +241,7 @@ func Publish(c cli.Command) {
 				if !ok {
 					errs = nil
 				} else {
+					code = 1
 					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 				}
 		}
@@ -245,6 +249,7 @@ func Publish(c cli.Command) {
 
 	for key := range postIndex {
 		if err := postIndex.Publish(key, s); err != nil && !os.IsNotExist(err) {
+			code = 1
 			fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 		}
 	}
@@ -262,7 +267,7 @@ func Publish(c cli.Command) {
 			util.ExitError("failed to publish posts", err)
 		}
 
-		return
+		os.Exit(code)
 	}
 
 	parts := strings.Split(cfg.Remote, "@")
@@ -325,4 +330,6 @@ func Publish(c cli.Command) {
 	if err := util.CopyToRemote(scp, dir, config.SiteDir); err != nil {
 		util.ExitError("failed to publish posts", err)
 	}
+
+	os.Exit(code)
 }
