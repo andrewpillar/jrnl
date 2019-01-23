@@ -18,7 +18,7 @@ cat="TV Shows / The Leftovers"
 cat_post_title="Penguin One, Us Zero"
 cat_post_id="tv-shows/the-leftovers/penguin-one-us-zero"
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 
@@ -40,6 +40,6 @@ jrnl publish
 [ -f "$remote/$dir_now/$post_id/index.html" ]
 [ -f "$remote/$(dirname "$cat_post_id")/$dir_now/$(basename "$cat_post_id")/index.html" ]
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR" "$remote"

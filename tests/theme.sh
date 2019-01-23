@@ -6,7 +6,7 @@ DIR=$(mktemp -d)
 
 theme_name="test-theme"
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 
@@ -33,6 +33,6 @@ jrnl theme use "$theme_name"
 [ -f _layouts/partials/partial ]
 [ -f _site/assets/style.css ]
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR"

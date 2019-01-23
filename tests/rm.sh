@@ -14,7 +14,7 @@ cat="TV Shows / The Leftovers"
 cat_post_title="Penguin One, Us Zero"
 cat_post_id="tv-shows/the-leftovers/penguin-one-us-zero"
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 
@@ -27,6 +27,6 @@ jrnl rm "$page_id" "$post_id" "$cat_post_id"
 [ -z $(ls _pages) ]
 [ -z $(ls _posts) ]
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR"

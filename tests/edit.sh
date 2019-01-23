@@ -9,7 +9,7 @@ iso_now=$(date +"%Y-%m-%dT%H:%M")
 title="First Post"
 id="first-post"
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 EDITOR=./tests/editor.sh jrnl post "$title"
@@ -20,6 +20,6 @@ EDITOR=./tests/editor.sh jrnl edit "$id"
 
 grep "$iso_now" _posts/"$id".md
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR"

@@ -4,13 +4,13 @@ DIR=$(mktemp -d)
 
 remote=$(mktemp -d)
 
-pushd "$DIR" > /dev/null
+cd "$DIR"
 
 jrnl init
 jrnl remote-set "$remote"
 
 grep "$remote" config
 
-popd > /dev/null
+cd -
 
 rm -rf "$DIR" "$remote"
