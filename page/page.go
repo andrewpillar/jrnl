@@ -155,13 +155,7 @@ func (p *Page) Open() (*os.File, error) {
 		return nil, errors.New("not a proper file " + p.SourcePath)
 	}
 
-	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, config.FileMode)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
+	return os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, config.FileMode)
 }
 
 func (p *Page) Remove() error {
