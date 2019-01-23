@@ -1,20 +1,18 @@
 #!/bin/sh
 
-set -e
+set -ex
+
+DIR=$(mktemp -d)
 
 title="My Blog"
 
-pushd $(mktemp -d) > /dev/null
+pushd "$DIR" > /dev/null
 
-jrnl init > /dev/null
+jrnl init
 jrnl title "$title"
 
-if ! grep -q "$title" config; then
-	printf "[FAILED] journal title not set\n"
-	cat config
-	exit 1
-fi
-
-printf "[  OK  ] journal title set\n"
+grep "$title" config
 
 popd > /dev/null
+
+rm -rf "$DIR"
