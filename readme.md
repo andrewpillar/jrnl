@@ -11,6 +11,7 @@ jrnl is a simple static site generator. It takes posts and pages written in Mark
 * [Indexing](#indexing)
 * [Themes](#themes)
 * [Remote](#remote)
+* [Publishing](#publishing)
 * [Atom and RSS Feeds](#atom-and-rss-feeds)
 
 ## Quick Start
