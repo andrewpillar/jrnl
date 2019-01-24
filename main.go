@@ -86,7 +86,7 @@ func main() {
 	c.Command("gen-style", cmd.GenStyle)
 
 	if err := c.Run(os.Args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 		os.Exit(1)
 	}
 }
