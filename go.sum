@@ -8,11 +8,17 @@ github.com/andrewpillar/cli v1.0.10 h1:kNhl4gnl8J5IlQiJbZBq7YqP3elh1tc0jPTHlDzRs
 github.com/andrewpillar/cli v1.0.10/go.mod h1:YzqpycYZAs+UcYT9NJX2LctZTsKle6B8CYQRML3aalg=
 github.com/andrewpillar/cli v1.0.11 h1:uDw3EcKCk/Zu3zIMj2BODQp9sRweLiMcB3OJH/YwDBg=
 github.com/andrewpillar/cli v1.0.11/go.mod h1:YzqpycYZAs+UcYT9NJX2LctZTsKle6B8CYQRML3aalg=
+github.com/andrewpillar/cli v1.0.12 h1:ZMwVt1kSJ56lrbX5PRlWeKDiinV4K6Xma5U28d4y7PQ=
+github.com/andrewpillar/cli v1.0.12/go.mod h1:YzqpycYZAs+UcYT9NJX2LctZTsKle6B8CYQRML3aalg=
+github.com/andrewpillar/cli v1.0.13 h1:7X83BEYoextsgEEQaC1Z/CZBBTT9rnGlcvZ2DrVDQCA=
+github.com/andrewpillar/cli v1.0.13/go.mod h1:YzqpycYZAs+UcYT9NJX2LctZTsKle6B8CYQRML3aalg=
 github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 h1:y5HC9v93H5EPKqaS1UYVg1uYah5Xf51mBfIoWehClUQ=
 github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964/go.mod h1:Xd9hchkHSWYkEqJwUGisez3G1QY8Ryz0sdWrLPMGjLk=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dlclark/regexp2 v1.1.6 h1:CqB4MjHw0MFCDj+PHHjiESmHX+N7t0tJzKvC6M97BRg=
 github.com/dlclark/regexp2 v1.1.6/go.mod h1:2pZnwuY/m+8K6iRw6wQdMtk+rH5tNGR1i55kozfMjCc=
+github.com/gorilla/feeds v1.1.0 h1:pcgLJhbdYgaUESnj3AmXPcB7cS3vy63+jC/TI14AGXk=
+github.com/gorilla/feeds v1.1.0/go.mod h1:Nk0jZrvPFZX1OBe5NPiddPw7CfwF6Q9eqzaBbaightA=
 github.com/kr/fs v0.1.0 h1:Jskdu9ieNAYnjxsi0LbQp1ulIKZV1LAFgK1tWhpZgl8=
 github.com/kr/fs v0.1.0/go.mod h1:FFnZGqtBN9Gxj7eW1uZ42v5BccTP0vu6NEaFoC2HwRg=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=

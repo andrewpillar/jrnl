@@ -14,12 +14,15 @@ import (
 
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/config"
+	"github.com/andrewpillar/jrnl/feed"
 	"github.com/andrewpillar/jrnl/index"
 	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/site"
 	"github.com/andrewpillar/jrnl/template"
 	"github.com/andrewpillar/jrnl/util"
+
+	"github.com/gorilla/feeds"
 
 	"github.com/pkg/sftp"
 
@@ -179,6 +182,52 @@ func publishPosts(s site.Site, theme string, posts []*post.Post) (chan *post.Pos
 	return published, errs
 }
 
+func publishFeed(fd feed.Feed, posts []*post.Post, rss, atom string) error {
+	mask := os.O_TRUNC|os.O_CREATE|os.O_RDWR
+
+	if rss != "" {
+		dir := filepath.Dir(rss)
+
+		if err := os.MkdirAll(dir, config.DirMode); err != nil {
+			return err
+		}
+
+		f, err := os.OpenFile(rss, mask, config.FileMode)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		if err := fd.WriteRss(f, posts); err != nil {
+			return err
+		}
+	}
+
+	if atom != "" {
+		dir := filepath.Dir(rss)
+
+		if err := os.MkdirAll(dir, config.DirMode); err != nil {
+			return err
+		}
+
+		f, err := os.OpenFile(atom, mask, config.FileMode)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		if err := fd.WriteAtom(f, posts); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func Publish(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
 		util.ExitError("not initialized", err)
@@ -245,6 +294,20 @@ func Publish(c cli.Command) {
 					fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
 				}
 		}
+	}
+
+	fd := feed.Feed{
+		Title:       cfg.Title,
+		Link:        cfg.Site,
+		Description: cfg.Description,
+		Author:      &feeds.Author{
+			Name:  cfg.Author.Name,
+			Email: cfg.Author.Email,
+		},
+	}
+
+	if err := publishFeed(fd, posts, c.Flags.GetString("rss"), c.Flags.GetString("atom")); err != nil {
+		util.ExitError("failed to publish posts", err)
 	}
 
 	for key := range postIndex {

@@ -40,6 +40,11 @@ jrnl publish
 [ -f "$remote/$dir_now/$post_id/index.html" ]
 [ -f "$remote/$(dirname "$cat_post_id")/$dir_now/$(basename "$cat_post_id")/index.html" ]
 
+jrnl publish -r _site/rss.xml -a _site/atom.xml
+
+[ -f _site/rss.xml ]
+[ -f _site/atom.xml ]
+
 cd -
 
 rm -rf "$DIR" "$remote"
