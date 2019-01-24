@@ -2,7 +2,8 @@ module github.com/andrewpillar/jrnl
 
 require (
 	github.com/alecthomas/chroma v0.6.2
-	github.com/andrewpillar/cli v1.0.11
+	github.com/andrewpillar/cli v1.0.13
+	github.com/gorilla/feeds v1.1.0
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pkg/sftp v1.8.3

@@ -36,9 +36,15 @@ var (
 type Config struct {
 	*os.File `yaml:"-"`
 
-	Title   string
-	Theme   string
-	Remote  string
+	Title  string
+	Site   string
+	Author struct {
+		Name  string
+		Email string
+	}
+	Description string
+	Theme       string
+	Remote      string
 }
 
 func Initialized(dir string) error {

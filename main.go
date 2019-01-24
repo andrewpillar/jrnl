@@ -62,6 +62,20 @@ func main() {
 		Long:  "--draft",
 	})
 
+	publishCmd.AddFlag(&cli.Flag{
+		Name:     "rss",
+		Short:    "-r",
+		Long:     "--rss",
+		Argument: true,
+	})
+
+	publishCmd.AddFlag(&cli.Flag{
+		Name:     "atom",
+		Short:    "-a",
+		Long:     "--atom",
+		Argument: true,
+	})
+
 	themeCmd := c.Command("theme", cmd.Theme)
 
 	themeCmd.Command("ls", cmd.ThemeLs)
