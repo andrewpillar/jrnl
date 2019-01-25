@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -27,6 +28,8 @@ type frontMatter struct {
 	UpdatedAt string `yaml:"updatedAt"`
 }
 
+type byCreatedAt []*Post
+
 type Post struct {
 	*page.Page
 
@@ -42,9 +45,10 @@ func All() ([]*Post, error) {
 
 	err := Walk(func(p *Post) error {
 		posts = append(posts, p)
-
 		return nil
 	})
+
+	sort.Sort(byCreatedAt(posts))
 
 	return posts, err
 }
@@ -169,6 +173,18 @@ func Walk(fn func(p *Post) error) error {
 	}
 
 	return filepath.Walk(config.PostsDir, walk)
+}
+
+func (p byCreatedAt) Len() int {
+	return len(p)
+}
+
+func (p byCreatedAt) Less(i, j int) bool {
+	return p[i].CreatedAt.After(p[j].CreatedAt)
+}
+
+func (p byCreatedAt) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
 }
 
 func (p *Post) HasCategory() bool {
