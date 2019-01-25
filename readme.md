@@ -38,7 +38,7 @@ $ cd my-blog
 my-blog $ jrnl post "Introducing jrnl"
 ```
 
-This will caused jrnl to drop you into a text editor, as specified via `$EDITOR` for editing the newly created post file. You will notice at the top of the post is a block of YAML with a handful of attributes. This is called front matter and contains meta-data about the post. For now let's set the `layout` attribute to `post`, and write up the post's content.
+This will cause jrnl to drop you into a text editor, as specified via `$EDITOR` for editing the newly created post file. You will notice at the top of the post is a block of YAML with a handful of attributes. This is called front matter and contains meta-data about the post. For now let's set the `layout` attribute to `post`, and write up the post's content.
 
 ```
 ---
