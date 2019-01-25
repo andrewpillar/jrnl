@@ -4,7 +4,7 @@ set -ex
 
 DIR=$(mktemp -d)
 
-jrnl_files="config"
+jrnl_files="jrnl.yml"
 jrnl_dirs="_layouts
 _pages
 _posts
