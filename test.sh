@@ -4,7 +4,7 @@ set -e
 
 DIR="tests"
 
-if [ ! -z "$1" ];  then
+if [ ! -z "$1" ]; then
 	printf "=== Running test script: %s\n" "$t"
 	./"$DIR"/"$1"
 	exit 0
