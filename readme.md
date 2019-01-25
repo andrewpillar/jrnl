@@ -115,7 +115,7 @@ Below is the directory structure of a journal once initialized.
 ├── _site
 |   └── assets
 ├── _themes
-└── config
+└── jrnl.yml
 ```
 
 | Directory / File | Purpose |
@@ -126,7 +126,7 @@ Below is the directory structure of a journal once initialized.
 | `_site` | Contains the final generated HTML files. |
 | `_site/assets` | Assts for the site, such as CSS, JS, and any images. |
 | `_themes` | Where all the journal themes are stored. |
-| `config` | Configuration file for the journal. |
+| `jrnl.yml` | Configuration file for the journal. |
 
 ## Pages and Posts
 
@@ -281,7 +281,7 @@ To have a post indexed simply edit its front matter, and set the `index` propert
 
 ## Themes
 
-Themes in jrnl are just a tarball of the `_layouts` directory, and the `_site/assets` directory. The current theme is stored in the `config` file. All theme management in jrnl is done via the `jrnl theme` command. You can check to see if a theme is in use by running `jrnl theme`.
+Themes in jrnl are just a tarball of the `_layouts` directory, and the `_site/assets` directory. The current theme is stored in the `jrnl.yml` file. All theme management in jrnl is done via the `jrnl theme` command. You can check to see if a theme is in use by running `jrnl theme`.
 
 ```
 $ jrnl theme
@@ -298,7 +298,7 @@ All available themes can be listed with `jrnl theme ls`, and themes can be delet
 
 ## Remote
 
-Each journal has a remote. A remote is where the contents of the `_site` directory is copied to, this could either be a local filesystem path, or an SCP URL. The remote can be set via the `jrnl remote-set` command, and is stored in the `config` file.
+Each journal has a remote. A remote is where the contents of the `_site` directory is copied to, this could either be a local filesystem path, or an SCP URL. The remote can be set via the `jrnl remote-set` command, and is stored in the `jrnl.yml` file.
 
 ```
 $ jrnl remote-set me@andrewpillar.com:/var/www/andrewpillar.com
