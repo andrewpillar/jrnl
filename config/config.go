@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	file = "config"
+	file = "jrnl.yml"
 
 	PostsDir   = "_posts"
 	PagesDir   = "_pages"

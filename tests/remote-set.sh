@@ -9,7 +9,7 @@ cd "$DIR"
 jrnl init
 jrnl remote-set "$remote"
 
-grep "$remote" config
+grep "$remote" jrnl.yml
 
 cd -
 

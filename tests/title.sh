@@ -11,7 +11,7 @@ cd "$DIR"
 jrnl init
 jrnl title "$title"
 
-grep "$title" config
+grep "$title" jrnl.yml
 
 cd -
 
