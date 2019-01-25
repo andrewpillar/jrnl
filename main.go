@@ -8,6 +8,7 @@ import (
 
 	"github.com/andrewpillar/jrnl/cmd"
 	"github.com/andrewpillar/jrnl/usage"
+	"github.com/andrewpillar/jrnl/util"
 )
 
 func usageHandler(c cli.Command) {
@@ -86,7 +87,6 @@ func main() {
 	c.Command("gen-style", cmd.GenStyle)
 
 	if err := c.Run(os.Args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", os.Args[0], err)
-		os.Exit(1)
+		util.ExitError("", err)
 	}
 }
