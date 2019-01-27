@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -92,6 +93,8 @@ func (i Index) Publish(key string, s site.Site) error {
 	var path string
 
 	posts := i[key]
+
+	sort.Sort(post.ByCreatedAt(posts))
 
 	if key == config.SiteDir {
 		data = struct{

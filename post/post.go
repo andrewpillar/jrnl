@@ -28,7 +28,7 @@ type frontMatter struct {
 	UpdatedAt string `yaml:"updatedAt"`
 }
 
-type byCreatedAt []*Post
+type ByCreatedAt []*Post
 
 type Post struct {
 	*page.Page
@@ -48,7 +48,7 @@ func All() ([]*Post, error) {
 		return nil
 	})
 
-	sort.Sort(byCreatedAt(posts))
+	sort.Sort(ByCreatedAt(posts))
 
 	return posts, err
 }
@@ -175,15 +175,15 @@ func Walk(fn func(p *Post) error) error {
 	return filepath.Walk(config.PostsDir, walk)
 }
 
-func (p byCreatedAt) Len() int {
+func (p ByCreatedAt) Len() int {
 	return len(p)
 }
 
-func (p byCreatedAt) Less(i, j int) bool {
+func (p ByCreatedAt) Less(i, j int) bool {
 	return p[i].CreatedAt.After(p[j].CreatedAt)
 }
 
-func (p byCreatedAt) Swap(i, j int) {
+func (p ByCreatedAt) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
