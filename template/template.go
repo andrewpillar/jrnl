@@ -36,6 +36,8 @@ func partial(path string, data interface{}) (string, error) {
 	return buf.String(), nil
 }
 
+// Render the given layout to the given io.Writer. The given name is just used for debugging
+// purposes, and more often than not will be the name of the layout file being used.
 func Render(w io.Writer, name, layout string, data interface{}) error {
 	funcs := template.FuncMap{
 		"partial": partial,

@@ -175,6 +175,8 @@ func New(name string) *Theme {
 	}
 }
 
+// Load the current theme. This will un-tar the current theme, and overwrite the existing _layouts,
+// and _site/assets directories with the contents of the tarball.
 func (t *Theme) Load() error {
 	f, err := os.Open(filepath.Join(config.ThemesDir, t.Name + ".tar.gz"))
 
@@ -206,6 +208,8 @@ func (t *Theme) Load() error {
 	return os.RemoveAll(layouts)
 }
 
+// Save the current theme. This will re-tar the theme overwriting the current theme if it's the
+// same.
 func (t *Theme) Save() error {
 	cfg, err := config.Open()
 
