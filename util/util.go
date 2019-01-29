@@ -22,6 +22,7 @@ var (
 	redup    = regexp.MustCompile("-{2,}")
 )
 
+// Recursively copy the given src file to the given dst.
 func Copy(dst, src string) error {
 	info, err := os.Stat(src)
 
@@ -36,6 +37,7 @@ func Copy(dst, src string) error {
 	return CopyFile(dst, src, info)
 }
 
+// Copy the given src directory path, to the given dst.
 func CopyDir(dst, src string, info os.FileInfo) error {
 	if err := os.MkdirAll(dst, info.Mode()); err != nil {
 		return err
@@ -59,6 +61,7 @@ func CopyDir(dst, src string, info os.FileInfo) error {
 	return nil
 }
 
+// Copy the given src file to the given dst.
 func CopyFile(dst, src string, info os.FileInfo) error {
 	if err := os.MkdirAll(filepath.Dir(dst), info.Mode()); err != nil {
 			return err
@@ -89,6 +92,8 @@ func CopyFile(dst, src string, info os.FileInfo) error {
 	return err
 }
 
+// CopyToRemote functions are the same as the prior ones, only it takes an *sftp.Client as the
+// first argument, being the remote we want to copy to.
 func CopyToRemote(cli *sftp.Client, dst, src string) error {
 	info, err := os.Stat(src)
 
@@ -154,6 +159,8 @@ func CopyToRemoteFile(cli *sftp.Client, dst, src string, info os.FileInfo) error
 	return err
 }
 
+// Exit the program with a non-zero exit status with the given msg, and err. This will format the
+// exit error so that the program name will be prepended to the string written to stderr.
 func ExitError(msg string, err error) {
 	fmt.Fprintf(os.Stderr, "%s:", os.Args[0])
 
@@ -173,6 +180,7 @@ func ExitError(msg string, err error) {
 	os.Exit(1)
 }
 
+// Open the given path in using the editor set in $EDITOR.
 func OpenInEditor(path string) {
 	cmd := exec.Command(os.Getenv("EDITOR"), path)
 	cmd.Stdin = os.Stdin
@@ -195,6 +203,7 @@ func Slug(s string) string {
 	return strings.ToLower(s)
 }
 
+// Write the given front matter to the given io.Writer.
 func MarshalFrontMatter(fm interface{}, w io.Writer) error {
 	w.Write([]byte("---\n"))
 
@@ -209,6 +218,7 @@ func MarshalFrontMatter(fm interface{}, w io.Writer) error {
 	return err
 }
 
+// Unmarshal the given io.Reader to front matter.
 func UnmarshalFrontMatter(fm interface{}, r io.Reader) error {
 	buf := &bytes.Buffer{}
 	tmp := make([]byte, 1)

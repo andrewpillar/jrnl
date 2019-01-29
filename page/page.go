@@ -28,6 +28,7 @@ type Page struct {
 	Body       string
 }
 
+// Return all of the pages that can be found.
 func All() ([]*Page, error) {
 	pages := make([]*Page, 0)
 
@@ -40,10 +41,12 @@ func All() ([]*Page, error) {
 	return pages, err
 }
 
+// Find a page by the given id.
 func Find(id string) (*Page, error) {
 	return Resolve(filepath.Join(config.PagesDir, id + ".md"))
 }
 
+// Resolve a Page from the given filepath.
 func Resolve(path string) (*Page, error) {
 	f, err := os.Open(path)
 
@@ -80,6 +83,8 @@ func New(title string) *Page {
 	}
 }
 
+// Walk over all of the pages in the _pages directory. Resolving each one we find, and passing it
+// to the callback.
 func Walk(fn func(p *Page) error) error {
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -110,6 +115,8 @@ func (p *Page) Href() string {
 	return filepath.Dir(string(r[len(config.SiteDir):]))
 }
 
+// This will parse the front matter from the page, and read in the rest of the file as the page's
+// body.
 func (p *Page) Load() error {
 	f, err := os.Open(p.SourcePath)
 
@@ -138,6 +145,7 @@ func (p *Page) Load() error {
 	return nil
 }
 
+// Open the underlying source file.
 func (p *Page) Open() (*os.File, error) {
 	info, err := os.Stat(p.SourcePath)
 
@@ -158,6 +166,7 @@ func (p *Page) Open() (*os.File, error) {
 	return os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, config.FileMode)
 }
 
+// Remove the underlying source file, and site path if it exists.
 func (p *Page) Remove() error {
 	if _, err := os.Stat(p.SitePath); err == nil {
 		return os.Remove(p.SitePath)
@@ -166,6 +175,7 @@ func (p *Page) Remove() error {
 	return os.Remove(p.SourcePath)
 }
 
+// Convert the page's markdown to HTML.
 func (p *Page) Render(theme string) {
 	r := render.New()
 	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
@@ -173,6 +183,7 @@ func (p *Page) Render(theme string) {
 	p.Body = string(md)
 }
 
+// Update the page's updatedAt timestamp in the front matter.
 func (p *Page) Touch() error {
 	f, err := p.Open()
 

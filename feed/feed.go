@@ -33,6 +33,7 @@ func (f Feed) generateItems(posts []*post.Post) []*feeds.Item {
 	return items
 }
 
+// Write the posts as an RSS feed to the given io.Writer.
 func (f Feed) WriteRss(w io.Writer, posts []*post.Post) error {
 	fd := &feeds.Feed{
 		Title: f.Title,
@@ -48,6 +49,7 @@ func (f Feed) WriteRss(w io.Writer, posts []*post.Post) error {
 	return fd.WriteRss(w)
 }
 
+// Write the posts as an Atom feed to the given io.Writer.
 func (f Feed) WriteAtom(w io.Writer, posts []*post.Post) error {
 	fd := &feeds.Feed{
 		Title: f.Title,

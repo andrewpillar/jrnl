@@ -47,6 +47,7 @@ type Config struct {
 	Remote      string
 }
 
+// Check if jrnl has already been initialized in the given directory.
 func Initialized(dir string) error {
 	for _, f := range Dirs {
 		info, err := os.Stat(filepath.Join(dir, f))
@@ -63,6 +64,8 @@ func Initialized(dir string) error {
 	return nil
 }
 
+// Create the jrnl.yml file in the given directory. This is called during jrnl initialization
+// which is why we pass it a directory whereby the jrnl would be initialized.
 func Create(dir string) error {
 	f, err := os.OpenFile(filepath.Join(dir, file), os.O_CREATE|os.O_RDWR, FileMode)
 
@@ -79,6 +82,7 @@ func Create(dir string) error {
 	return cfg.Save()
 }
 
+// Open the jrnl.yml file.
 func Open() (*Config, error) {
 	f, err := os.OpenFile(file, os.O_RDWR, FileMode)
 
@@ -99,6 +103,7 @@ func Open() (*Config, error) {
 	return cfg, nil
 }
 
+// Save the changes made to the jrnl.yml file.
 func (c *Config) Save() error {
 	info, err := c.Stat()
 

@@ -17,6 +17,8 @@ type Category struct {
 	Categories []Category
 }
 
+// Walk the _posts directory and resolve each category that can be found. This will also resolve
+// child and parent categories, instead of returning a flat slice.
 func All() ([]Category, error) {
 	categories := make(map[string]*Category)
 
@@ -68,6 +70,7 @@ func All() ([]Category, error) {
 	return ret, err
 }
 
+// Find a Category by the given id.
 func Find(id string) (Category, error) {
 	path := filepath.Join(config.PostsDir, id)
 
@@ -96,10 +99,12 @@ func Find(id string) (Category, error) {
 	}, nil
 }
 
+// Return the href for the current Category.
 func (c Category) Href() string {
 	return "/" + c.ID
 }
 
+// Check if the Category is a zero value.
 func (c Category) IsZero() bool {
 	return	c.ID == ""   &&
 			c.Name == "" &&
