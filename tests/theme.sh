@@ -10,26 +10,31 @@ cd "$DIR"
 
 jrnl init
 
-printf "post layout\n" > _layouts/post
-printf "page layout\n" > _layouts/page
+printf "theme1: post layout\n" > _layouts/post
 
 mkdir _layouts/partials
 
-printf "partial layout\n" > _layouts/partials/partial
+printf "theme1: partial layout\n" > _layouts/partials/partial
 
+jrnl theme save theme1
+
+printf "theme2: page layout\n" > _layouts/page
 jrnl gen-style solarized-light > _site/assets/style.css
 
-jrnl theme save "$theme_name"
+jrnl theme save theme2
 
-jrnl theme ls | grep "$theme_name"
+jrnl theme use theme1
 
-rm -r _layouts/*
-rm _site/assets/style.css
-
-jrnl theme use "$theme_name"
+[ ! -f _site/assets/style.css ]
+[ ! -f _layouts/page ]
 
 [ -f _layouts/post ]
+[ -f _layouts/partials/partial ]
+
+jrnl theme use theme2
+
 [ -f _layouts/page ]
+[ -f _layouts/post ]
 [ -f _layouts/partials/partial ]
 [ -f _site/assets/style.css ]
 
