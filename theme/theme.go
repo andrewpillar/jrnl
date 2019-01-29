@@ -186,6 +186,14 @@ func (t *Theme) Load() error {
 
 	defer f.Close()
 
+	if err := os.RemoveAll(config.LayoutsDir); err != nil {
+		return err
+	}
+
+	if err := os.RemoveAll(config.AssetsDir); err != nil {
+		return err
+	}
+
 	if err := untar(config.ThemesDir, f); err != nil {
 		return err
 	}
