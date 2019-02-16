@@ -32,8 +32,7 @@ func main() {
 		},
 	})
 
-	c.NilHandler(usageHandler)
-	c.Main(nil)
+	c.MainCommand(usageHandler)
 
 	c.Command("init", cmd.Init)
 	c.Command("title", cmd.Title)
