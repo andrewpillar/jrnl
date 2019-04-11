@@ -54,8 +54,8 @@ func All() ([]*Post, error) {
 	return posts, err
 }
 
-// Find a post by the given id. This will also be checked to determine if the post belongs to a
-// category.
+// Find a post by the given id. This will also be checked to determine if the
+// post belongs to a category.
 func Find(id string) (*Post, error) {
 	path := filepath.Join(config.PostsDir, id + ".md")
 
@@ -121,7 +121,8 @@ func Find(id string) (*Post, error) {
 	}, nil
 }
 
-// Create a new post based off of the given page, and in the given category if given.
+// Create a new post based off of the given page, and in the given category if
+// given.
 func New(p *page.Page, categoryName string) *Post {
 	now := time.Now()
 
@@ -151,7 +152,8 @@ func New(p *page.Page, categoryName string) *Post {
 	}
 }
 
-// Walk over all of the posts we have, finding each one and passing it to the given callback.
+// Walk over all of the posts we have, finding each one and passing it to the
+// given callback.
 func Walk(fn func(p *Post) error) error {
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -216,8 +218,9 @@ func (p *Post) Load() error {
 	return nil
 }
 
-// Remove the underlying source file, and site path if it exists. This will also delete the entire
-// category, if that category is left empty after deletion of the source file.
+// Remove the underlying source file, and site path if it exists. This will
+// also delete the entire category, if that category is left empty after
+// deletion of the source file.
 func (p *Post) Remove() error {
 	if err := p.Page.Remove(); err != nil {
 		return err

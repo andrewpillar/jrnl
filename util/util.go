@@ -92,8 +92,8 @@ func CopyFile(dst, src string, info os.FileInfo) error {
 	return err
 }
 
-// CopyToRemote functions are the same as the prior ones, only it takes an *sftp.Client as the
-// first argument, being the remote we want to copy to.
+// CopyToRemote functions are the same as the prior ones, only it takes an
+// *sftp.Client as the first argument, being the remote we want to copy to.
 func CopyToRemote(cli *sftp.Client, dst, src string) error {
 	info, err := os.Stat(src)
 
@@ -159,8 +159,9 @@ func CopyToRemoteFile(cli *sftp.Client, dst, src string, info os.FileInfo) error
 	return err
 }
 
-// Exit the program with a non-zero exit status with the given msg, and err. This will format the
-// exit error so that the program name will be prepended to the string written to stderr.
+// Exit the program with a non-zero exit status with the given msg, and err.
+// This will format the exit error so that the program name will be prepended
+// to the string written to stderr.
 func ExitError(msg string, err error) {
 	fmt.Fprintf(os.Stderr, "%s:", os.Args[0])
 

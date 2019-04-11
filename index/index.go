@@ -34,16 +34,18 @@ var (
 	yearlayout  = "2006"
 )
 
-// Index is a simple data structure for indexing posts based off of their creation date and
-// category, if they belong to one. There are four types of indexes:
+// Index is a simple data structure for indexing posts based off of their
+// creation date and category, if they belong to one. There are four types of
+// indexes:
 //
 // * all
 // * day
 // * month
 // * year
 //
-// And the layouts for these are stored in the _index directory. During publishing the index key
-// being published against will be checked to determine the type of index being published.
+// And the layouts for these are stored in the _index directory. During
+// publishing the index key being published against will be checked to
+// determine the type of index being published.
 type Index map[string][]*post.Post
 
 func writeIndexFile(dst, layout string, data interface{}) error {
@@ -73,8 +75,9 @@ func New() Index {
 	return Index(make(map[string][]*post.Post))
 }
 
-// Posts will be indexed multiple times based off of the site path. This allows for indexing based
-// off of day, month, year, category, and entire site posts. For example the given site path:
+// Posts will be indexed multiple times based off of the site path. This
+// allows for indexing based off of day, month, year, category, and entire site
+// posts. For example the given site path:
 //
 //   _site/2006/01/02/some-post/index.html
 //
@@ -109,22 +112,25 @@ func extractCategoryId(key, tsubset string) string {
 	return strings.TrimSuffix(id, string(os.PathSeparator))
 }
 
-// Publish the index held in the given key. The given key will be checked to determine the type
-// of index being published. This information is then used to determine which layout file should
-// be used, and what data should be passed to that layout during templating.
+// Publish the index held in the given key. The given key will be checked to
+// determine the type of index being published. This information is then used
+// to determine which layout file should be used, and what data should be
+// passed to that layout during templating.
 //
-// First we check to see if the index key is for the site wide index. Afterwards we check to see
-// if the given key is either a day, month, or year key. Each time one of these checks happens, an
-// additional check is performed to check if it's a category index too. If so we then set the
-// categoryId for finding that category.
+// First we check to see if the index key is for the site wide index.
+// Afterwards we check to see if the given key is either a day, month, or year
+// key. Each time one of these checks happens, an additional check is performed
+// to check if it's a category index too. If so we then set the categoryId for
+// finding that category.
 //
-// Once we have got the necessary values from the key pertaining to the date information, primarily
-// the layout of the time we want to parse, and the value itself; we check to see if we have a
-// categoryId. If we don't we proceed with publishing the index, passing it the posts, and the
-// parsed time.Time value.
+// Once we have got the necessary values from the key pertaining to the date
+// information, primarily the layout of the time we want to parse, and the
+// value itself; we check to see if we have a categoryId. If we don't we
+// proceed with publishing the index, passing it the posts, and the parsed
+// time.Time value.
 //
-// If we do have a categoryId, then we find the category, and pass it to the layout data along with
-// the parsed time.Time value, if we have it.
+// If we do have a categoryId, then we find the category, and pass it to the
+// layout data along with the parsed time.Time value, if we have it.
 func (i Index) Publish(key string, s site.Site) error {
 	var data interface{}
 	var path string

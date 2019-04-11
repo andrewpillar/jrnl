@@ -11,6 +11,7 @@ import (
 
 var (
 	file = "jrnl.yml"
+	root  = "."
 
 	PostsDir   = "_posts"
 	PagesDir   = "_pages"
@@ -38,10 +39,12 @@ type Config struct {
 
 	Title  string
 	Site   string
+
 	Author struct {
 		Name  string
 		Email string
 	}
+
 	Description string
 	Theme       string
 	Remote      string
@@ -64,8 +67,9 @@ func Initialized(dir string) error {
 	return nil
 }
 
-// Create the jrnl.yml file in the given directory. This is called during jrnl initialization
-// which is why we pass it a directory whereby the jrnl would be initialized.
+// Create the jrnl.yml file in the given directory. This is called during jrnl
+// initialization which is why we pass it a directory whereby the jrnl would be
+// initialized.
 func Create(dir string) error {
 	f, err := os.OpenFile(filepath.Join(dir, file), os.O_CREATE|os.O_RDWR, FileMode)
 
@@ -84,7 +88,7 @@ func Create(dir string) error {
 
 // Open the jrnl.yml file.
 func Open() (*Config, error) {
-	f, err := os.OpenFile(file, os.O_RDWR, FileMode)
+	f, err := os.OpenFile(filepath.Join(root, file), os.O_RDWR, FileMode)
 
 	if err != nil {
 		return nil, err

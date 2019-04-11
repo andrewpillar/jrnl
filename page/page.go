@@ -83,8 +83,8 @@ func New(title string) *Page {
 	}
 }
 
-// Walk over all of the pages in the _pages directory. Resolving each one we find, and passing it
-// to the callback.
+// Walk over all of the pages in the _pages directory. Resolving each one we
+// find, and passing it to the callback.
 func Walk(fn func(p *Page) error) error {
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -115,8 +115,8 @@ func (p *Page) Href() string {
 	return filepath.Dir(string(r[len(config.SiteDir):]))
 }
 
-// This will parse the front matter from the page, and read in the rest of the file as the page's
-// body.
+// This will parse the front matter from the page, and read in the rest of the
+// file as the page's body.
 func (p *Page) Load() error {
 	f, err := os.Open(p.SourcePath)
 
@@ -160,7 +160,7 @@ func (p *Page) Open() (*os.File, error) {
 	}
 
 	if info != nil && info.IsDir() {
-		return nil, errors.New("not a proper file " + p.SourcePath)
+		return nil, errors.New("expected text file, got directory: " + p.SourcePath)
 	}
 
 	return os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, config.FileMode)
@@ -176,14 +176,13 @@ func (p *Page) Remove() error {
 }
 
 // Convert the page's markdown to HTML.
-func (p *Page) Render(theme string) {
+func (p *Page) Render() {
 	r := render.New()
 	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(r))
 
 	p.Body = string(md)
 }
 
-// Update the page's updatedAt timestamp in the front matter.
 func (p *Page) Touch() error {
 	f, err := p.Open()
 

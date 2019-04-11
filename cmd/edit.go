@@ -26,10 +26,6 @@ func Edit(c cli.Command) {
 	pg, err := page.Find(id)
 
 	if err == nil {
-		if err := pg.Touch(); err != nil {
-			util.ExitError("failed to edit page", err)
-		}
-
 		util.OpenInEditor(pg.SourcePath)
 		return
 	}

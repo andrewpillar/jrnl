@@ -95,7 +95,7 @@ func publishPage(p *page.Page, data interface{}) error {
 	return template.Render(f, p.ID, string(b), data)
 }
 
-func publishPages(s site.Site, theme string) chan error {
+func publishPages(s site.Site) chan error {
 	errs := make(chan error)
 
 	wg := &sync.WaitGroup{}
@@ -111,7 +111,7 @@ func publishPages(s site.Site, theme string) chan error {
 				return
 			}
 
-			p.Render(theme)
+			p.Render()
 
 			data := struct{
 				Site site.Site
@@ -136,7 +136,7 @@ func publishPages(s site.Site, theme string) chan error {
 	return errs
 }
 
-func publishPosts(s site.Site, theme string, posts []*post.Post) (chan *post.Post, chan error) {
+func publishPosts(s site.Site, posts []*post.Post) (chan *post.Post, chan error) {
 	published := make(chan *post.Post)
 	errs := make(chan error)
 
@@ -153,7 +153,7 @@ func publishPosts(s site.Site, theme string, posts []*post.Post) (chan *post.Pos
 				return
 			}
 
-			p.Render(theme)
+			p.Render()
 
 			data := struct{
 				Site site.Site
@@ -261,7 +261,7 @@ func Publish(c cli.Command) {
 
 	code := 0
 
-	errs := publishPages(s, cfg.Theme)
+	errs := publishPages(s)
 
 	for err := range errs {
 		code = 1
@@ -274,7 +274,7 @@ func Publish(c cli.Command) {
 		util.ExitError("failed to get all posts", err)
 	}
 
-	published, errs := publishPosts(s, cfg.Theme, posts)
+	published, errs := publishPosts(s, posts)
 
 	postIndex := index.New()
 

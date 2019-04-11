@@ -17,8 +17,9 @@ type Category struct {
 	Categories []Category
 }
 
-// Walk the _posts directory and resolve each category that can be found. This will also resolve
-// child and parent categories, instead of returning a flat slice.
+// Walk the _posts directory and resolve each category that can be found. This
+// will also resolve child and parent categories, instead of returning a flat
+// slice.
 func All() ([]Category, error) {
 	categories := make(map[string]*Category)
 

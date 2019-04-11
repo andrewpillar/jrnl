@@ -41,7 +41,10 @@ func tar(w io.Writer, src string) error {
 			return err
 		}
 
-		header.Name = strings.TrimPrefix(strings.Replace(path, src, "", -1), string(os.PathSeparator))
+		header.Name = strings.TrimPrefix(
+			strings.Replace(path, src, "", -1),
+			string(os.PathSeparator),
+		)
 
 		if err := tw.WriteHeader(header); err != nil {
 			return err
@@ -108,7 +111,9 @@ func untar(dst string, r io.Reader) error {
 					return err
 				}
 			case artar.TypeReg:
-				f, err := os.OpenFile(target, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+				flags := os.O_TRUNC|os.O_CREATE|os.O_RDWR
+
+				f, err := os.OpenFile(target, flags, os.FileMode(header.Mode))
 
 				if err != nil {
 					return err
@@ -175,8 +180,9 @@ func New(name string) *Theme {
 	}
 }
 
-// Load the current theme. This will un-tar the current theme, and overwrite the existing _layouts,
-// and _site/assets directories with the contents of the tarball.
+// Load the current theme. This will un-tar the current theme, and overwrite
+// the existing _layouts, and _site/assets directories with the contents of the
+// tarball.
 func (t *Theme) Load() error {
 	f, err := os.Open(filepath.Join(config.ThemesDir, t.Name + ".tar.gz"))
 
@@ -216,8 +222,8 @@ func (t *Theme) Load() error {
 	return os.RemoveAll(layouts)
 }
 
-// Save the current theme. This will re-tar the theme overwriting the current theme if it's the
-// same.
+// Save the current theme. This will re-tar the theme overwriting the current
+// theme if it's the same.
 func (t *Theme) Save() error {
 	cfg, err := config.Open()
 

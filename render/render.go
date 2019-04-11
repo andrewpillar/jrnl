@@ -18,8 +18,8 @@ type Renderer struct {
 	Formatter *html.Formatter
 }
 
-// Create a new Renderer with the blackfriday.HTMLRenderer as the underlying struct the rendering
-// every other node type.
+// Create a new Renderer with the blackfriday.HTMLRenderer as the underlying
+// struct the rendering every other node type.
 func New() *Renderer {
 	params := blackfriday.HTMLRendererParameters{
 		Flags: blackfriday.CommonHTMLFlags,
@@ -55,9 +55,10 @@ func (r *Renderer) getLexer(b []byte) chroma.Lexer {
 	return lxr
 }
 
-// The RenderNode method will check for the blackfriday.CodeBlock node type so we can have syntax
-// highlighting for blocks of code. By default it will then fallback to the underlying HTMLRenderer
-// provided with blackfriday for rendering every other node we receive.
+// The RenderNode method will check for the blackfriday.CodeBlock node type so
+// we can have syntax highlighting for blocks of code. By default it will then
+// fallback to the underlying HTMLRenderer provided with blackfriday for
+// rendering every other node we receive.
 func (r *Renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
 	switch node.Type {
 		case blackfriday.CodeBlock:
