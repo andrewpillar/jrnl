@@ -2,6 +2,7 @@ package index
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -48,7 +49,8 @@ var (
 // determine the type of index being published.
 type Index map[string][]*post.Post
 
-func writeIndexFile(dst, layout string, data interface{}) error {
+// Take the given index layout and data, and write it to the given io.Writer.
+func writeIndex(w io.Writer, layout string, data interface{}) error {
 	b, err := ioutil.ReadFile(layout)
 
 	if err != nil {
@@ -59,15 +61,7 @@ func writeIndexFile(dst, layout string, data interface{}) error {
 		return errors.New("no data for index " + layout)
 	}
 
-	f, err := os.OpenFile(dst, os.O_TRUNC|os.O_CREATE|os.O_RDWR, config.FileMode)
-
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	return template.Render(f, layout, string(b), data)
+	return template.Render(w, layout, string(b), data)
 }
 
 // Create a new index.
@@ -135,6 +129,7 @@ func (i Index) Publish(key string, s site.Site) error {
 	var data interface{}
 	var path string
 
+	flags := os.O_TRUNC|os.O_CREATE|os.O_RDWR
 	posts := i[key]
 
 	sort.Sort(post.ByCreatedAt(posts))
@@ -148,9 +143,18 @@ func (i Index) Publish(key string, s site.Site) error {
 			Posts: posts,
 		}
 
+		f, err := os.OpenFile(filepath.Join(key, "index.html"), flags, config.FileMode)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		// Index layout for all site posts.
 		path = filepath.Join(config.PostsDir, config.IndexDir, all)
 
-		return writeIndexFile(filepath.Join(key, "index.html"), path, data)
+		return writeIndex(f, path, data)
 	}
 
 	var tlayout, tvalue, categoryId string
@@ -168,6 +172,7 @@ func (i Index) Publish(key string, s site.Site) error {
 		if recat.Match(bkey) {
 			categoryId = extractCategoryId(key, tvalue)
 
+			// Index layout for posts on the day.
 			path = filepath.Join(config.PostsDir, categoryId, config.IndexDir, day)
 		}
 	} else if remonth.Match(bkey) {
@@ -179,6 +184,7 @@ func (i Index) Publish(key string, s site.Site) error {
 		if recat.Match(bkey) {
 			categoryId = extractCategoryId(key, tvalue)
 
+			// Index layout for posts in the month.
 			path = filepath.Join(config.PostsDir, categoryId, config.IndexDir, month)
 		}
 	} else if reyear.Match(bkey) {
@@ -190,6 +196,7 @@ func (i Index) Publish(key string, s site.Site) error {
 		if recat.Match(bkey) {
 			categoryId = extractCategoryId(key, tvalue)
 
+			// Index layout for posts in the year.
 			path = filepath.Join(config.PostsDir, categoryId, config.IndexDir, year)
 		}
 	}
@@ -217,7 +224,15 @@ func (i Index) Publish(key string, s site.Site) error {
 			Posts: posts,
 		}
 
-		return writeIndexFile(filepath.Join(key, "index.html"), path, data)
+		f, err := os.OpenFile(filepath.Join(key, "index.html"), flags, config.FileMode)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		return writeIndex(f, path, data)
 	}
 
 	c, err := category.Find(categoryId)
@@ -239,7 +254,15 @@ func (i Index) Publish(key string, s site.Site) error {
 			Posts:    posts,
 		}
 
-		return writeIndexFile(filepath.Join(key, "index.html"), path, data)
+		f, err := os.OpenFile(filepath.Join(key, "index.html"), flags, config.FileMode)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		return writeIndex(f, path, data)
 	}
 
 	data = struct{
@@ -254,5 +277,13 @@ func (i Index) Publish(key string, s site.Site) error {
 		Posts:    posts,
 	}
 
-	return writeIndexFile(filepath.Join(key, "index.html"), path, data)
+	f, err := os.OpenFile(filepath.Join(key, "index.html"), flags, config.FileMode)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	return writeIndex(f, path, data)
 }
