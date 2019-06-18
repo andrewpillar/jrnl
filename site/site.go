@@ -8,6 +8,7 @@ import (
 // Simple struct that will be passed to all layout templates.
 type Site struct {
 	Title      string
+	Site       string
 	Categories []category.Category
 	Pages      []*page.Page
 }

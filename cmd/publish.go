@@ -255,6 +255,7 @@ func Publish(c cli.Command) {
 
 	s := site.Site{
 		Title:      cfg.Title,
+		Site:       cfg.Site,
 		Categories: categories,
 		Pages:      pages,
 	}

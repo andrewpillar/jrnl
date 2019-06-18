@@ -21,7 +21,7 @@ type Category struct {
 // will also resolve child and parent categories, instead of returning a flat
 // slice.
 func All() ([]Category, error) {
-	categories := make(map[string]*Category)
+	categories := make(map[string]Category)
 
 	walk := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -54,7 +54,7 @@ func All() ([]Category, error) {
 			return nil
 		}
 
-		categories[id] = &c
+		categories[id] = c
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func All() ([]Category, error) {
 	i := 0
 
 	for _, c := range categories {
-		ret[i] = *c
+		ret[i] = c
 		i++
 	}
 
