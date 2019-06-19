@@ -9,12 +9,11 @@ import (
 
 	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/render"
-	"github.com/andrewpillar/jrnl/util"
 )
 
 func GenStyle(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	style := styles.Get(c.Args.Get(0))

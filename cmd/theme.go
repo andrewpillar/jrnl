@@ -14,34 +14,34 @@ import (
 
 func Theme(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	cfg, err := config.Open()
 
 	if err != nil {
-		util.ExitError("failed to get config", err)
+		exitError("failed to get config", err)
 	}
 
 	defer cfg.Close()
 
-	if cfg.Theme == "" {
+	if cfg.Site.Theme == "" {
 		fmt.Println("no theme being used")
 		return
 	}
 
-	fmt.Println("current theme: " + cfg.Theme)
+	fmt.Println("current theme: " + cfg.Site.Theme)
 }
 
 func ThemeLs(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	themes, err := theme.All()
 
 	if err != nil {
-		util.ExitError("failed to get all theme", err)
+		exitError("failed to get all theme", err)
 	}
 
 	for _, t := range themes {
@@ -51,13 +51,13 @@ func ThemeLs(c cli.Command) {
 
 func ThemeSave(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	cfg, err := config.Open()
 
 	if err != nil {
-		util.ExitError("failed to get config", err)
+		exitError("failed to get config", err)
 	}
 
 	defer cfg.Close()
@@ -65,29 +65,29 @@ func ThemeSave(c cli.Command) {
 	name := c.Args.Get(0)
 
 	if name != "" {
-		cfg.Theme = util.Slug(name)
+		cfg.Site.Theme = util.Slug(name)
 	}
 
-	if cfg.Theme == "" {
-		util.ExitError("failed to save theme", errors.New("no theme name specified"))
+	if cfg.Site.Theme == "" {
+		exitError("failed to save theme", errors.New("no theme name specified"))
 	}
 
-	t, err := theme.Find(cfg.Theme)
+	t, err := theme.Find(cfg.Site.Theme)
 
 	if err != nil {
 		if !os.IsNotExist(err) {
-			util.ExitError("failed to save theme", err)
+			exitError("failed to save theme", err)
 		}
 
-		t = theme.New(cfg.Theme)
+		t = theme.New(cfg.Site.Theme)
 	}
 
 	if err := t.Save(); err != nil {
-		util.ExitError("failed to save theme", err)
+		exitError("failed to save theme", err)
 	}
 
 	if err := cfg.Save(); err != nil {
-		util.ExitError("failed to save theme", err)
+		exitError("failed to save theme", err)
 	}
 
 	fmt.Println("saved theme: " + t.Name)
@@ -95,13 +95,13 @@ func ThemeSave(c cli.Command) {
 
 func ThemeUse(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	cfg, err := config.Open()
 
 	if err != nil {
-		util.ExitError("failed to get config", err)
+		exitError("failed to get config", err)
 	}
 
 	defer cfg.Close()
@@ -109,29 +109,29 @@ func ThemeUse(c cli.Command) {
 	name := util.Slug(c.Args.Get(0))
 
 	if name == "" {
-		util.ExitError("failed to use theme", errors.New("missing theme name"))
+		exitError("failed to use theme", errors.New("missing theme name"))
 	}
 
 	t, err := theme.Find(name)
 
 	if err != nil {
-		util.ExitError("failed to use theme", err)
+		exitError("failed to use theme", err)
 	}
 
 	if err := t.Load(); err != nil {
-		util.ExitError("failed to use theme", err)
+		exitError("failed to use theme", err)
 	}
 
-	cfg.Theme = name
+	cfg.Site.Theme = name
 
 	if err := cfg.Save(); err != nil {
-		util.ExitError("failed to save config", err)
+		exitError("failed to save config", err)
 	}
 }
 
 func ThemeRm(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	code := 0

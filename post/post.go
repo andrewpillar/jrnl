@@ -44,8 +44,29 @@ type Post struct {
 func All() ([]*Post, error) {
 	posts := make([]*Post, 0)
 
-	err := Walk(func(p *Post) error {
+	err := filepath.Walk(config.PostsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		if strings.Contains(path, config.IndexDir) {
+			return nil
+		}
+
+		id := strings.Replace(path, config.PostsDir + string(os.PathSeparator), "", 1)
+
+		p, err := Find(strings.Split(id, ".")[0])
+
+		if err != nil {
+			return err
+		}
+
 		posts = append(posts, p)
+
 		return nil
 	})
 
@@ -85,7 +106,7 @@ func Find(id string) (*Post, error) {
 
 	fm := &frontMatter{}
 
-	if err := util.UnmarshalFrontMatter(fm, f); err != nil {
+	if err := page.UnmarshalFrontMatter(fm, f); err != nil {
 		return nil, err
 	}
 
@@ -147,39 +168,10 @@ func New(p *page.Page, categoryName string) *Post {
 			ID:   buf.String(),
 			Name: categoryName,
 		},
+		Index:     true,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-}
-
-// Walk over all of the posts we have, finding each one and passing it to the
-// given callback.
-func Walk(fn func(p *Post) error) error {
-	walk := func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		if strings.Contains(path, config.IndexDir) {
-			return nil
-		}
-
-		id := strings.Replace(path, config.PostsDir + string(os.PathSeparator), "", 1)
-
-		p, err := Find(strings.Split(id, ".")[0])
-
-		if err != nil {
-			return err
-		}
-
-		return fn(p)
-	}
-
-	return filepath.Walk(config.PostsDir, walk)
 }
 
 func (p ByCreatedAt) Len() int {
@@ -275,7 +267,7 @@ func (p *Post) Touch() error {
 		UpdatedAt: time.Now().Format(iso8601),
 	}
 
-	if err := util.MarshalFrontMatter(fm, f); err != nil {
+	if err := page.MarshalFrontMatter(fm, f); err != nil {
 		return err
 	}
 

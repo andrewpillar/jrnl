@@ -9,12 +9,11 @@ import (
 	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/post"
-	"github.com/andrewpillar/jrnl/util"
 )
 
 func Rm(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	code := 0

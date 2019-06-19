@@ -8,7 +8,6 @@ import (
 
 	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/page"
-	"github.com/andrewpillar/jrnl/util"
 )
 
 func createPage(title string) (*page.Page, error) {
@@ -31,19 +30,19 @@ func createPage(title string) (*page.Page, error) {
 
 func Page(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	p, err := createPage(c.Args.Get(0))
 
 	if err != nil {
-		util.ExitError("failed to create page", err)
+		exitError("failed to create page", err)
 	}
 
 	if err := p.Touch(); err != nil {
-		util.ExitError("failed to create page", err)
+		exitError("failed to create page", err)
 	}
 
-	util.OpenInEditor(p.SourcePath)
+	openInEditor(p.SourcePath)
 	fmt.Println("new page added", p.ID)
 }

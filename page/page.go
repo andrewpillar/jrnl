@@ -1,7 +1,9 @@
 package page
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,6 +14,8 @@ import (
 	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/russross/blackfriday"
+
+	"gopkg.in/yaml.v2"
 )
 
 type frontMatter struct {
@@ -46,6 +50,21 @@ func Find(id string) (*Page, error) {
 	return Resolve(filepath.Join(config.PagesDir, id + ".md"))
 }
 
+func MarshalFrontMatter(fm interface{}, w io.Writer) error {
+	w.Write([]byte("---\n"))
+
+	enc := yaml.NewEncoder(w)
+
+	if err := enc.Encode(fm); err != nil {
+		return err
+	}
+
+	_, err := w.Write([]byte("---\n"))
+
+	return err
+}
+
+
 // Resolve a Page from the given filepath.
 func Resolve(path string) (*Page, error) {
 	f, err := os.Open(path)
@@ -58,7 +77,7 @@ func Resolve(path string) (*Page, error) {
 
 	fm := &frontMatter{}
 
-	if err := util.UnmarshalFrontMatter(fm, f); err != nil {
+	if err := UnmarshalFrontMatter(fm, f); err != nil {
 		return nil, err
 	}
 
@@ -109,6 +128,58 @@ func Walk(fn func(p *Page) error) error {
 	return filepath.Walk(config.PagesDir, walk)
 }
 
+func UnmarshalFrontMatter(fm interface{}, r io.Reader) error {
+	buf := &bytes.Buffer{}
+	tmp := make([]byte, 1)
+
+	bounds := 0
+
+	for {
+		if bounds == 2 {
+			break
+		}
+
+		_, err := r.Read(tmp)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			return err
+		}
+
+		buf.Write(tmp)
+
+		for tmp[0] == '-' {
+			_, err = r.Read(tmp)
+
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+
+				return err
+			}
+
+			buf.Write(tmp)
+
+			if tmp[0] == '\n' {
+				bounds++
+				break
+			}
+		}
+	}
+
+	dec := yaml.NewDecoder(buf)
+
+	if err := dec.Decode(fm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *Page) Href() string {
 	r := []rune(p.SitePath)
 
@@ -128,7 +199,7 @@ func (p *Page) Load() error {
 
 	fm := &frontMatter{}
 
-	if err := util.UnmarshalFrontMatter(fm, f); err != nil {
+	if err := UnmarshalFrontMatter(fm, f); err != nil {
 		return err
 	}
 
@@ -197,7 +268,7 @@ func (p *Page) Touch() error {
 		Layout: p.Layout,
 	}
 
-	if err := util.MarshalFrontMatter(fm, f); err != nil {
+	if err := MarshalFrontMatter(fm, f); err != nil {
 		return err
 	}
 

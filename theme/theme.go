@@ -1,7 +1,7 @@
 package theme
 
 import (
-	artar "archive/tar"
+	"archive/tar"
 	"compress/gzip"
 	"io"
 	"os"
@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/andrewpillar/jrnl/config"
-	"github.com/andrewpillar/jrnl/util"
+	"github.com/andrewpillar/jrnl/file"
 )
 
 type Theme struct {
@@ -17,7 +17,7 @@ type Theme struct {
 	Path string
 }
 
-func tar(w io.Writer, src string) error {
+func mktar(w io.Writer, src string) error {
 	if _, err := os.Stat(src); err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func tar(w io.Writer, src string) error {
 
 	defer gzw.Close()
 
-	tw := artar.NewWriter(gzw)
+	tw := tar.NewWriter(gzw)
 
 	defer tw.Close()
 
@@ -35,7 +35,7 @@ func tar(w io.Writer, src string) error {
 			return err
 		}
 
-		header, err := artar.FileInfoHeader(info, info.Name())
+		header, err := tar.FileInfoHeader(info, info.Name())
 
 		if err != nil {
 			return err
@@ -79,7 +79,7 @@ func untar(dst string, r io.Reader) error {
 
 	defer gzr.Close()
 
-	tr := artar.NewReader(gzr)
+	tr := tar.NewReader(gzr)
 
 	for {
 		header, err := tr.Next()
@@ -96,7 +96,7 @@ func untar(dst string, r io.Reader) error {
 		target := filepath.Join(dst, header.Name)
 
 		switch header.Typeflag {
-			case artar.TypeDir:
+			case tar.TypeDir:
 				_, err = os.Stat(target)
 
 				if err != nil {
@@ -110,7 +110,7 @@ func untar(dst string, r io.Reader) error {
 
 					return err
 				}
-			case artar.TypeReg:
+			case tar.TypeReg:
 				flags := os.O_TRUNC|os.O_CREATE|os.O_RDWR
 
 				f, err := os.OpenFile(target, flags, os.FileMode(header.Mode))
@@ -207,11 +207,11 @@ func (t *Theme) Load() error {
 	assets := strings.Replace(filepath.Join(config.ThemesDir, config.AssetsDir), config.SiteDir, "", -1)
 	layouts := filepath.Join(config.ThemesDir, config.LayoutsDir)
 
-	if err := util.Copy(config.AssetsDir, assets); err != nil {
+	if err := file.Copy(config.AssetsDir, assets); err != nil {
 		return err
 	}
 
-	if err := util.Copy(config.LayoutsDir, layouts); err != nil {
+	if err := file.Copy(config.LayoutsDir, layouts); err != nil {
 		return err
 	}
 
@@ -236,11 +236,11 @@ func (t *Theme) Save() error {
 	assets := strings.Replace(filepath.Join(config.ThemesDir, t.Name, config.AssetsDir), config.SiteDir, "", -1)
 	layouts := filepath.Join(config.ThemesDir, t.Name, config.LayoutsDir)
 
-	if err := util.Copy(assets, config.AssetsDir); err != nil {
+	if err := file.Copy(assets, config.AssetsDir); err != nil {
 		return err
 	}
 
-	if err := util.Copy(layouts, config.LayoutsDir); err != nil {
+	if err := file.Copy(layouts, config.LayoutsDir); err != nil {
 		return err
 	}
 
@@ -254,7 +254,7 @@ func (t *Theme) Save() error {
 
 	dir := filepath.Join(config.ThemesDir, t.Name)
 
-	if err := tar(f, dir); err != nil {
+	if err := mktar(f, dir); err != nil {
 		return err
 	}
 

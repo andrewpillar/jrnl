@@ -9,24 +9,23 @@ import (
 	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/post"
-	"github.com/andrewpillar/jrnl/util"
 )
 
 func Ls(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	pages, err := page.All()
 
 	if err != nil {
-		util.ExitError("failed to get all pages", err)
+		exitError("failed to get all pages", err)
 	}
 
 	posts, err := post.All()
 
 	if err != nil {
-		util.ExitError("failed to get all posts", err)
+		exitError("failed to get all posts", err)
 	}
 
 	for _, p := range pages {

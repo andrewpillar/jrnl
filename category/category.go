@@ -5,11 +5,13 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/andrewpillar/jrnl/config"
-	"github.com/andrewpillar/jrnl/util"
 )
+
+var redash = regexp.MustCompile("-")
 
 type Category struct {
 	ID         string
@@ -81,7 +83,7 @@ func Find(id string) (Category, error) {
 		return Category{}, err
 	}
 
-	parts := strings.Split(util.Deslug(id), string(os.PathSeparator))
+	parts := strings.Split(redash.ReplaceAllString(id, " "), string(os.PathSeparator))
 	name := bytes.Buffer{}
 	end := len(parts) - 1
 

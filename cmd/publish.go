@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,12 +16,12 @@ import (
 	"github.com/andrewpillar/jrnl/category"
 	"github.com/andrewpillar/jrnl/config"
 	"github.com/andrewpillar/jrnl/feed"
+	"github.com/andrewpillar/jrnl/file"
 	"github.com/andrewpillar/jrnl/index"
 	"github.com/andrewpillar/jrnl/page"
 	"github.com/andrewpillar/jrnl/post"
 	"github.com/andrewpillar/jrnl/site"
 	"github.com/andrewpillar/jrnl/template"
-	"github.com/andrewpillar/jrnl/util"
 
 	"github.com/gorilla/feeds"
 
@@ -228,15 +229,80 @@ func publishFeed(fd feed.Feed, posts []*post.Post, rss, atom string) error {
 	return nil
 }
 
+func remoteCopy(cli *sftp.Client, dst, src string) error {
+	info, err := os.Stat(src)
+
+	if err != nil {
+		return err
+	}
+
+	if info.IsDir() {
+		return remoteDirCopy(cli, dst, src, info)
+	}
+
+	return remoteFileCopy(cli, dst, src, info)
+}
+
+func remoteDirCopy(cli *sftp.Client, dst, src string, info os.FileInfo) error {
+	if dst != "" {
+		if err := cli.MkdirAll(dst); err != nil {
+			return err
+		}
+	}
+
+	files, err := ioutil.ReadDir(src)
+
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		fdst := filepath.Join(dst, f.Name())
+		fsrc := filepath.Join(src, f.Name())
+
+		if err := remoteCopy(cli, fdst, fsrc); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func remoteFileCopy(cli *sftp.Client, dst, src string, info os.FileInfo) error {
+	if err := cli.MkdirAll(filepath.Dir(dst)); err != nil {
+		return err
+	}
+
+	fdst, err := cli.Create(dst)
+
+	if err != nil {
+		return err
+	}
+
+	defer fdst.Close()
+
+	fsrc, err := os.Open(src)
+
+	if err != nil {
+		return err
+	}
+
+	defer fsrc.Close()
+
+	_, err = io.Copy(fdst, fsrc)
+
+	return err
+}
+
 func Publish(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
-		util.ExitError("not initialized", err)
+		exitError("not initialized", err)
 	}
 
 	cfg, err := config.Open()
 
 	if err != nil {
-		util.ExitError("failed to get config", err)
+		exitError("failed to get config", err)
 	}
 
 	defer cfg.Close()
@@ -244,18 +310,18 @@ func Publish(c cli.Command) {
 	categories, err := category.All()
 
 	if err != nil {
-		util.ExitError("failed to get all categories", err)
+		exitError("failed to get all categories", err)
 	}
 
 	pages, err := page.All()
 
 	if err != nil {
-		util.ExitError("failed to get all pages", err)
+		exitError("failed to get all pages", err)
 	}
 
 	s := site.Site{
-		Title:      cfg.Title,
-		Site:       cfg.Site,
+		Title:      cfg.Site.Title,
+		Link:       cfg.Site.Link,
 		Categories: categories,
 		Pages:      pages,
 	}
@@ -272,7 +338,7 @@ func Publish(c cli.Command) {
 	posts, err := post.All()
 
 	if err != nil {
-		util.ExitError("failed to get all posts", err)
+		exitError("failed to get all posts", err)
 	}
 
 	published, errs := publishPosts(s, posts)
@@ -298,9 +364,9 @@ func Publish(c cli.Command) {
 	}
 
 	fd := feed.Feed{
-		Title:       cfg.Title,
-		Link:        cfg.Site,
-		Description: cfg.Description,
+		Title:       cfg.Site.Title,
+		Link:        cfg.Site.Link,
+		Description: cfg.Site.Description,
 		Author:      &feeds.Author{
 			Name:  cfg.Author.Name,
 			Email: cfg.Author.Email,
@@ -308,7 +374,7 @@ func Publish(c cli.Command) {
 	}
 
 	if err := publishFeed(fd, posts, c.Flags.GetString("rss"), c.Flags.GetString("atom")); err != nil {
-		util.ExitError("failed to publish posts", err)
+		exitError("failed to publish posts", err)
 	}
 
 	for key := range postIndex {
@@ -322,19 +388,19 @@ func Publish(c cli.Command) {
 		return
 	}
 
-	if cfg.Remote == "" {
-		util.ExitError("failed to publish posts", errors.New("remote not set"))
+	if cfg.Site.Remote == "" {
+		exitError("failed to publish posts", errors.New("remote not set"))
 	}
 
-	if filepath.IsAbs(cfg.Remote) {
-		if err := util.Copy(cfg.Remote, config.SiteDir); err != nil {
-			util.ExitError("failed to publish posts", err)
+	if filepath.IsAbs(cfg.Site.Remote) {
+		if err := file.Copy(cfg.Site.Remote, config.SiteDir); err != nil {
+			exitError("failed to publish posts", err)
 		}
 
 		os.Exit(code)
 	}
 
-	parts := strings.Split(cfg.Remote, "@")
+	parts := strings.Split(cfg.Site.Remote, "@")
 	i := 0
 
 	user := os.Getenv("USER")
@@ -352,19 +418,19 @@ func Publish(c cli.Command) {
 	key, err := ioutil.ReadFile(filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa"))
 
 	if err != nil {
-		util.ExitError("failed to publish posts", err)
+		exitError("failed to publish posts", err)
 	}
 
 	signer, err := ssh.ParsePrivateKey(key)
 
 	if err != nil {
-		util.ExitError("failed to publish posts", err)
+		exitError("failed to publish posts", err)
 	}
 
 	hostkey, err := getHostkey(hostname)
 
 	if err != nil {
-		util.ExitError("failed to publish posts", err)
+		exitError("failed to publish posts", err)
 	}
 
 	sshCfg := &ssh.ClientConfig{
@@ -378,7 +444,7 @@ func Publish(c cli.Command) {
 	conn, err := ssh.Dial("tcp", hostname + ":22", sshCfg)
 
 	if err != nil {
-		util.ExitError("failed to publish posts", err)
+		exitError("failed to publish posts", err)
 	}
 
 	defer conn.Close()
@@ -386,13 +452,13 @@ func Publish(c cli.Command) {
 	scp, err := sftp.NewClient(conn)
 
 	if err != nil {
-		util.ExitError("failed to publish posts", err)
+		exitError("failed to publish posts", err)
 	}
 
 	defer scp.Close()
 
-	if err := util.CopyToRemote(scp, dir, config.SiteDir); err != nil {
-		util.ExitError("failed to publish posts", err)
+	if err := remoteCopy(scp, dir, config.SiteDir); err != nil {
+		exitError("failed to publish posts", err)
 	}
 
 	os.Exit(code)
