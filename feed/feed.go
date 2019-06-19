@@ -29,14 +29,22 @@ func Read(urls ...string) ([]Feed, error) {
 			return roll, err
 		}
 
+		if len(feed.Items) == 0 {
+			continue
+		}
+
+		item := feed.Items[0]
+
 		roll[i] = Feed{
-			Title:       feed.Title,
-			Link:        feed.Link,
-			Description: feed.Description,
-			Author:      &feeds.Author{
-				Name:  feed.Author.Name,
-				Email: feed.Author.Email,
-			},
+			Title:       item.Title,
+			Link:        item.Link,
+			Description: item.Description,
+			Author:      &feeds.Author{},
+		}
+
+		if item.Author != nil {
+			roll[i].Author.Name = item.Author.Name
+			roll[i].Author.Email = item.Author.Email
 		}
 	}
 
