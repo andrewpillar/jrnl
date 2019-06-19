@@ -6,12 +6,26 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	"github.com/pelletier/go-toml"
 )
 
 var (
-	file = "jrnl.yml"
+	file = "jrnl.toml"
 	root  = "."
+
+	stub = `
+
+[site]
+title       = ""
+description = ""
+link        = ""
+remote      = ""
+theme       = ""
+
+[author]
+name  = ""
+email = ""
+`
 
 	PostsDir   = "_posts"
 	PagesDir   = "_pages"
@@ -35,19 +49,20 @@ var (
 )
 
 type Config struct {
-	*os.File `yaml:"-"`
+	f *os.File `toml:"-"`
 
-	Title  string
-	Site   string
+	Site struct {
+		Title       string `toml:"title"`
+		Description string `toml:"description"`
+		Link        string `toml:"link"`
+		Remote      string `toml:"remote"`
+		Theme       string `toml:"theme"`
+	} `toml:"site"`
 
 	Author struct {
-		Name  string
-		Email string
-	}
-
-	Description string
-	Theme       string
-	Remote      string
+		Name  string `toml:"name"`
+		Email string `toml:"email"`
+	} `toml:"author"`
 }
 
 // Check if jrnl has already been initialized in the given directory.
@@ -67,7 +82,7 @@ func Initialized(dir string) error {
 	return nil
 }
 
-// Create the jrnl.yml file in the given directory. This is called during jrnl
+// Create the jrnl.toml file in the given directory. This is called during jrnl
 // initialization which is why we pass it a directory whereby the jrnl would be
 // initialized.
 func Create(dir string) error {
@@ -79,14 +94,13 @@ func Create(dir string) error {
 
 	defer f.Close()
 
-	cfg := &Config{
-		File: f,
-	}
+	_, err = f.Write([]byte(stub))
 
-	return cfg.Save()
+	return err
 }
 
-// Open the jrnl.yml file.
+// Open the jrnl.toml file for editing. It is expected for a subsequent call to
+// Close to be made once the resource is no longer needed.
 func Open() (*Config, error) {
 	f, err := os.OpenFile(filepath.Join(root, file), os.O_RDWR, FileMode)
 
@@ -94,44 +108,41 @@ func Open() (*Config, error) {
 		return nil, err
 	}
 
-	cfg := &Config{
-		File: f,
-	}
+	cfg := &Config{}
 
-	dec := yaml.NewDecoder(cfg)
+	dec := toml.NewDecoder(f)
 
 	if err := dec.Decode(cfg); err != nil {
 		return nil, err
 	}
 
+	cfg.f = f
+
 	return cfg, nil
 }
 
-// Save the changes made to the jrnl.yml file.
 func (c *Config) Save() error {
-	info, err := c.Stat()
+	info, err := c.f.Stat()
 
 	if err != nil {
 		return err
 	}
 
 	if info.Size() > 0 {
-		if err := c.Truncate(0); err != nil {
+		if err := c.f.Truncate(0); err != nil {
 			return err
 		}
 	}
 
-	if _, err := c.Seek(0, io.SeekStart); err != nil {
+	if _, err := c.f.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 
-	enc := yaml.NewEncoder(c)
+	enc := toml.NewEncoder(c.f)
 
-	if err := enc.Encode(c); err != nil {
-		return err
-	}
+	return enc.Encode(c)
+}
 
-	enc.Close()
-
-	return nil
+func (c *Config) Close() error {
+	return c.f.Close()
 }

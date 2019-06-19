@@ -21,7 +21,7 @@ func Test(t *testing.T) {
 		return
 	}
 
-	c.Title = "test"
+	c.Site.Title = "test"
 
 	if err := c.Save(); err != nil {
 		t.Errorf("failed to save file: %s\n", err)
@@ -30,5 +30,5 @@ func Test(t *testing.T) {
 
 	c.Close()
 
-	os.Remove(filepath.Join(root, "jrnl.yml"))
+	os.Remove(filepath.Join(root, "jrnl.toml"))
 }
