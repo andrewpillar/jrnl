@@ -5,6 +5,8 @@ require (
 	github.com/andrewpillar/cli v1.1.0
 	github.com/gorilla/feeds v1.1.0
 	github.com/kr/fs v0.1.0 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
+	github.com/pelletier/go-toml v1.4.0
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/pkg/sftp v1.8.3
 	github.com/russross/blackfriday v2.0.0+incompatible
