@@ -21,6 +21,7 @@ description = ""
 link        = ""
 remote      = ""
 theme       = ""
+blogroll    = []
 
 [author]
 name  = ""
@@ -52,11 +53,12 @@ type Config struct {
 	f *os.File `toml:"-"`
 
 	Site struct {
-		Title       string `toml:"title"`
-		Description string `toml:"description"`
-		Link        string `toml:"link"`
-		Remote      string `toml:"remote"`
-		Theme       string `toml:"theme"`
+		Title       string   `toml:"title"`
+		Description string   `toml:"description"`
+		Link        string   `toml:"link"`
+		Remote      string   `toml:"remote"`
+		Theme       string   `toml:"theme"`
+		Blogroll    []string `toml:"blogroll"`
 	} `toml:"site"`
 
 	Author struct {

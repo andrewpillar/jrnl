@@ -6,6 +6,8 @@ import (
 	"github.com/andrewpillar/jrnl/post"
 
 	"github.com/gorilla/feeds"
+
+	"github.com/mmcdole/gofeed"
 )
 
 type Feed struct {
@@ -13,6 +15,32 @@ type Feed struct {
 	Link        string
 	Description string
 	Author      *feeds.Author
+}
+
+func Read(urls ...string) ([]Feed, error) {
+	roll := make([]Feed, len(urls), len(urls))
+
+	for i, url := range urls {
+		p := gofeed.NewParser()
+
+		feed, err := p.ParseURL(url)
+
+		if err != nil {
+			return roll, err
+		}
+
+		roll[i] = Feed{
+			Title:       feed.Title,
+			Link:        feed.Link,
+			Description: feed.Description,
+			Author:      &feeds.Author{
+				Name:  feed.Author.Name,
+				Email: feed.Author.Email,
+			},
+		}
+	}
+
+	return roll, nil
 }
 
 func (f Feed) generateItems(posts []*post.Post) []*feeds.Item {

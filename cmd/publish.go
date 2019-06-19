@@ -319,11 +319,18 @@ func Publish(c cli.Command) {
 		exitError("failed to get all pages", err)
 	}
 
+	roll, err := feed.Read(cfg.Site.Blogroll...)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+	}
+
 	s := site.Site{
 		Title:      cfg.Site.Title,
 		Link:       cfg.Site.Link,
 		Categories: categories,
 		Pages:      pages,
+		Blogroll:   roll,
 	}
 
 	code := 0
