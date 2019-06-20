@@ -8,6 +8,8 @@ import (
 	"github.com/gorilla/feeds"
 
 	"github.com/mmcdole/gofeed"
+
+	"github.com/grokify/html-strip-tags-go"
 )
 
 type Feed struct {
@@ -60,7 +62,7 @@ func (f Feed) generateItems(posts []*post.Post) []*feeds.Item {
 			Link:  &feeds.Link{
 				Href: f.Link + p.Href(),
 			},
-			Description: p.Preview,
+			Description: strip.StripTags(p.Preview),
 			Author:      f.Author,
 			Created:     p.CreatedAt,
 		}

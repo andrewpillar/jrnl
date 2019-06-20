@@ -8,6 +8,8 @@ import (
 	"text/template"
 
 	"github.com/andrewpillar/jrnl/config"
+
+	"github.com/grokify/html-strip-tags-go"
 )
 
 func partial(path string, data interface{}) (string, error) {
@@ -19,6 +21,7 @@ func partial(path string, data interface{}) (string, error) {
 
 	funcs := template.FuncMap{
 		"partial": partial,
+		"strip":   strip.StripTags,
 	}
 
 	t, err := template.New(path).Funcs(funcs).Parse(string(b))
@@ -42,6 +45,7 @@ func partial(path string, data interface{}) (string, error) {
 func Render(w io.Writer, name, layout string, data interface{}) error {
 	funcs := template.FuncMap{
 		"partial": partial,
+		"strip":   strip.StripTags,
 	}
 
 	t, err := template.New(name).Funcs(funcs).Parse(layout)

@@ -5,6 +5,7 @@ require (
 	github.com/alecthomas/chroma v0.6.2
 	github.com/andrewpillar/cli v1.1.0
 	github.com/gorilla/feeds v1.1.0
+	github.com/grokify/html-strip-tags-go v0.0.0-20190424092004-025bd760b278
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mmcdole/gofeed v1.0.0-beta2
