@@ -41,7 +41,7 @@ func ThemeLs(c cli.Command) {
 	themes, err := theme.All()
 
 	if err != nil {
-		exitError("failed to get all theme", err)
+		exitError("failed to get all themes", err)
 	}
 
 	for _, t := range themes {

@@ -142,7 +142,13 @@ func All() ([]*Theme, error) {
 
 		id := strings.Replace(path, config.ThemesDir + string(os.PathSeparator), "", 1)
 
-		t, err := Find(strings.Split(id, ".")[0])
+		parts := strings.Split(id, ".")
+
+		if parts[0] == "" {
+			return nil
+		}
+
+		t, err := Find(parts[0])
 
 		if err != nil {
 			return err
