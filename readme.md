@@ -14,7 +14,7 @@ generators jrnl does not serve the content it generates.
 * [Themes](#themes)
 * [Remote](#remote)
 * [Publishing](#publishing)
-* [The jrnl.hash file](#the-jrnl-hash-file)
+* [The jrnl.hash file](#the-jrnlhash-file)
 * [Atom and RSS Feeds](#atom-and-rss-feeds)
 
 ## Quick Start
