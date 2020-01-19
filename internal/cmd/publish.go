@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -585,6 +586,58 @@ func writeBlogHash(h hash.Hash) error {
 	return h.Encode(f)
 }
 
+func hashAssets() ([]byte, error) {
+	sha256 := sha256.New()
+
+	fn := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		f, err := os.Open(path)
+
+		if err != nil {
+			return err
+		}
+
+		defer f.Close()
+
+		if _, err := io.Copy(sha256, f); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	err := filepath.Walk(config.AssetsDir, fn)
+
+	return sha256.Sum(nil), err
+}
+
+func shouldPublishAssets(a, b []byte) bool {
+	f, err := os.Open(config.AssetsDir)
+
+	if err != nil {
+		return false
+	}
+
+	defer f.Close()
+
+	if _, err := f.Readdirnames(1); err == io.EOF {
+		return false
+	}
+
+	if !bytesEqual(a, b) {
+		return true
+	}
+
+	return false
+}
+
 func Publish(c cli.Command) {
 	if err := config.Initialized(""); err != nil {
 		exitError("not initialized", err)
@@ -621,7 +674,20 @@ func Publish(c cli.Command) {
 		Pages:      pages,
 	}
 
-	paths := make([]publishPath, 0, len(pages)+len(posts))
+	var paths []publishPath
+
+	b1, err := hashAssets()
+
+	if err != nil {
+		exitError("failed to hash blog assets", err)
+	}
+
+	b2 := h["_assets"]
+
+	if shouldPublishAssets(b1, b2) {
+		paths = append(paths, publishPath{del: false, path: config.AssetsDir})
+		h["_assets"] = b1
+	}
 
 	code := 0
 	publishedPages, errs := publishPages(s)
