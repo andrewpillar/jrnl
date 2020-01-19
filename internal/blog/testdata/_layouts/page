@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta content="width=device-width, initial-scale=1" name="viewport">
+		<title>{{.Page.Title}} - {{.Site.Title}}</title>
+		<link rel="stylesheet" href="/assets/css/main.css">
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="content">
+				<div class="header"><h1><a href="/">~</a> $ {{.Page.Title}}</h1></div>
+				<div class="markdown">{{.Page.Body}}</div>
+			</div>
+			{{partial "partials/sidebar" .}}
+		</div>
+	</body>
+</html>
