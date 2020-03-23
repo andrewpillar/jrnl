@@ -463,7 +463,7 @@ func publishRemote(uri string, paths []publishPath) error {
 		return err
 	}
 
-	conn, err := ssh.Dial("tcp", net.JoinHostPort(hostname, ":22"), &ssh.ClientConfig{
+	conn, err := ssh.Dial("tcp", net.JoinHostPort(hostname, "22"), &ssh.ClientConfig{
 		User:            user,
 		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 		HostKeyCallback: ssh.FixedHostKey(hostkey),
