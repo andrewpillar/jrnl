@@ -53,7 +53,6 @@ func (e errAgg) Err() error {
 	if isNil {
 		return nil
 	}
-
 	return e
 }
 

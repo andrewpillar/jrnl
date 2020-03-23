@@ -39,7 +39,7 @@ func Edit(c cli.Command) {
 	}
 
 	if err := p.Touch(); err != nil {
-		exitError("faile to edit post", err)
+		exitError("failed to edit post", err)
 	}
 
 	openInEditor(p.SourcePath)

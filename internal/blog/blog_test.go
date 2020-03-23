@@ -222,29 +222,60 @@ func Test_NewPostTouchRemove(t *testing.T) {
 }
 
 func Test_PageLoad(t *testing.T) {
-	pp, err := Pages()
-
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct{
+		Page          string
+		ExpectedTitle string
+		ExpectedBody  string
+	}{
+		{"about", "About", "About page.\n"},
+		{"contact", "Contact", "Contact **page**\n"},
 	}
 
-	for _, p := range pp {
-		if err := p.Load(); err != nil {
+	for _, test := range tests {
+		p, err := GetPage(test.Page)
+
+		if err != nil {
 			t.Fatal(err)
+		}
+
+		if p.Title != test.ExpectedTitle {
+			t.Errorf("page title mismatch\n\texpected = '%s'\n\tactual   = '%s'\n", test.ExpectedTitle, p.Title)
+		}
+
+		if p.Body != test.ExpectedBody {
+			t.Errorf("page body mismatch\n\texpected = '%s'\n\tactual   = '%s'\n", test.ExpectedBody, p.Body)
 		}
 	}
 }
 
 func Test_PostLoad(t *testing.T) {
-	pp, err := Posts()
-
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct{
+		Post                string
+		ExpectedTitle       string
+		ExpectedDescription string
+		ExpectedBody        string
+	}{
+		{"some-post", "Some Post", "Some **post**\nAnother line", "Some **post**\nAnother line\n\nAnother paragraph\n"},
+		{"category/post", "Some Category Post", "Some category **post**", "Some category **post**\n"},
 	}
 
-	for _, p := range pp {
-		if err := p.Load(); err != nil {
+	for _, test := range tests {
+		p, err := GetPost(test.Post)
+
+		if err != nil {
 			t.Fatal(err)
+		}
+
+		if p.Title != test.ExpectedTitle {
+			t.Errorf("post title mismatch\n\texpected = '%s'\n\tactual   = '%s'\n", test.ExpectedTitle, p.Title)
+		}
+
+		if p.Description != test.ExpectedDescription {
+			t.Errorf("post description mismatch\n\texpected = '%s'\n\tactual   = '%s'\n", test.ExpectedDescription, p.Description)
+		}
+
+		if p.Body != test.ExpectedBody {
+			t.Errorf("post body mismatch\n\texpected = '%s'\n\tactual   = '%s'\n", test.ExpectedBody, p.Body)
 		}
 	}
 }

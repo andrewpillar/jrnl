@@ -15,7 +15,6 @@ func usageHandler(c cli.Command) {
 		fmt.Println(usage.Jrnl)
 		return
 	}
-
 	fmt.Println(usage.Commands[c.FullName()])
 }
 
@@ -51,6 +50,7 @@ func setupCli() *cli.Cli{
 
 	c.Command("edit", cmd.Edit)
 	c.Command("rm", cmd.Remove)
+	c.Command("flush", cmd.Flush)
 
 	c.Command("remote-set", cmd.RemoteSet)
 

@@ -1,7 +1,6 @@
 package blog
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"errors"
@@ -146,77 +145,17 @@ func resolveCategory(path string) (Category, error) {
 }
 
 func resolvePage(path string) (Page, error) {
-	var p Page
-
-	f, err := os.Open(path)
-
-	if err != nil {
-		return p, err
-	}
-
-	defer f.Close()
-
-	fm := &pageFrontMatter{}
-
-	if err := unmarshalFrontMatter(fm, f); err != nil {
-		return p, err
-	}
-
-	p.ID = strings.Split(filepath.Base(path), ".")[0]
-	p.Title = fm.Title
-	p.Layout = fm.Layout
-	p.SourcePath = path
-	p.SitePath = filepath.Join(config.SiteDir, filepath.Base(p.ID), "index.html")
-
-	return p, nil
+	p := Page{SourcePath: path}
+	err := p.Load()
+	return p, err
 }
 
 func resolvePost(path string) (Post, error) {
-	var p Post
-
-	f, err := os.Open(path)
-
-	if err != nil {
-		return p, err
+	p := Post{
+		Page: Page{SourcePath: path},
 	}
-
-	defer f.Close()
-
-	tmp := strings.Replace(path, config.PostsDir + string(os.PathSeparator), "", 1)
-
-	parts := strings.Split(tmp, string(os.PathSeparator))
-
-	if len(parts) >= 2 {
-		parts = append([]string{config.PostsDir}, parts[:len(parts)-1]...)
-
-		p.Category, err = resolveCategory(filepath.Join(parts...))
-
-		if err != nil {
-			return p, err
-		}
-	}
-
-	fm := &postFrontMatter{}
-
-	if err := unmarshalFrontMatter(fm, f); err != nil {
-		return p, err
-	}
-
-	p.Page.ID = strings.Split(filepath.Base(path), ".")[0]
-	p.Page.Title = fm.Title
-	p.Page.Layout = fm.Layout
-	p.Page.SourcePath = path
-	p.Page.SitePath = filepath.Join(
-		config.SiteDir,
-		p.Category.ID,
-		strings.Replace(dateString(fm.CreatedAt.Time), "-", string(os.PathSeparator), -1),
-		p.ID,
-		"index.html",
-	)
-	p.Index = fm.Index
-	p.CreatedAt = fm.CreatedAt
-	p.UpdatedAt = fm.UpdatedAt
-	return p, nil
+	err := p.Load()
+	return p, err
 }
 
 func Slug(s string) string {
@@ -228,42 +167,40 @@ func Slug(s string) string {
 
 func unmarshalFrontMatter(fm interface{}, r io.Reader) error {
 	buf := &bytes.Buffer{}
-	br := bufio.NewReader(r)
-
 	bounds := 0
 
 	for bounds != 2 {
-		b, err := br.ReadByte()
+		b := make([]byte, 1)
+		n, err := r.Read(b)
 
 		if err != nil {
 			return err
 		}
 
-		buf.Write([]byte{b})
+		buf.Write(b[:n])
 
-		for b == '-' {
-			b, err = br.ReadByte()
+		for b[0] == '-' {
+			n, err = r.Read(b)
 
 			if err != nil {
 				return err
 			}
 
-			buf.Write([]byte{b})
+			buf.Write(b[:n])
 
-			if b == '\n' {
+			if b[0] == '\n' {
 				bounds++
 				break
 			}
 		}
 	}
-
 	dec := yaml.NewDecoder(buf)
-
 	return dec.Decode(fm)
 }
 
 func Categories() ([]Category, error) {
 	m := make(map[string]*Category)
+	ids := sort.StringSlice(make([]string, 0))
 
 	fn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -296,17 +233,19 @@ func Categories() ([]Category, error) {
 		}
 
 		m[c.ID] = &c
+		ids = append(ids, c.ID)
 		return nil
 	}
 
 	err := filepath.Walk(config.PostsDir, fn)
 
+	ids.Sort()
+
 	cc := make([]Category, 0, len(m))
 
-	for _, c := range m {
-		cc = append(cc, *c)
+	for _, id := range ids {
+		cc = append(cc, (*m[id]))
 	}
-
 	return cc, err
 }
 
@@ -625,6 +564,10 @@ func (p *Page) Load() error {
 		return err
 	}
 
+	p.ID = strings.Split(filepath.Base(p.SourcePath), ".")[0]
+	p.Title = fm.Title
+	p.Layout = fm.Layout
+	p.SitePath = filepath.Join(config.SiteDir, filepath.Base(p.ID), "index.html")
 	p.Body = string(b)
 	return nil
 }
@@ -657,8 +600,7 @@ func (p *Page) Remove() error {
 }
 
 func (p *Page) Render() {
-	md := blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(render.New()))
-	p.Body = string(md)
+	p.Body = string(blackfriday.Run([]byte(p.Body), blackfriday.WithRenderer(render.New())))
 }
 
 func (p Page) saveWithFrontMatter(fm interface{}) error {
@@ -683,7 +625,6 @@ func (p Page) Save() error {
 		Title:  p.Title,
 		Layout: p.Layout,
 	}
-
 	return p.saveWithFrontMatter(fm)
 }
 
@@ -714,18 +655,65 @@ func (p Post) HasCategory() bool {
 }
 
 func (p *Post) Load() error {
-	if err := p.Page.Load(); err != nil {
+	f, err := os.Open(p.SourcePath)
+
+	if err != nil {
 		return err
 	}
 
-	b := []byte(p.Body)
+	defer f.Close()
 
-	if len(b) > 2 {
-		i := bytes.IndexByte(b, '\n')
-		r := render.New()
+	fm := &postFrontMatter{}
 
-		p.Description = string(blackfriday.Run(b[:i], blackfriday.WithRenderer(r)))
+	if err := unmarshalFrontMatter(fm, f); err != nil {
+		return err
 	}
+
+	b, err := ioutil.ReadAll(f)
+
+	if err != nil {
+		return err
+	}
+
+	if len(b) > 4 {
+		i := strings.Index(string(b), "\n\n")
+
+		if i == -1 {
+			i = strings.Index(string(b), "\n")
+		}
+
+		p.Description = string(b[:i])
+	}
+
+	trimmed := strings.Replace(p.SourcePath, config.PostsDir+string(os.PathSeparator), "", 1)
+	parts := strings.Split(trimmed, string(os.PathSeparator))
+
+	if len(parts) >= 2 {
+		parts = append([]string{
+			config.PostsDir,
+		}, parts[:len(parts)-1]...)
+
+		p.Category, err = resolveCategory(filepath.Join(parts...))
+
+		if err != nil {
+			return err
+		}
+	}
+
+	p.ID = strings.Split(filepath.Base(p.SourcePath), ".")[0]
+	p.Title = fm.Title
+	p.Layout = fm.Layout
+	p.SitePath = filepath.Join(
+		config.SiteDir,
+		p.Category.ID,
+		strings.Replace(dateString(fm.CreatedAt.Time), "-", string(os.PathSeparator), -1),
+		p.ID,
+		"index.html",
+	)
+	p.Index = fm.Index
+	p.Body = string(b)
+	p.CreatedAt = fm.CreatedAt
+	p.UpdatedAt = fm.UpdatedAt
 	return nil
 }
 
@@ -761,6 +749,13 @@ func (p *Post) Remove() error {
 	return nil
 }
 
+func (p *Post) Render() {
+	opt := blackfriday.WithRenderer(render.New())
+
+	p.Description = string(blackfriday.Run([]byte(p.Description), opt))
+	p.Body = string(blackfriday.Run([]byte(p.Body), opt))
+}
+
 func (p Post) Save() error {
 	fm := &postFrontMatter{
 		pageFrontMatter: pageFrontMatter{
@@ -771,7 +766,6 @@ func (p Post) Save() error {
 		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,
 	}
-
 	return p.saveWithFrontMatter(fm)
 }
 

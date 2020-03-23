@@ -9,6 +9,7 @@ var (
 		"ls":         Ls,
 		"edit":       Edit,
 		"rm":         Rm,
+		"flush":      Flush,
 		"remote-set": RemoteSet,
 		"publish":    Publish,
 		"theme":      Theme,
@@ -34,6 +35,7 @@ Commands:
   ls          List all journal pages, and posts
   edit        Edit a page, or post
   rm          Remove a page, or post
+  flush       Clear the journal's hashed content
   remote-set  Set the journal's remote
   publish     Publish the journal
   theme       Manage the journal's themes
