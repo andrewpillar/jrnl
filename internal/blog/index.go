@@ -57,8 +57,7 @@ func (i *Index) Put(p Post) {
 		return
 	}
 
-	path := strings.Replace(p.SitePath, config.SiteDir, "", 1)
-	parts := strings.Split(path, string(os.PathSeparator))
+	parts := strings.Split(p.SitePath, string(os.PathSeparator))
 
 	for j := range parts {
 		key := filepath.Join(parts[:len(parts)-j-2]...)
@@ -66,7 +65,6 @@ func (i *Index) Put(p Post) {
 		if key == "" {
 			break
 		}
-
 		(*i)[key] = append((*i)[key], p)
 	}
 }
@@ -157,7 +155,35 @@ func (i Index) getIndexDataAndLayout(key string, pp []Post, s Site) (interface{}
 func (i Index) Write(key string, s Site) (string, error) {
 	pp := i[key]
 
+	index := filepath.Join(key, "index.html")
+	dir := filepath.Dir(index)
+
 	sort.Sort(byCreatedAt(pp))
+
+	if key == config.SiteDir {
+		data := struct{
+			Site  Site
+			Posts []Post
+		}{Site: s, Posts: pp}
+
+		layout := filepath.Join(config.PostsDir, config.IndexDir, "all")
+
+		f, err := os.OpenFile(index, os.O_TRUNC|os.O_CREATE|os.O_RDWR, config.FileMode)
+
+		if err != nil {
+			return "", err
+		}
+
+		defer f.Close()
+
+		b, err := ioutil.ReadFile(layout)
+
+		if err != nil {
+			return "", err
+		}
+
+		return filepath.Join(key, "index.html"), template.Render(f, layout, string(b), data)
+	}
 
 	data, layout, err := i.getIndexDataAndLayout(key, pp, s)
 
@@ -174,9 +200,6 @@ func (i Index) Write(key string, s Site) (string, error) {
 		}
 		return "", err
 	}
-
-	index := filepath.Join(filepath.Join(config.SiteDir, key), "index.html")
-	dir := filepath.Dir(index)
 
 	if _, err := os.Stat(dir); err != nil {
 		if !os.IsNotExist(err) {
@@ -201,6 +224,5 @@ func (i Index) Write(key string, s Site) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	return index, template.Render(f, layout, string(b), data)
 }

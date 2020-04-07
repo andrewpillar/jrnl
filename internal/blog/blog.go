@@ -708,7 +708,7 @@ func (p *Post) Load() error {
 		config.SiteDir,
 		p.Category.ID,
 		strings.Replace(dateString(fm.CreatedAt.Time), "-", string(os.PathSeparator), -1),
-		p.ID,
+		strings.Replace(p.ID, p.Category.ID, "", 1),
 		"index.html",
 	)
 	p.Index = fm.Index
