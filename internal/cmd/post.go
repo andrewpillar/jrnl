@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/andrewpillar/cli"
@@ -14,13 +15,18 @@ func Post(c cli.Command) {
 		exitError("not initialized", err)
 	}
 
-	p := blog.NewPost(c.Args.Get(0), c.Flags.GetString("category"))
+	title := c.Args.Get(0)
+
+	if title == "" {
+		exitError("", errors.New("missing post title"))
+	}
+
+	p := blog.NewPost(title, c.Flags.GetString("category"))
 
 	if err := p.Touch(); err != nil {
 		exitError("failed to create post", err)
 	}
 
 	openInEditor(p.SourcePath)
-
 	fmt.Println("new post added", p.ID)
 }

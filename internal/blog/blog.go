@@ -285,9 +285,9 @@ func NewPost(title, category string) Post {
 
 	return Post{
 		Page:     Page{
-			ID:         id,
+			ID:         filepath.Join(c.ID, id),
 			Title:      title,
-			SourcePath: filepath.Join(config.PostsDir, id + ".md"),
+			SourcePath: filepath.Join(config.PostsDir, c.ID, id + ".md"),
 			SitePath:   filepath.Join(
 				config.SiteDir,
 				c.ID,
@@ -470,7 +470,6 @@ func Posts() ([]Post, error) {
 	err := filepath.Walk(config.PostsDir, fn)
 
 	sort.Sort(byCreatedAt(pp))
-
 	return pp, err
 }
 
@@ -681,7 +680,6 @@ func (p *Post) Load() error {
 		if i == -1 {
 			i = strings.Index(string(b), "\n")
 		}
-
 		p.Description = string(b[:i])
 	}
 
@@ -700,7 +698,10 @@ func (p *Post) Load() error {
 		}
 	}
 
-	p.ID = strings.Split(filepath.Base(p.SourcePath), ".")[0]
+	p.ID = filepath.Join(
+		p.Category.ID,
+		strings.Split(filepath.Base(p.SourcePath), ".")[0],
+	)
 	p.Title = fm.Title
 	p.Layout = fm.Layout
 	p.SitePath = filepath.Join(
