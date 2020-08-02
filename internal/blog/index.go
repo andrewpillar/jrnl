@@ -62,7 +62,7 @@ func (i *Index) Put(p Post) {
 	for j := range parts {
 		key := filepath.Join(parts[:len(parts)-j-2]...)
 
-		if key == "" {
+		if key == "" || key == config.SiteDir {
 			break
 		}
 		(*i)[key] = append((*i)[key], p)
@@ -181,7 +181,6 @@ func (i Index) Write(key string, s Site) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
 		return filepath.Join(key, "index.html"), template.Render(f, layout, string(b), data)
 	}
 

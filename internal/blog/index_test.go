@@ -37,7 +37,7 @@ func Test_Index(t *testing.T) {
 			if err == ErrNoLayout {
 				continue
 			}
-			t.Fatal(err)
+			t.Errorf("%q: %s\n", key, err)
 		}
 	}
 
@@ -46,6 +46,5 @@ func Test_Index(t *testing.T) {
 			t.Errorf("couldn't stat path: %s\n", err)
 		}
 	}
-
 	os.RemoveAll(filepath.Join(config.SiteDir, "category"))
 }

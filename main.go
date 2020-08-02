@@ -10,6 +10,11 @@ import (
 	"github.com/andrewpillar/jrnl/internal/usage"
 )
 
+var (
+	build   string = "-"
+	version string = "-"
+)
+
 func usageHandler(c cli.Command) {
 	if c.Name == "" {
 		fmt.Println(usage.Jrnl)
@@ -28,6 +33,15 @@ func setupCli() *cli.Cli{
 		Exclusive: true,
 		Handler:   func(f cli.Flag, c cli.Command) {
 			usageHandler(c)
+		},
+	})
+
+	c.AddFlag(&cli.Flag{
+		Name:      "version",
+		Long:      "--version",
+		Exclusive: true,
+		Handler:   func(f cli.Flag, c cli.Command) {
+			fmt.Println(os.Args[0], version, build)
 		},
 	})
 

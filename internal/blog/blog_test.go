@@ -120,7 +120,7 @@ func Test_GetPost(t *testing.T) {
 		},
 		{
 			ID:             "category/post",
-			ExpectedID:     "post",
+			ExpectedID:     "category/post",
 			ExpectedTitle:  "Some Category Post",
 			ExpectedSource: filepath.Join(config.PostsDir, "category", "post.md"),
 			ExpectedSite:   filepath.Join(config.SiteDir, "category", "2006", "01", "02", "post", "index.html"),
@@ -201,7 +201,7 @@ func Test_NewPostTouchRemove(t *testing.T) {
 		ExpectedID string
 	}{
 		{Title: "Post One", ExpectedID: "post-one"},
-		{Title: "Post Two", Category: "new-category", ExpectedID: "post-two"},
+		{Title: "Post Two", Category: "new-category", ExpectedID: "new-category/post-two"},
 	}
 
 	for _, test := range tests {

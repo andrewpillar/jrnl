@@ -88,7 +88,6 @@ func Initialized(dir string) error {
 			return errors.New("not a directory " + filepath.Join(dir, d))
 		}
 	}
-
 	return nil
 }
 
@@ -107,7 +106,6 @@ func Open() (Config, error) {
 	if err := dec.Decode(&cfg); err != nil {
 		return Config{}, err
 	}
-
 	return cfg, nil
 }
 
@@ -120,6 +118,5 @@ func (c Config) Save() error {
 
 	defer f.Close()
 
-	enc := toml.NewEncoder(f)
-	return enc.Encode(c)
+	return toml.NewEncoder(f).Encode(c)
 }

@@ -43,7 +43,8 @@ Commands:
 
 Options:
 
-  --help  Display this usage message
+  --help    Display this usage message
+  --version Display version information
 
 For more information on a command, and examples run 'jrnl [command] --help'`
 )
