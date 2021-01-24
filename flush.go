@@ -9,8 +9,8 @@ import (
 var FlushCmd = &Command{
 	Usage: "flush",
 	Short: "clear the journal's hashed content",
-	Long: `Flush will remove the _hash directory that contains the generated hashes of
-the journals pages and posts.`,
+	Long: `Flush will remove the _data/hash file that contains the generated hashes of
+the pages and posts.`,
 	Run: flushCmd,
 }
 
