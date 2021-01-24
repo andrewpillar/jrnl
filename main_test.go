@@ -189,7 +189,7 @@ func Test_Jrnl(t *testing.T) {
 	now := time.Now()
 	date := strings.Replace(now.Format("2006-01-02"), "-", string(os.PathSeparator), -1)
 
-	tests := []struct{
+	tests := []struct {
 		cmd       string
 		shouldErr bool
 		check     checkFunc
@@ -259,7 +259,7 @@ func Test_Jrnl(t *testing.T) {
 
 	for i, test := range tests {
 		cmd := exec.Command(os.Args[0], "-test.run=Test_Cmd")
-		cmd.Env = append(os.Environ(), "TEST_CMD=" + test.cmd)
+		cmd.Env = append(os.Environ(), "TEST_CMD="+test.cmd)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 

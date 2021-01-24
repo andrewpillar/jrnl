@@ -10,10 +10,10 @@ import (
 var EditCmd = &Command{
 	Usage: "edit <page|post>",
 	Short: "edit a page or post",
-	Long:  `Edit will open up the editor specified via the EDITOR environment variable for
+	Long: `Edit will open up the editor specified via the EDITOR environment variable for
 editting the given page or post. This will search for the page to edit first,
 then search for the post to edit, then error out if neither could be found.`,
-	Run:   editCmd,
+	Run: editCmd,
 }
 
 func openInEditor(path string) error {

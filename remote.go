@@ -103,7 +103,7 @@ func OpenRemote(remote string) (*Remote, error) {
 
 		if r == ':' {
 			host = remote[n:i]
-			path = remote[i + 1:]
+			path = remote[i+1:]
 		}
 	}
 
@@ -133,7 +133,7 @@ func OpenRemote(remote string) (*Remote, error) {
 		return nil, err
 	}
 
-	conn, err := ssh.Dial("tcp", host + ":22", &ssh.ClientConfig{
+	conn, err := ssh.Dial("tcp", host+":22", &ssh.ClientConfig{
 		User: user,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),

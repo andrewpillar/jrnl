@@ -12,7 +12,7 @@ import (
 var LsCmd = &Command{
 	Usage: "ls",
 	Short: "list the pages and posts of the journal",
-	Long:  `ls will list the pages and posts of the journal. The pages of the journal will
+	Long: `ls will list the pages and posts of the journal. The pages of the journal will
 be listed first, followed by the posts.
 
 The -c flag can be given to only display posts in the given category. The -h
@@ -20,7 +20,7 @@ flag can be given to hide pages, and display only posts. The -v flag can be
 given to detail hash information about each page or post. This will display
 whether or not the current item has been modified along with its current
 hash.`,
-	Run:   lsCmd,
+	Run: lsCmd,
 }
 
 func printHashInfo(hash *Hash, argv0, id string, h Hasher) {
@@ -52,7 +52,7 @@ func lsCmd(cmd *Command, args []string) {
 		verbose  bool
 	)
 
-	fs := flag.NewFlagSet(cmd.Argv0 + " " + args[0], flag.ExitOnError)
+	fs := flag.NewFlagSet(cmd.Argv0+" "+args[0], flag.ExitOnError)
 	fs.StringVar(&category, "c", "", "display only posts in the category")
 	fs.BoolVar(&hide, "h", false, "don't display pages")
 	fs.BoolVar(&verbose, "v", false, "display hash information about the page or post")
@@ -84,7 +84,7 @@ func lsCmd(cmd *Command, args []string) {
 	if !hide {
 		for _, page := range pages {
 			if verbose {
-				printHashInfo(hash, cmd.Argv0 + " " + args[0], page.ID, page)
+				printHashInfo(hash, cmd.Argv0+" "+args[0], page.ID, page)
 				continue
 			}
 			fmt.Println(page.ID)
@@ -102,7 +102,7 @@ func lsCmd(cmd *Command, args []string) {
 
 		if print_ {
 			if verbose {
-				printHashInfo(hash, cmd.Argv0 + " " + args[0], post.ID, post)
+				printHashInfo(hash, cmd.Argv0+" "+args[0], post.ID, post)
 				continue
 			}
 			fmt.Println(post.ID)

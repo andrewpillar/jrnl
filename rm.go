@@ -8,10 +8,10 @@ import (
 var RmCmd = &Command{
 	Usage: "rm <page|post,...>",
 	Short: "remove the given page or post",
-	Long:  `Rm will remove the given page or post. This will remove the generated site page
+	Long: `Rm will remove the given page or post. This will remove the generated site page
 too if one exists. If a post is removed that would be the last post in a given
 category, then that category will be removed too.`,
-	Run:   rmCmd,
+	Run: rmCmd,
 }
 
 func rmCmd(cmd *Command, args []string) {

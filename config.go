@@ -48,12 +48,12 @@ email = ""
 	ConfigCmd = &Command{
 		Usage: "config <key> <value>",
 		Short: "set a configuration value within jrnl.toml",
-		Long:  `Config will set the given configuration key with the given value in the
+		Long: `Config will set the given configuration key with the given value in the
 jrnl.toml file. For all properties in that file, this will simply overwrite
 what's already there, except for the site.blogroll property which will append
 the given value to the pre-existing blogroll. If an empty string is given to
 site.blogroll then this will clear down the list.`,
-		Run:   configCmd,
+		Run: configCmd,
 	}
 )
 
@@ -120,13 +120,13 @@ func (c *Config) Set(key, val string) error {
 func (c *Config) Close() error { return c.f.Close() }
 
 func (c *Config) Save() error {
-//	f, err := os.OpenFile(configFile, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.FileMode(0644))
-//
-//	if err != nil {
-//		return err
-//	}
-//
-//	defer f.Close()
+	//	f, err := os.OpenFile(configFile, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.FileMode(0644))
+	//
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	defer f.Close()
 
 	if err := c.f.Truncate(0); err != nil {
 		return err

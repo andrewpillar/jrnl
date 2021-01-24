@@ -52,7 +52,7 @@ editting the new page.
 
 The -l flag can be given to specify a layout to use for the new page. This will
 be pre-populated in the front matter.`,
-		Run:   pageCmd,
+		Run: pageCmd,
 	}
 )
 
@@ -177,7 +177,7 @@ func unmarshalFrontMatter(v interface{}, r io.Reader) error {
 }
 
 func GetPage(id string) (*Page, bool, error) {
-	page, err := resolvePage(filepath.Join(pagesDir, id + ".md"))
+	page, err := resolvePage(filepath.Join(pagesDir, id+".md"))
 
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -323,7 +323,7 @@ func (p *Page) Publish(s Site) error {
 	p1 := *p
 	p1.Body = renderedBody
 
-	data := struct{
+	data := struct {
 		Site Site
 		Page *Page
 	}{
@@ -406,7 +406,7 @@ func (p *Page) Remove() error {
 func pageCmd(cmd *Command, args []string) {
 	var layout string
 
-	fs := flag.NewFlagSet(cmd.Argv0 + " " + args[0], flag.ExitOnError)
+	fs := flag.NewFlagSet(cmd.Argv0+" "+args[0], flag.ExitOnError)
 	fs.StringVar(&layout, "l", "", "the layout to use for new post")
 	fs.Parse(args[1:])
 
@@ -428,7 +428,7 @@ func pageCmd(cmd *Command, args []string) {
 		ID:         id,
 		Title:      title,
 		Layout:     layout,
-		SourcePath: filepath.Join(pagesDir, id + ".md"),
+		SourcePath: filepath.Join(pagesDir, id+".md"),
 		SitePath:   filepath.Join(siteDir, id, "index.html"),
 	}
 

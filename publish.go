@@ -44,7 +44,7 @@ type Site struct {
 var PublishCmd = &Command{
 	Usage: "publish [options]",
 	Short: "publish the journal to the remote",
-	Long:  `Publish will generate the HTML for each modified page and post in the _site
+	Long: `Publish will generate the HTML for each modified page and post in the _site
 directory. The contents of the _site directory will then be copied to the
 configured remote.
 
@@ -55,7 +55,7 @@ The -d flag will not copy the contents of the _site directory to the configured
 remote.
 
 The -v flag will print out which paths are being copied to the remote.`,
-	Run:   publishCmd,
+	Run: publishCmd,
 }
 
 func previewPost(id string, md goldmark.Markdown, buf *bytes.Buffer) (*Post, bool, error) {
@@ -146,7 +146,7 @@ func publishCategoryIndex(s Site, layout []byte, categoryidx map[string]*Index) 
 
 			paths = append(paths, path)
 
-			return executeTemplate(f, id + "-index", string(layout), data)
+			return executeTemplate(f, id+"-index", string(layout), data)
 		}(id)
 
 		if err != nil {
@@ -198,7 +198,7 @@ func publishFeed(s Site, index *Index, atom, rss string) error {
 
 	feed := &feeds.Feed{
 		Title: s.Title,
-		Link:  &feeds.Link{
+		Link: &feeds.Link{
 			Href: s.Link,
 		},
 		Description: s.Description,
@@ -214,7 +214,7 @@ func publishFeed(s Site, index *Index, atom, rss string) error {
 		}
 		defer f.Close()
 
-		if err :=  feed.WriteAtom(f); err != nil {
+		if err := feed.WriteAtom(f); err != nil {
 			return err
 		}
 	}
@@ -326,7 +326,7 @@ func publishPages(s Site) (chan *Page, chan error) {
 }
 
 func publishPosts(s Site, set map[string]struct{}) (chan *Post, chan error) {
-	sem := make(chan struct{}, runtime.GOMAXPROCS(0) + 10)
+	sem := make(chan struct{}, runtime.GOMAXPROCS(0)+10)
 
 	posts := make(chan *Post)
 	errs := make(chan error)
@@ -342,7 +342,7 @@ func publishPosts(s Site, set map[string]struct{}) (chan *Post, chan error) {
 
 		go func() {
 			sem <- struct{}{}
-			defer func(){ <-sem }()
+			defer func() { <-sem }()
 			defer wg.Done()
 
 			if err := p.Load(); err != nil {
@@ -415,7 +415,7 @@ func publishCmd(cmd *Command, args []string) {
 		verbose bool
 	)
 
-	fs := flag.NewFlagSet(cmd.Argv0 + " " + args[0], flag.ExitOnError)
+	fs := flag.NewFlagSet(cmd.Argv0+" "+args[0], flag.ExitOnError)
 	fs.StringVar(&atom, "a", "", "the file to write the Atom feed to")
 	fs.BoolVar(&draft, "d", false, "only publish the HTML, don't copy to the remote")
 	fs.StringVar(&rss, "r", "", "the file to write the RSS feed to")

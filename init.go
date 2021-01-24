@@ -8,13 +8,13 @@ import (
 )
 
 var (
-	dataDir      = "_data"
-	postsDir     = "_posts"
-	pagesDir     = "_pages"
-	siteDir      = "_site"
-	themesDir    = "_themes"
-	layoutsDir   = "_layouts"
-	assetsDir    = filepath.Join(siteDir, "assets")
+	dataDir    = "_data"
+	postsDir   = "_posts"
+	pagesDir   = "_pages"
+	siteDir    = "_site"
+	themesDir  = "_themes"
+	layoutsDir = "_layouts"
+	assetsDir  = filepath.Join(siteDir, "assets")
 
 	dirs = []string{
 		dataDir,
@@ -32,10 +32,10 @@ var (
 	InitCmd = &Command{
 		Usage: "init [directory]",
 		Short: "initializes a new journal",
-		Long:  `init will initialize a new journal. If directory is given to the command then a
+		Long: `init will initialize a new journal. If directory is given to the command then a
 new journal will be initialized in that directory, otherwise the current
 directory is used.`,
-		Run:   initCmd,
+		Run: initCmd,
 	}
 )
 

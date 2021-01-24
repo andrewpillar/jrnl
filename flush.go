@@ -9,9 +9,9 @@ import (
 var FlushCmd = &Command{
 	Usage: "flush",
 	Short: "clear the journal's hashed content",
-	Long:  `Flush will remove the _hash directory that contains the generated hashes of
+	Long: `Flush will remove the _hash directory that contains the generated hashes of
 the journals pages and posts.`,
-	Run:   flushCmd,
+	Run: flushCmd,
 }
 
 func flushCmd(cmd *Command, args []string) {

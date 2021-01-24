@@ -91,7 +91,7 @@ func (c *CommandSet) defaultUsage() {
 			continue
 		}
 
-		fmt.Printf("    %s%*s%s\n", name, c.longest - len(name) + 4, " ", c.cmds[name].Short)
+		fmt.Printf("    %s%*s%s\n", name, c.longest-len(name)+4, " ", c.cmds[name].Short)
 	}
 
 	if printHelp {

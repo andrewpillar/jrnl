@@ -209,13 +209,13 @@ func resolveTheme(path string) (*Theme, error) {
 	}
 
 	return &Theme{
-		Name: strings.Split(strings.Replace(path, themesDir + string(os.PathSeparator), "", 1), ".")[0],
+		Name: strings.Split(strings.Replace(path, themesDir+string(os.PathSeparator), "", 1), ".")[0],
 		Path: path,
 	}, nil
 }
 
 func GetTheme(name string) (*Theme, bool, error) {
-	theme, err := resolveTheme(filepath.Join(themesDir, name + ".tar.gz"))
+	theme, err := resolveTheme(filepath.Join(themesDir, name+".tar.gz"))
 
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -314,9 +314,9 @@ func (t *Theme) Save() error {
 
 func ThemeCmd(argv0 string) *Command {
 	cmd := &Command{
-		Usage:    "theme <command> [arguments]",
-		Short:    "manage the journal's themes",
-		Run:      themeCmd,
+		Usage: "theme <command> [arguments]",
+		Short: "manage the journal's themes",
+		Run:   themeCmd,
 		Commands: &CommandSet{
 			Argv0: argv0 + " theme",
 		},
@@ -350,7 +350,7 @@ func themeSaveCmd(cmd *Command, args []string) {
 		os.Exit(1)
 	}
 
-	if len(args) >=2 {
+	if len(args) >= 2 {
 		name := args[1]
 
 		if name != "" {
@@ -373,7 +373,7 @@ func themeSaveCmd(cmd *Command, args []string) {
 	if !ok {
 		theme = &Theme{
 			Name: cfg.Site.Theme,
-			Path: filepath.Join(themesDir, cfg.Site.Theme + ".tar.gz"),
+			Path: filepath.Join(themesDir, cfg.Site.Theme+".tar.gz"),
 		}
 	}
 

@@ -57,7 +57,7 @@ The -c flag can be given to specify a category for the post being created.
 
 The -l flag can be given to specify a layout to use for the new page. This will
 be pre-populated in the front matter.`,
-		Run:   postCmd,
+		Run: postCmd,
 	}
 )
 
@@ -68,10 +68,10 @@ func resolveCategory(path string) (*Category, error) {
 
 	var buf bytes.Buffer
 
-	id := strings.Replace(path, postsDir + string(os.PathSeparator), "", 1)
+	id := strings.Replace(path, postsDir+string(os.PathSeparator), "", 1)
 	parts := strings.Split(redash.ReplaceAllString(id, " "), string(os.PathSeparator))
 
-	end := len(parts)-1
+	end := len(parts) - 1
 
 	for i, p := range parts {
 		buf.WriteString(strings.Title(p))
@@ -98,7 +98,7 @@ func resolvePost(path string) (*Post, error) {
 }
 
 func GetCategory(id string) (*Category, bool, error) {
-	c, err:= resolveCategory(filepath.Join(postsDir, id))
+	c, err := resolveCategory(filepath.Join(postsDir, id))
 
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -163,7 +163,7 @@ func Categories() ([]*Category, error) {
 }
 
 func GetPost(id string) (*Post, bool, error) {
-	post, err := resolvePost(filepath.Join(postsDir, id + ".md"))
+	post, err := resolvePost(filepath.Join(postsDir, id+".md"))
 
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -336,7 +336,7 @@ func (p *Post) Publish(s Site) error {
 	p1.Page = &page
 	p1.Description = renderedDesc
 
-	data := struct{
+	data := struct {
 		Site Site
 		Post *Post
 	}{
@@ -425,7 +425,7 @@ func postCmd(cmd *Command, args []string) {
 		layout   string
 	)
 
-	fs := flag.NewFlagSet(cmd.Argv0 + " " + args[0], flag.ExitOnError)
+	fs := flag.NewFlagSet(cmd.Argv0+" "+args[0], flag.ExitOnError)
 	fs.StringVar(&category, "c", "", "the category of the new post")
 	fs.StringVar(&layout, "l", "", "the layout to use for new post")
 	fs.Parse(args[1:])
@@ -454,7 +454,7 @@ func postCmd(cmd *Command, args []string) {
 	}
 
 	parts := strings.Split(category, "/")
-	end := len(parts)-1
+	end := len(parts) - 1
 
 	var buf bytes.Buffer
 
@@ -473,8 +473,8 @@ func postCmd(cmd *Command, args []string) {
 			ID:         filepath.Join(categoryId, id),
 			Title:      title,
 			Layout:     layout,
-			SourcePath: filepath.Join(postsDir, categoryId, id + ".md"),
-			SitePath:   filepath.Join(
+			SourcePath: filepath.Join(postsDir, categoryId, id+".md"),
+			SitePath: filepath.Join(
 				siteDir,
 				categoryId,
 				strings.Replace(now.String(), "-", string(os.PathSeparator), -1),

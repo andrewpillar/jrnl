@@ -9,7 +9,7 @@ func run(args []string) error {
 
 	cmds := &CommandSet{
 		Argv0: args[0],
-		Long:  `jrnl is a simple static site generator.
+		Long: `jrnl is a simple static site generator.
 
 Usage:
 
