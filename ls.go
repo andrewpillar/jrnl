@@ -16,7 +16,10 @@ var LsCmd = &Command{
 be listed first, followed by the posts.
 
 The -c flag can be given to only display posts in the given category. The -h
-flag can be given to hide pages, and display only posts.`,
+flag can be given to hide pages, and display only posts. The -v flag can be
+given to detail hash information about each page or post. This will display
+whether or not the current item has been modified along with its current
+hash.`,
 	Run:   lsCmd,
 }
 

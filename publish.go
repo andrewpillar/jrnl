@@ -44,7 +44,17 @@ type Site struct {
 var PublishCmd = &Command{
 	Usage: "publish [options]",
 	Short: "publish the journal to the remote",
-	Long:  ``,
+	Long:  `Publish will generate the HTML for each modified page and post in the _site
+directory. The contents of the _site directory will then be copied to the
+configured remote.
+
+The -a and -r flags can be given to generate an Atom and RSS feed respectively
+to the specified paths.
+
+The -d flag will not copy the contents of the _site directory to the configured
+remote.
+
+The -v flag will print out which paths are being copied to the remote.`,
 	Run:   publishCmd,
 }
 

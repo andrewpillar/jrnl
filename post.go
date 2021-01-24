@@ -50,6 +50,13 @@ var (
 	PostCmd = &Command{
 		Usage: "post <title>",
 		Short: "create a new journal post",
+		Long: `Post will open up the editor specified via the EDITOR environment variable for
+editting the new page.
+
+The -c flag can be given to specify a category for the post being created.
+
+The -l flag can be given to specify a layout to use for the new page. This will
+be pre-populated in the front matter.`,
 		Run:   postCmd,
 	}
 )

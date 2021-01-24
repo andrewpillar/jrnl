@@ -47,6 +47,11 @@ var (
 	PageCmd = &Command{
 		Usage: "page <title>",
 		Short: "create a new journal page",
+		Long: `Page will open up the editor specified via the EDITOR environment variable for
+editting the new page.
+
+The -l flag can be given to specify a layout to use for the new page. This will
+be pre-populated in the front matter.`,
 		Run:   pageCmd,
 	}
 )
