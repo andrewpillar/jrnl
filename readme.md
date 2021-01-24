@@ -214,7 +214,7 @@ example layout file for a post:
     </html>
 
 All layout files will have access to the `.Site` value. This value allows for
-retrieving the title, authorship, categories, and pages in the jrnl```html
+retrieving the title, authorship, categories, and pages in the jrnl.
 
     <ul>
         {{range $i, $p := .Site.Pages}}
