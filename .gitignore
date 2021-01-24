@@ -1,4 +1,1 @@
-*.swp
-.vimrc
-*.gz
-*.out
+bin/

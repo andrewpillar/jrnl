@@ -2,9 +2,12 @@
 
 set -e
 
-BUILD="-X=main.build=$(git rev-parse HEAD) -X=main.version=$(git describe --tags --abbrev=0)"
+version="$(git describe --tags)"
+build="$(git log -n 1 --format='format: +%h %cd' HEAD)"
 
-set -x
-go test ./... -cover
-go build -tags "netgo osusergo" -ldflags "$BUILD" -o jrnl.out
-set +x
+tags="netgo osusergo"
+ldflags=$(printf -- "-X 'main.version=%s' -X 'main.build=%s'" "$version" "$build")
+
+[ ! -d bin ] && mkdir bin
+
+go build -tags "$tags" -ldflags "$ldflags" -o bin/jrnl
