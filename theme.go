@@ -466,9 +466,14 @@ func themeCmd(cmd *Command, args []string) {
 	}
 
 	if len(args) < 2 {
-		fmt.Fprintf(os.Stderr, "%s %s: usage: %s\n", cmd.Argv0, args[0], cmd.Usage)
-		cmd.Commands.usage()
-		os.Exit(1)
+		cfg, err := OpenConfig()
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s %s: failed to open config: %s\n", cmd.Argv0, args[0], err)
+			os.Exit(1)
+		}
+		fmt.Println(cfg.Site.Theme)
+		return
 	}
 
 	if err := cmd.Commands.Parse(args[1:]); err != nil {

@@ -598,16 +598,16 @@ func publishCmd(cmd *Command, args []string) {
 		paths = append(paths, catpaths...)
 	}
 
+	if draft {
+		fmt.Println("published draft to", siteDir)
+		os.Exit(code)
+	}
+
 	if code == 0 {
 		if err := hash.Save(); err != nil {
 			fmt.Fprintf(os.Stderr, "%s %s: failed to save hash: %s\n", cmd.Argv0, args[0], err)
 			os.Exit(1)
 		}
-	}
-
-	if draft {
-		fmt.Println("published draft to", siteDir)
-		os.Exit(code)
 	}
 
 	if cfg.Site.Remote == "" {
