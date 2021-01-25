@@ -260,7 +260,7 @@ Creating or saving a theme is done with `jrnl theme save`. If no argument is
 given then it will overwrite the current theme in use, otherwise it will create
 a new theme with the given name.
 
-Themes can beu sed by running the `jrnl theme use` command, and passing it the
+Themes can be set by running the `jrnl theme use` command, and passing it the
 name of the theme you wish to use.
 
 All available themes can be listed with `jrnl theme ls`, and themes can be
