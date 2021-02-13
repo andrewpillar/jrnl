@@ -196,6 +196,10 @@ func publishFeed(s Site, index *Index, atom, rss string) error {
 		})
 	})
 
+	if walkerr != nil {
+		return walkerr
+	}
+
 	feed := &feeds.Feed{
 		Title: s.Title,
 		Link: &feeds.Link{
