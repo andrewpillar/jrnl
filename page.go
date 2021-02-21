@@ -312,6 +312,16 @@ func (p *Page) Publish(s Site) error {
 		return err
 	}
 
+	var buf bytes.Buffer
+
+	data0 := struct {
+		Site Site
+	}{Site: s}
+
+	if err := executeTemplate(&buf, p.ID, renderedBody, data0); err != nil {
+		return err
+	}
+
 	f, err := p.siteFile()
 
 	if err != nil {
@@ -321,7 +331,7 @@ func (p *Page) Publish(s Site) error {
 	defer f.Close()
 
 	p1 := *p
-	p1.Body = renderedBody
+	p1.Body = buf.String()
 
 	data := struct {
 		Site Site
