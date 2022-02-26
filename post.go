@@ -435,12 +435,14 @@ func postCmd(cmd *Command, args []string) {
 		os.Exit(1)
 	}
 
-	if len(args) < 2 {
+	fsargs := fs.Args()
+
+	if len(fsargs) < 1 {
 		fmt.Fprintf(os.Stderr, "%s %s: usage: %s\n", cmd.Argv0, args[0], cmd.Usage)
 		os.Exit(1)
 	}
 
-	title := fs.Args()[0]
+	title := fsargs[0]
 
 	if title == "" {
 		fmt.Fprintf(os.Stderr, "%s %s: missing post title", cmd.Argv0, args[0])
