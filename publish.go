@@ -292,6 +292,45 @@ func publishCmd(cmd *Command, args []string) error {
 		Email: cfg.Author.Email,
 	}
 
+	err = filepath.Walk(assetDir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		target := filepath.Join(siteDir, strings.TrimPrefix(path, assetDir))
+
+		if err := os.MkdirAll(filepath.Dir(target), dirMode); err != nil {
+			return err
+		}
+
+		dst, err := os.Create(target)
+
+		if err != nil {
+			return err
+		}
+
+		defer dst.Close()
+
+		src, err := os.Open(path)
+
+		if err != nil {
+			return err
+		}
+
+		defer src.Close()
+
+		_, err = io.Copy(dst, src)
+		return err
+	})
+
+	if err != nil {
+		return err
+	}
+
 	for _, p := range pages {
 		sem <- struct{}{}
 		wg.Add(1)

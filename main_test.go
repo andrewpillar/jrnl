@@ -214,6 +214,23 @@ func Test_Jrnl(t *testing.T) {
 			if err := cfg.Save(); err != nil {
 				t.Fatalf("tests[%d]: %s\n", i, err)
 			}
+
+			err = func() error {
+				f, err := os.Create(filepath.Join(assetDir, "main.css"))
+
+				if err != nil {
+					return err
+				}
+
+				defer f.Close()
+
+				_, err = io.WriteString(f, "* {\n\tmargin: 0;\n}")
+				return err
+			}()
+
+			if err != nil {
+				t.Fatalf("tests[%d]: %s\n", i, err)
+			}
 		}
 	}
 }
