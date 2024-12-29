@@ -75,7 +75,7 @@ func themeRmCmd(cmd *Command, args []string) error {
 	}
 
 	for _, name := range args {
-		if err := os.Remove(filepath.Join(dir, name)); err != nil {
+		if err := os.Remove(filepath.Join(dir, name) + ".tar.gz"); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
