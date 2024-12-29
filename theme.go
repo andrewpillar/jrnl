@@ -3,138 +3,112 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
-type Theme struct {
-	Name string
-	Path string
+var themeDirs = [...]string{
+	assetDir,
+	layoutDir,
 }
 
-var (
-	ThemeLsCmd = &Command{
-		Usage: "ls",
-		Short: "list the journal's themes",
-		Run:   themeLsCmd,
+var ThemeLsCmd = &Command{
+	Usage: "ls",
+	Short: "list installed themes",
+	Run:   themeLsCmd,
+}
+
+func themeDir() (string, error) {
+	dir, err := os.UserConfigDir()
+
+	if err != nil {
+		return "", err
 	}
 
-	ThemeRmCmd = &Command{
-		Usage: "rm <name,...>",
-		Short: "remove the given themes",
-		Run:   themeRmCmd,
-	}
+	dir = filepath.Join(dir, filepath.Base(os.Args[0]), "themes")
 
-	ThemeSaveCmd = &Command{
-		Usage: "save <name>",
-		Short: "save the current journal theme",
-		Run:   themeSaveCmd,
+	if err := os.MkdirAll(dir, dirMode); err != nil {
+		return "", err
 	}
+	return dir, nil
+}
 
-	ThemeUseCmd = &Command{
-		Usage: "use <name>",
-		Short: "use the given journal theme",
-		Run:   themeUseCmd,
-	}
-)
-
-func copydir(dst, src string, info os.FileInfo) error {
-	if err := os.MkdirAll(dst, info.Mode()); err != nil {
-		return err
-	}
-
-	infos, err := ioutil.ReadDir(src)
+func themeLsCmd(cmd *Command, args []string) error {
+	dir, err := themeDir()
 
 	if err != nil {
 		return err
 	}
 
-	for _, info := range infos {
-		dst1 := filepath.Join(dst, info.Name())
-		src1 := filepath.Join(src, info.Name())
-
-		if err := fscopy(dst1, src1); err != nil {
+	return filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
 			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		name := info.Name()
+		name = name[:len(name)-7]
+
+		fmt.Println(name)
+		return nil
+	})
+}
+
+var ThemeRmCmd = &Command{
+	Usage: "rm <name,...>",
+	Short: "remove given themes",
+	Run:   themeRmCmd,
+}
+
+func themeRmCmd(cmd *Command, args []string) error {
+	dir, err := themeDir()
+
+	if err != nil {
+		return err
+	}
+
+	for _, name := range args {
+		if err := os.Remove(filepath.Join(dir, name)); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func copyfile(dst, src string, info os.FileInfo) error {
-	if err := os.MkdirAll(filepath.Dir(dst), info.Mode()); err != nil {
-		return err
-	}
-
-	fdst, err := os.Create(dst)
-
-	if err != nil {
-		return err
-	}
-
-	defer fdst.Close()
-
-	if err := os.Chmod(fdst.Name(), info.Mode()); err != nil {
-		return err
-	}
-
-	fsrc, err := os.Open(src)
-
-	if err != nil {
-		return err
-	}
-
-	defer fsrc.Close()
-
-	_, err = io.Copy(fdst, fsrc)
-	return err
+var ThemeSaveCmd = &Command{
+	Usage: "save <name>",
+	Short: "save the current theme",
+	Run:   themeSaveCmd,
 }
 
-func fscopy(dst, src string) error {
-	info, err := os.Stat(src)
-
-	if err != nil {
-		return err
-	}
-
-	if info.IsDir() {
-		return copydir(dst, src, info)
-	}
-	return copyfile(dst, src, info)
-}
-
-func mktar(w io.Writer, src string) error {
-	if _, err := os.Stat(src); err != nil {
-		return err
-	}
-
-	gzw := gzip.NewWriter(w)
-	defer gzw.Close()
-
-	tw := tar.NewWriter(gzw)
-	defer tw.Close()
-
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+func tardir(tw *tar.Writer, dir string) error {
+	return filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		header, err := tar.FileInfoHeader(info, info.Name())
+		hdr, err := tar.FileInfoHeader(info, info.Name())
 
 		if err != nil {
 			return err
 		}
 
-		header.Name = strings.TrimPrefix(strings.Replace(path, src, "", -1), string(os.PathSeparator))
+		hdr.Name = filepath.ToSlash(path)
 
-		if err := tw.WriteHeader(header); err != nil {
+		if err := tw.WriteHeader(hdr); err != nil {
 			return err
 		}
 
-		if !info.Mode().IsRegular() {
+		if info.IsDir() {
 			return nil
 		}
 
@@ -151,7 +125,7 @@ func mktar(w io.Writer, src string) error {
 	})
 }
 
-func untar(dst string, r io.Reader) error {
+func untar(r io.Reader) error {
 	gzr, err := gzip.NewReader(r)
 
 	if err != nil {
@@ -163,95 +137,70 @@ func untar(dst string, r io.Reader) error {
 	tr := tar.NewReader(gzr)
 
 	for {
-		header, err := tr.Next()
+		hdr, err := tr.Next()
 
-		switch {
-		case err == io.EOF:
-			return nil
-		case err != nil:
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
 			return err
-		case header == nil:
-			continue
 		}
 
-		target := filepath.Join(dst, header.Name)
-
-		switch header.Typeflag {
+		switch hdr.Typeflag {
 		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
-				if os.IsNotExist(err) {
-					if err := os.MkdirAll(target, os.FileMode(0755)); err != nil {
-						return err
-					}
-					continue
-				}
+			if err := os.MkdirAll(hdr.Name, dirMode); err != nil {
 				return err
 			}
 		case tar.TypeReg:
-			f, err := os.OpenFile(target, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			info := hdr.FileInfo()
+
+			err := func(r io.Reader, hdr *tar.Header) error {
+				f, err := os.OpenFile(hdr.Name, os.O_TRUNC|os.O_CREATE|os.O_RDWR, info.Mode())
+
+				if err != nil {
+					return err
+				}
+
+				defer f.Close()
+
+				if _, err := io.Copy(f, tr); err != nil {
+					return err
+				}
+				return nil
+			}(tr, hdr)
 
 			if err != nil {
 				return err
 			}
-
-			defer f.Close()
-
-			if _, err = io.Copy(f, tr); err != nil {
-				return err
-			}
 		}
 	}
+	return nil
 }
 
-func resolveTheme(path string) (*Theme, error) {
-	if _, err := os.Stat(path); err != nil {
-		return nil, err
-	}
-
-	return &Theme{
-		Name: strings.Split(strings.Replace(path, themesDir+string(os.PathSeparator), "", 1), ".")[0],
-		Path: path,
-	}, nil
-}
-
-func GetTheme(name string) (*Theme, bool, error) {
-	theme, err := resolveTheme(filepath.Join(themesDir, name+".tar.gz"))
+func themeSaveCmd(cmd *Command, args []string) error {
+	cfg, err := LoadConfig()
 
 	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, false, err
-		}
-		return nil, false, nil
+		return err
 	}
-	return theme, true, nil
-}
 
-func Themes() ([]*Theme, error) {
-	themes := make([]*Theme, 0)
+	name := cfg.Site.Theme
 
-	err := filepath.Walk(themesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	if len(args) > 0 {
+		name = args[0]
+	}
 
-		if info.IsDir() {
-			return nil
-		}
+	if name == "" {
+		return errors.New("no theme name ")
+	}
 
-		theme, err := resolveTheme(path)
+	dir, err := themeDir()
 
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
+	}
 
-		themes = append(themes, theme)
-		return nil
-	})
-	return themes, err
-}
-
-func (t *Theme) Load() error {
-	f, err := os.Open(t.Path)
+	f, err := os.Create(filepath.Join(dir, name) + ".tar.gz")
 
 	if err != nil {
 		return err
@@ -259,63 +208,79 @@ func (t *Theme) Load() error {
 
 	defer f.Close()
 
-	for _, dir := range []string{layoutsDir, assetsDir} {
-		if err := os.RemoveAll(dir); err != nil {
+	gzw := gzip.NewWriter(f)
+	defer gzw.Close()
+
+	tw := tar.NewWriter(gzw)
+	defer tw.Close()
+
+	for _, dir := range themeDirs {
+		if err := tardir(tw, dir); err != nil {
 			return err
 		}
 	}
 
-	if err := untar(themesDir, f); err != nil {
-		return err
-	}
-
-	assets := strings.Replace(filepath.Join(themesDir, assetsDir), siteDir, "", -1)
-	layouts := filepath.Join(themesDir, filepath.Base(layoutsDir))
-
-	if err := fscopy(assetsDir, assets); err != nil {
-		return err
-	}
-
-	if err := fscopy(layoutsDir, layouts); err != nil {
-		return err
-	}
-
-	if err := os.RemoveAll(assets); err != nil {
-		return err
-	}
-	return os.RemoveAll(layouts)
+	return nil
 }
 
-func (t *Theme) Save() error {
-	assets := strings.Replace(filepath.Join(themesDir, t.Name, assetsDir), siteDir, "", -1)
-	layouts := filepath.Join(themesDir, t.Name, filepath.Base(layoutsDir))
+var ThemeUseCmd = &Command{
+	Usage: "use [name]",
+	Short: "use the given jrnl theme",
+	Run:   themeUseCmd,
+}
 
-	if err := fscopy(assets, assetsDir); err != nil {
-		return err
+func themeUseCmd(cmd *Command, args []string) error {
+	if len(args) == 0 {
+		return ErrUsage
 	}
 
-	if err := fscopy(layouts, layoutsDir); err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(t.Path, os.O_TRUNC|os.O_CREATE|os.O_RDWR, os.FileMode(0644))
+	cfg, err := LoadConfig()
 
 	if err != nil {
 		return err
 	}
 
-	dir := filepath.Join(themesDir, t.Name)
+	dir, err := themeDir()
 
-	if err := mktar(f, dir); err != nil {
+	if err != nil {
 		return err
 	}
-	return os.RemoveAll(dir)
+
+	name := args[0]
+
+	f, err := os.Open(filepath.Join(dir, name) + ".tar.gz")
+
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return errors.New("theme does not exist")
+		}
+		return err
+	}
+
+	defer f.Close()
+
+	for _, dir := range themeDirs {
+		if err := os.RemoveAll(dir); err != nil {
+			return err
+		}
+	}
+
+	if err := untar(f); err != nil {
+		return err
+	}
+
+	cfg.Site.Theme = name
+
+	if err := cfg.Save(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func ThemeCmd(argv0 string) *Command {
 	cmd := &Command{
 		Usage: "theme <command> [arguments]",
-		Short: "manage the journal's themes",
+		Short: "manage jrnl themes",
 		Run:   themeCmd,
 		Commands: &CommandSet{
 			Argv0: argv0 + " theme",
@@ -326,158 +291,27 @@ func ThemeCmd(argv0 string) *Command {
 	cmd.Commands.Add("rm", ThemeRmCmd)
 	cmd.Commands.Add("save", ThemeSaveCmd)
 	cmd.Commands.Add("use", ThemeUseCmd)
+
 	return cmd
 }
 
-func themeLsCmd(cmd *Command, args []string) {
-	themes, err := Themes()
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
+func themeCmd(cmd *Command, args []string) error {
+	if err := Initialized("."); err != nil {
+		return err
 	}
 
-	for _, theme := range themes {
-		fmt.Println(theme.Name)
-	}
-}
-
-func themeSaveCmd(cmd *Command, args []string) {
-	cfg, err := OpenConfig()
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-
-	if len(args) >= 2 {
-		name := args[1]
-
-		if name != "" {
-			cfg.Site.Theme = slug(name)
-		}
-	}
-
-	if cfg.Site.Theme == "" {
-		fmt.Fprintf(os.Stderr, "%s %s: no theme name specified\n", cmd.Argv0, args[0])
-		os.Exit(1)
-	}
-
-	theme, ok, err := GetTheme(cfg.Site.Theme)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-
-	if !ok {
-		theme = &Theme{
-			Name: cfg.Site.Theme,
-			Path: filepath.Join(themesDir, cfg.Site.Theme+".tar.gz"),
-		}
-	}
-
-	if err := theme.Save(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to save theme: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-
-	if err := cfg.Save(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to save theme: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-}
-
-func themeRmCmd(cmd *Command, args []string) {
-	if len(args) < 2 {
-		fmt.Fprintf(os.Stderr, "%s %s: usage: %s\n", cmd.Argv0, args[0], cmd.Usage)
-		os.Exit(1)
-	}
-
-	code := 0
-
-	for _, name := range args[1:] {
-		theme, ok, err := GetTheme(name)
+	if len(args) == 0 {
+		cfg, err := LoadConfig()
 
 		if err != nil {
-			code = 1
-			fmt.Fprintf(os.Stderr, "%s %s: failed to get theme %q: %s\n", cmd.Argv0, args[0], name, err)
-			continue
-		}
-
-		if !ok {
-			code = 1
-			fmt.Fprintf(os.Stderr, "%s %s: no such theme %q\n", cmd.Argv0, args[0], name)
-			continue
-		}
-
-		if err := os.Remove(theme.Path); err != nil {
-			code = 1
-			fmt.Fprintf(os.Stderr, "%s %s: failed to remove theme %q: %s\n", cmd.Argv0, args[0], name, err)
-		}
-	}
-	os.Exit(code)
-}
-
-func themeUseCmd(cmd *Command, args []string) {
-	if len(args) < 2 {
-		fmt.Fprintf(os.Stderr, "%s %s: usage: %s\n", cmd.Argv0, args[0], cmd.Usage)
-		os.Exit(1)
-	}
-
-	cfg, err := OpenConfig()
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-
-	name := args[1]
-
-	theme, ok, err := GetTheme(name)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to get theme: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-
-	if !ok {
-		fmt.Fprintf(os.Stderr, "%s %s: no such theme\n", cmd.Argv0, args[0])
-		os.Exit(1)
-	}
-
-	if err := theme.Load(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to load theme: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-
-	cfg.Site.Theme = theme.Name
-
-	if err := cfg.Save(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to save config: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-}
-
-func themeCmd(cmd *Command, args []string) {
-	if err := initialized(""); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
-
-	if len(args) < 2 {
-		cfg, err := OpenConfig()
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s %s: failed to open config: %s\n", cmd.Argv0, args[0], err)
-			os.Exit(1)
+			return err
 		}
 		fmt.Println(cfg.Site.Theme)
-		return
+		return nil
 	}
 
-	if err := cmd.Commands.Parse(args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
+	if err := cmd.Commands.Parse(args); err != nil {
+		return err
 	}
+	return nil
 }

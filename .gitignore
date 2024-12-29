@@ -1,1 +1,9 @@
 bin/
+testdata/.cache/
+testdata/_assets/
+testdata/_layouts/
+testdata/_pages/
+testdata/_posts/
+testdata/_site/
+testdata/remote/
+testdata/jrnl.yml

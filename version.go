@@ -9,10 +9,9 @@ var (
 	VersionCmd = &Command{
 		Usage: "version",
 		Short: "display version information",
-		Run:   versionCmd,
+		Run: func(cmd *Command, args []string) error {
+			fmt.Println(cmd.Argv0, version, build)
+			return nil
+		},
 	}
 )
-
-func versionCmd(cmd *Command, _ []string) {
-	fmt.Println(cmd.Argv0, version, build)
-}

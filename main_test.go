@@ -1,175 +1,133 @@
 package main
 
 import (
-	"io/ioutil"
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"crypto/sha256"
+	"errors"
+	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
 
-type checkFunc func(id int, cmd string, t *testing.T)
-
-var (
-	pageLayout = []byte(`<html lang="en">
-	<head>
-		<title>{{.Page.Title}} - {{.Site.Title}}</title>
-	</head>
-	<body>{{.Page.Body}}</body>
-</html>`)
-
-	postLayout = []byte(`<html lang="en">
-	<head>
-		<title>{{.Post.Title}} - {{.Site.Title}}</title>
-	</head>
-	<body>{{.Post.Body}}</body>
-</html>`)
-
-	indexLayout = []byte(`<html lang="en">
-	<head>
-		<title>{{.Site.Title}}</title>
-	</head>
-	<body>
-		{{range $i, $p := .Posts}}
-			<strong>{{$p.Title}}</strong>
-			<div>{{$p.Description}}</div>
-		{{end}}
-	</body>
-</html>`)
-
-	categoryIndexLayout = []byte(`<html lang="en">
-	<head>
-		<title>{{.Site.Title}} - {{.Category.Name}}</title>
-	</head>
-	<body>
-		{{range $i, $p := .Posts}}
-			<strong>{{$p.Title}}</strong>
-			<div>{{$p.Description}}</div>
-		{{end}}
-	</body>
-</html>`)
-)
-
-func cleanup(tmpdir string) {
-	for _, dir := range dirs {
-		os.RemoveAll(dir)
-	}
-	os.Remove("jrnl.toml")
-	os.RemoveAll(tmpdir)
+type commandTest struct {
+	cmd   []string
+	check func(t *testing.T, id int, args []string)
 }
 
-func checkInitDirs(id int, cmd string, t *testing.T) {
-	for _, dir := range dirs {
-		if _, err := os.Stat(dir); err != nil {
-			t.Fatalf("tests[%d](%s)) - check failed, could not stat dir %s: %s\n", id, cmd, dir, err)
-		}
+func (t *commandTest) args() []string {
+	return append([]string{"jrnl"}, t.cmd...)
+}
+
+func checkDirsInitialized(t *testing.T, id int, args []string) {
+	if err := Initialized("."); err != nil {
+		t.Fatalf("tests[%d]: command %q failed: %s\n", id, args, err)
 	}
 
-	page, err := os.Create(filepath.Join(layoutsDir, "page"))
+	ents, err := embeds.ReadDir("embed")
 
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("tests[%d]: failed to read dir: %s\n", id, err)
 	}
 
-	defer page.Close()
+	for _, ent := range ents {
+		if ent.IsDir() {
+			continue
+		}
 
-	if _, err := page.Write(pageLayout); err != nil {
-		t.Fatal(err)
-	}
+		name := ent.Name()
 
-	post, err := os.Create(filepath.Join(layoutsDir, "post"))
+		b, err := embeds.ReadFile(filepath.Join("embed", name))
 
-	if err != nil {
-		t.Fatal(err)
-	}
+		if err != nil {
+			t.Fatalf("tests[%d]: %s\n", id, err)
+		}
 
-	defer post.Close()
+		expected := sha256.New()
+		expected.Write(b)
 
-	if _, err := post.Write(postLayout); err != nil {
-		t.Fatal(err)
-	}
+		b, err = os.ReadFile(filepath.Join(layoutDir, name[:len(name)-5]))
 
-	index, err := os.Create(filepath.Join(layoutsDir, "index"))
+		if err != nil {
+			t.Fatalf("tests[%d]: %s\n", id, err)
+		}
 
-	if err != nil {
-		t.Fatal(err)
-	}
+		actual := sha256.New()
+		actual.Write(b)
 
-	if _, err := index.Write(indexLayout); err != nil {
-		t.Fatal(err)
-	}
-
-	catindex, err := os.Create(filepath.Join(layoutsDir, "category-index"))
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := catindex.Write(categoryIndexLayout); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func checkPublished(paths ...string) checkFunc {
-	return func(id int, cmd string, t *testing.T) {
-		for _, path := range paths {
-			if _, err := os.Stat(filepath.Join(siteDir, path)); err != nil {
-				t.Fatalf("tests[%d](%s) - failed to stat %q: %s\n", id, cmd, path, err)
-			}
+		if !bytes.Equal(expected.Sum(nil), actual.Sum(nil)) {
+			t.Fatalf("tests[%d]: %s does not match what is expected\n", id, name)
 		}
 	}
 }
 
-func checkPublishedRemote(remote string, paths ...string) checkFunc {
-	return func(id int, cmd string, t *testing.T) {
-		for _, path := range paths {
-			if _, err := os.Stat(filepath.Join(remote, path)); err != nil {
-				t.Fatalf("tests[%d](%s) - failed to stat %q: %s\n", id, cmd, path, err)
-			}
+func checkPage(dir, name string) func(*testing.T, int, []string) {
+	return func(t *testing.T, id int, args []string) {
+		_, err := LoadPage(filepath.Join(dir, name+".md"))
+
+		if err != nil {
+			t.Fatalf("tests[%d]: failed to load page: %s\n", id, err)
 		}
 	}
 }
 
-func splitargs(argv string) []string {
-	args := make([]string, 0)
+func checkTheme(name string) func(*testing.T, int, []string) {
+	return func(t *testing.T, id int, args []string) {
+		dir, err := themeDir()
 
-	n := 0
-	off := 0
-	quote := false
-	end := len(argv) - 1
-
-	for i, r := range argv {
-		if r == '\'' {
-			quote = !quote
-			off = 1
+		if err != nil {
+			t.Fatalf("tests[%d]: failed to get theme dir: %s\n", id, err)
 		}
 
-		if r == ' ' || i == end {
-			if i == end {
-				i++
+		f, err := os.Open(filepath.Join(dir, name) + ".tar.gz")
+
+		if err != nil {
+			t.Fatalf("tests[%d]: failed to open theme: %s\n", id, err)
+		}
+
+		defer f.Close()
+
+		gzr, err := gzip.NewReader(f)
+
+		if err != nil {
+			t.Fatalf("tests[%d]: failed to read theme: %s\n", id, err)
+		}
+
+		defer gzr.Close()
+
+		tr := tar.NewReader(gzr)
+
+		files := make(map[string]struct{})
+
+		for {
+			hdr, err := tr.Next()
+
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				t.Fatalf("tests[%d]: failed to read tar entry: %s\n", id, err)
 			}
 
-			if !quote {
-				args = append(args, argv[n+off:i-off])
-				n = i + 1
-				off = 0
+			if hdr.Typeflag == tar.TypeReg {
+				files[hdr.Name] = struct{}{}
 			}
 		}
-	}
-	return args
-}
 
-func Test_Cmd(t *testing.T) {
-	cmd := os.Getenv("TEST_CMD")
+		expected := [...]string{
+			"_layouts/home",
+			"_layouts/page",
+		}
 
-	if cmd == "" {
-		t.Skip("TEST_CMD not set, skipping...")
-	}
-
-	if err := run(splitargs(cmd)); err != nil {
-		t.Fatalf("failed to run cmd %q: %s\n", cmd, err)
+		for _, path := range expected {
+			if _, ok := files[path]; !ok {
+				t.Fatalf("tests[%d]: could not find %q in %q\n", id, path, f.Name())
+			}
+		}
 	}
 }
 
@@ -178,99 +136,78 @@ func Test_Jrnl(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dir, err := ioutil.TempDir("", "jrnl-remote-*")
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer cleanup(dir)
-
-	now := time.Now()
-	date := strings.Replace(now.Format("2006-01-02"), "-", string(os.PathSeparator), -1)
-
-	tests := []struct {
-		cmd       string
-		shouldErr bool
-		check     checkFunc
-	}{
+	tests := [...]commandTest{
 		{
-			"jrnl init",
-			false,
-			checkInitDirs,
+			cmd:   []string{"init"},
+			check: checkDirsInitialized,
 		},
 		{
-			"jrnl page -l page about",
-			false,
-			nil,
+			cmd:   []string{"page", "-l", "page", "About"},
+			check: checkPage(pageDir, "about"),
 		},
 		{
-			"jrnl post -l post 'First Post'",
-			false,
-			nil,
+			cmd:   []string{"post", "-l", "page", "First post"},
+			check: checkPage(postDir, time.Now().Format("2006-01-02")+"-first-post"),
 		},
 		{
-			"jrnl post -l post -c Programming 'Go 101'",
-			false,
-			nil,
+			cmd:   []string{"post", "-l", "page", "Second post"},
+			check: checkPage(postDir, time.Now().Format("2006-01-02")+"-second-post"),
 		},
 		{
-			"jrnl post -l post 'Second Post'",
-			false,
-			nil,
+			cmd: []string{"publish", "-d", "-v"},
 		},
 		{
-			"jrnl config site.title 'My blog'",
-			false,
-			nil,
+			cmd: []string{"publish", "-v"},
 		},
 		{
-			"jrnl config site.remote " + dir,
-			false,
-			nil,
+			cmd:   []string{"theme", "save", "default"},
+			check: checkTheme("default"),
 		},
 		{
-			"jrnl publish",
-			false,
-			checkPublishedRemote(
-				dir,
-				filepath.Join(date, "first-post", "index.html"),
-				filepath.Join("programming", date, "go-101", "index.html"),
-				filepath.Join(date, "second-post", "index.html"),
-			),
+			cmd: []string{"theme", "ls"},
 		},
 		{
-			"jrnl rm second-post",
-			false,
-			nil,
-		},
-		{
-			"jrnl publish",
-			false,
-			checkPublishedRemote(
-				dir,
-				filepath.Join(date, "first-post", "index.html"),
-				filepath.Join("programming", date, "go-101", "index.html"),
-			),
+			cmd: []string{"theme", "use", "default"},
 		},
 	}
 
 	os.Setenv("EDITOR", "true")
+	os.Setenv("HOME", ".")
 
 	for i, test := range tests {
-		cmd := exec.Command(os.Args[0], "-test.run=Test_Cmd")
-		cmd.Env = append(os.Environ(), "TEST_CMD="+test.cmd)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		t.Log("running command", test.args())
 
-		if err := cmd.Run(); err != nil {
-			if !test.shouldErr {
-				t.Fatalf("tests[%d](%s) - Failed to run test: %s\n", i, test.cmd, err)
-			}
+		if err := run(test.args()); err != nil {
+			t.Fatalf("tests[%d]: command %q failed: %s\n", i, test.args(), err)
 		}
 
 		if test.check != nil {
-			test.check(i, test.cmd, t)
+			test.check(t, i, test.args())
+		}
+
+		// jrnl init passed so load the config and update it.
+		if i == 0 {
+			cfg, err := LoadConfig()
+
+			if err != nil {
+				t.Fatalf("tests[%d]: %s\n", i, err)
+			}
+
+			if err := os.MkdirAll("remote", dirMode); err != nil {
+				t.Fatalf("tests[%d]: %s\n", i, err)
+			}
+
+			cfg.Remote = "file://remote"
+			cfg.Author.Name = "Joe Bloggs"
+			cfg.Author.Email = "joe.bloggs@localhost"
+			cfg.Site.Title = "Joe's Blog"
+			cfg.Site.URL = "http://localhost:8080"
+			cfg.Site.Atom = "atom.xml"
+			cfg.Site.RSS = "rss.xml"
+
+			if err := cfg.Save(); err != nil {
+				t.Fatalf("tests[%d]: %s\n", i, err)
+			}
 		}
 	}
 }

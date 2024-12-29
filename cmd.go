@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"os"
 	"sort"
 )
+
+var ErrUsage = errors.New("usage")
 
 type Command struct {
 	Argv0 string // Argv0 is the name of the process running the command.
@@ -16,10 +18,19 @@ type Command struct {
 	// be passed a pointer to the Command itself, along with the arguments
 	// given to it. The first item in the arguments list will be the command
 	// name.
-	Run func(*Command, []string)
+	Run func(*Command, []string) error
 
 	// Commands is the set of sub-commands the command could have.
 	Commands *CommandSet
+}
+
+type CommandError struct {
+	Command *Command
+	Err     error
+}
+
+func (e *CommandError) Error() string {
+	return e.Command.Argv0 + ": " + e.Err.Error()
 }
 
 type CommandSet struct {
@@ -34,33 +45,33 @@ type CommandSet struct {
 
 type ErrCommandNotFound string
 
-func helpCmd(cmd *Command, args []string) {
-	if len(args) < 2 {
+func helpCmd(cmd *Command, args []string) error {
+	if len(args) < 1 {
 		cmd.Commands.usage()
-		return
+		return nil
 	}
 
-	name := args[1]
+	name := args[0]
 
 	cmd1, ok := cmd.Commands.cmds[name]
 
 	if !ok {
-		fmt.Fprintf(os.Stderr, "%s %s: no such command. Run '%s %s'.\n", cmd.Argv0, args[0], cmd.Argv0, args[0])
-		os.Exit(1)
+		return errors.New("no such command")
 	}
 
 	if cmd1.Long == "" && cmd1.Commands != nil {
-		fmt.Printf("usage: %s %s\n", cmd1.Argv0, cmd1.Usage)
+		fmt.Println("usage:", cmd1.Usage)
 		cmd1.Commands.usage()
-		return
+		return nil
 	}
 
-	fmt.Printf("usage: %s %s\n", cmd1.Argv0, cmd1.Usage)
+	fmt.Println("usage:", cmd1.Usage)
 
 	if cmd1.Long != "" {
 		fmt.Println()
 		fmt.Println(cmd1.Long)
 	}
+	return nil
 }
 
 func HelpCmd(cmds *CommandSet) *Command {
@@ -117,7 +128,8 @@ func (c *CommandSet) Add(name string, cmd *Command) {
 			c.longest = l
 		}
 
-		cmd.Argv0 = c.Argv0
+		cmd.Argv0 = c.Argv0 + " " + name
+		cmd.Usage = c.Argv0 + " " + cmd.Usage
 
 		c.names = append(c.names, name)
 		c.cmds[name] = cmd
@@ -137,7 +149,20 @@ func (c *CommandSet) Parse(args []string) error {
 	if !ok {
 		return ErrCommandNotFound(name)
 	}
-	cmd.Run(cmd, args)
+
+	if err := cmd.Run(cmd, args[1:]); err != nil {
+		if errors.Is(err, ErrUsage) {
+			fmt.Println("usage:", cmd.Usage)
+			fmt.Println()
+			fmt.Println(cmd.Long)
+			return nil
+		}
+
+		return &CommandError{
+			Command: cmd,
+			Err:     err,
+		}
+	}
 	return nil
 }
 

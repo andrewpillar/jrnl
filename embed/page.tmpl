@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>{{.Title}} - {{.Site.Title}}</title>
+	</head>
+	<body>
+		<h1>{{.Title}}</h1>
+		{{.Content}}
+		{{if gt (len .Blogroll) 0}}
+			<h3>Blogroll</h3>
+			<ul>
+				{{range .}}
+					<a href="{{.URL}}">{{.Title}}</a>
+					<p>{{.Description}}</p>
+				{{end}}
+			</ul>
+		{{end}}
+	</body>
+</html>

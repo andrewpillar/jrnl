@@ -1,170 +1,131 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
-	"crypto/sha256"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"text/template"
+	"time"
 
-	"github.com/grokify/html-strip-tags-go"
+	"gopkg.in/yaml.v3"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer/html"
-
-	"gopkg.in/yaml.v3"
 )
 
-type pageFrontMatter struct {
-	Title  string
-	Layout string
+type SitePage interface {
+	URL() string
+
+	Title() string
+
+	Description() string
+
+	Content() string
+
+	Layout() string
+
+	CreatedAt() time.Time
 }
 
-type Page struct {
-	ID         string
-	Title      string
-	Layout     string
-	Body       string
-	SourcePath string
-	SitePath   string
-}
+const (
+	pageMask = os.O_TRUNC | os.O_RDWR | os.O_CREATE
+	pagePerm = os.FileMode(0640)
+)
 
 var (
-	reslug = regexp.MustCompile("[^a-zA-Z0-9]")
-	redup  = regexp.MustCompile("-{2,}")
-
-	funcs template.FuncMap
+	reSlug = regexp.MustCompile("[^a-zA-Z0-9]")
+	reDupe = regexp.MustCompile("-{2,}")
 
 	PageCmd = &Command{
 		Usage: "page <title>",
 		Short: "create a new journal page",
-		Long: `Page will open up the editor specified via the EDITOR environment variable for
-editting the new page.
+		Long: `page will open up the editor specified via the EDITOR environment variable for
+writing the page.
 
-The -l flag can be given to specify a layout to use for the new page. This will
-be pre-populated in the front matter.`,
+The -l flag can be given to specify a layout to use for the new page.`,
 		Run: pageCmd,
 	}
 )
 
-func init() {
-	funcs = template.FuncMap{
-		"partial": partial,
-		"strip":   strip.StripTags,
-	}
+type Time struct {
+	time.Time
 }
 
-func partial(path string, data interface{}) (string, error) {
-	b, err := ioutil.ReadFile(filepath.Join(layoutsDir, path))
-
-	if err != nil {
-		return "", err
-	}
-
-	t, err := template.New(path).Funcs(funcs).Parse(string(b))
-
-	if err != nil {
-		return "", err
-	}
-
-	var buf bytes.Buffer
-
-	err = t.Execute(&buf, data)
-	return buf.String(), err
+func (t Time) MarshalYAML() (any, error) {
+	return t.Format(time.DateTime), nil
 }
 
-func executeTemplate(w io.Writer, name, text string, data interface{}) error {
-	t, err := template.New(name).Funcs(funcs).Parse(text)
+func (t *Time) UnmarshalYAML(n *yaml.Node) error {
+	v, err := time.Parse(time.DateTime, n.Value)
 
 	if err != nil {
 		return err
 	}
-	return t.Execute(w, data)
+
+	t.Time = v
+	return nil
 }
 
-func render(s string) (string, error) {
-	var buf bytes.Buffer
-
-	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-	)
-	md.Renderer().AddOptions(html.WithUnsafe())
-
-	if err := md.Convert([]byte(s), &buf); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+type MetaData struct {
+	Title     string
+	Layout    string
+	CreatedAt Time `yaml:"createdAt,omitempty"`
+	UpdatedAt Time `yaml:"updatedAt,omitempty"`
 }
 
-func resolvePage(path string) (*Page, error) {
-	p := &Page{
-		SourcePath: path,
-	}
-	err := p.Load()
-	return p, err
-}
-
-func slug(s string) string {
-	if s == "" {
-		return ""
-	}
-
-	s = strings.TrimSpace(s)
-	s = reslug.ReplaceAllString(s, "-")
-	s = redup.ReplaceAllString(s, "-")
-	return strings.ToLower(strings.TrimPrefix(strings.TrimSuffix(s, "-"), "-"))
-}
-
-func readbyte(r io.Reader) (byte, error) {
-	b := make([]byte, 1)
-
-	if _, err := r.Read(b); err != nil {
-		return 0, err
-	}
-	return b[0], nil
-}
-
-func marshalFrontMatter(v interface{}, w io.Writer) error {
-	if _, err := w.Write([]byte("---\n")); err != nil {
+func (m *MetaData) Encode(w io.Writer) error {
+	if _, err := io.WriteString(w, "---\n"); err != nil {
 		return err
 	}
 
-	if err := yaml.NewEncoder(w).Encode(v); err != nil {
+	if err := yaml.NewEncoder(w).Encode(m); err != nil {
 		return err
 	}
 
-	_, err := w.Write([]byte("---\n"))
-	return err
+	if _, err := io.WriteString(w, "---\n"); err != nil {
+		return err
+	}
+	return nil
 }
 
-func unmarshalFrontMatter(v interface{}, r io.Reader) error {
+// Decode decodes the front matter from the given reader. This will return the
+// rest of the content that follows on from the front matter in a buffer.
+func (m *MetaData) Decode(r io.Reader) (*bytes.Buffer, error) {
 	buf := make([]byte, 0)
+	br := bufio.NewReader(r)
+
 	bounds := 0
 
+loop:
 	for bounds != 2 {
-		b, err := readbyte(r)
+		b, err := br.ReadByte()
 
 		if err != nil {
-			return err
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
 		}
+
 		buf = append(buf, b)
 
 		for b == '-' {
-			b, err = readbyte(r)
+			b, err = br.ReadByte()
 
 			if err != nil {
-				return err
+				if errors.Is(err, io.EOF) {
+					break loop
+				}
+				return nil, err
 			}
+
 			buf = append(buf, b)
 
 			if b == '\n' {
@@ -173,178 +134,125 @@ func unmarshalFrontMatter(v interface{}, r io.Reader) error {
 			}
 		}
 	}
-	return yaml.Unmarshal(buf, v)
-}
 
-func GetPage(id string) (*Page, bool, error) {
-	page, err := resolvePage(filepath.Join(pagesDir, id+".md"))
+	var cont bytes.Buffer
 
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, false, err
-		}
-		return nil, false, nil
-	}
-	return page, true, nil
-}
-
-func Pages() ([]*Page, error) {
-	pages := make([]*Page, 0)
-
-	err := filepath.Walk(pagesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		page, err := resolvePage(path)
-
-		if err != nil {
-			return err
-		}
-
-		pages = append(pages, page)
-		return nil
-	})
-	return pages, err
-}
-
-func WalkPages(fn func(*Page) error) error {
-	return filepath.Walk(pagesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		page, err := resolvePage(path)
-
-		if err != nil {
-			return err
-		}
-		return fn(page)
-	})
-}
-
-func (p *Page) readLayout() (string, error) {
-	if p.Layout == "" {
-		return "", errors.New("layout not set")
-	}
-
-	b, err := ioutil.ReadFile(filepath.Join(layoutsDir, p.Layout))
-
-	if err != nil {
-		return "", err
-	}
-	return string(b), err
-}
-
-func (p *Page) siteFile() (*os.File, error) {
-	if err := os.MkdirAll(filepath.Dir(p.SitePath), os.FileMode(0755)); err != nil {
+	if _, err := io.Copy(&cont, br); err != nil {
 		return nil, err
 	}
 
-	f, err := os.OpenFile(p.SitePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(0644))
+	if err := yaml.NewDecoder(bytes.NewReader(buf)).Decode(m); err != nil {
+		return nil, err
+	}
+	return &cont, nil
+}
+
+type Page struct {
+	*MetaData
+
+	Body string
+}
+
+func NewPage(title, layout string) *Page {
+	return &Page{
+		MetaData: &MetaData{
+			Title:  title,
+			Layout: layout,
+		},
+	}
+}
+
+func LoadPage(path string) (*Page, error) {
+	f, err := os.Open(path)
 
 	if err != nil {
 		return nil, err
-	}
-	return f, nil
-}
-
-func (p *Page) Hash() []byte {
-	sha256 := sha256.New()
-	sha256.Write([]byte(p.Title))
-	sha256.Write([]byte(p.Body))
-	return sha256.Sum(nil)
-}
-
-func (p *Page) Href() string {
-	l := len(siteDir)
-
-	return filepath.Dir(p.SitePath[l:])
-}
-
-func (p *Page) Load() error {
-	f, err := os.Open(p.SourcePath)
-
-	if err != nil {
-		return err
 	}
 
 	defer f.Close()
 
-	var fm pageFrontMatter
+	var p Page
 
-	if err := unmarshalFrontMatter(&fm, f); err != nil {
+	if err := p.Decode(f); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func Markdown(s string) string {
+	var buf bytes.Buffer
+
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+	)
+	md.Convert([]byte(s), &buf)
+
+	return buf.String()
+}
+
+func (p *Page) Slug() string {
+	s := strings.TrimSpace(p.MetaData.Title)
+	s = reSlug.ReplaceAllString(s, "-")
+	s = reDupe.ReplaceAllString(s, "-")
+
+	return strings.ToLower(strings.TrimPrefix(strings.TrimSuffix(s, "-"), "-"))
+}
+
+func (p *Page) URL() string     { return "/" + p.Slug() }
+func (p *Page) Title() string   { return p.MetaData.Title }
+func (p *Page) Content() string { return Markdown(p.Body) }
+
+func (p *Page) Description() string {
+	if len(p.Body) > 4 {
+		i := strings.Index(p.Body, "\n\n")
+
+		if i < 0 {
+			i = strings.Index(p.Body, "\n")
+		}
+		return Markdown(p.Body[:i])
+	}
+	return Markdown(p.Body)
+}
+
+func (p *Page) Layout() string       { return p.MetaData.Layout }
+func (p *Page) CreatedAt() time.Time { return p.MetaData.CreatedAt.Time }
+
+func (p *Page) Encode(w io.Writer) error {
+	if err := p.MetaData.Encode(w); err != nil {
 		return err
 	}
 
-	b, err := ioutil.ReadAll(f)
-
-	if err != nil {
+	if _, err := io.WriteString(w, p.Body); err != nil {
 		return err
 	}
-
-	p.ID = strings.Split(filepath.Base(p.SourcePath), ".")[0]
-	p.Title = fm.Title
-	p.Layout = fm.Layout
-	p.SitePath = filepath.Join(siteDir, filepath.Base(p.ID), "index.html")
-	p.Body = string(b)
 	return nil
 }
 
-func (p *Page) Publish(s Site) error {
-	renderedBody, err := render(p.Body)
+func (p *Page) Decode(r io.Reader) error {
+	p.MetaData = &MetaData{}
+
+	buf, err := p.MetaData.Decode(r)
 
 	if err != nil {
 		return err
 	}
 
-	layout, err := p.readLayout()
+	p.Body = buf.String()
 
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
-	var buf bytes.Buffer
+func (p *Page) Path() string {
+	return filepath.Join(pageDir, p.Slug()) + ".md"
+}
 
-	data0 := struct {
-		Site Site
-	}{Site: s}
-
-	if err := executeTemplate(&buf, p.ID, renderedBody, data0); err != nil {
-		return err
-	}
-
-	f, err := p.siteFile()
-
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	p1 := *p
-	p1.Body = buf.String()
-
-	data := struct {
-		Site Site
-		Page *Page
-	}{
-		Site: s,
-		Page: &p1,
-	}
-	return executeTemplate(f, p.ID, layout, data)
+func (p *Page) File() (*os.File, error) {
+	return os.OpenFile(p.Path(), pageMask, pagePerm)
 }
 
 func (p *Page) Touch() error {
-	f, err := os.OpenFile(p.SourcePath, os.O_TRUNC|os.O_RDWR|os.O_CREATE, os.FileMode(0644))
+	f, err := p.File()
 
 	if err != nil {
 		return err
@@ -352,103 +260,52 @@ func (p *Page) Touch() error {
 
 	defer f.Close()
 
-	fm := pageFrontMatter{
-		Title:  p.Title,
-		Layout: p.Layout,
-	}
-
-	if err := marshalFrontMatter(&fm, f); err != nil {
+	if err := p.Encode(f); err != nil {
 		return err
 	}
-
-	_, err = f.Write([]byte(p.Body))
-	return err
+	return nil
 }
 
-func (p *Page) Remove() error {
-	if err := os.Remove(p.SitePath); err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
+func OpenInEditor(path string) error {
+	editor := os.Getenv("EDITOR")
+
+	if editor == "" {
+		return errors.New("EDITOR not set")
 	}
 
-	parts := strings.Split(filepath.Dir(p.SitePath), string(os.PathSeparator))
+	cmd := exec.Command(editor, path)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	for i := range parts {
-		dir := filepath.Join(parts[:len(parts)-i]...)
-
-		if dir == siteDir {
-			break
-		}
-
-		f, err := os.Open(dir)
-
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return err
-		}
-
-		defer f.Close()
-
-		if _, err := f.Readdirnames(1); err == io.EOF {
-			if err := os.Remove(dir); err != nil {
-				return err
-			}
-		}
-	}
-
-	if err := os.Remove(p.SourcePath); err != nil {
-		return err
-	}
-
-	hash, err := OpenHash()
-
-	if err != nil {
-		return err
-	}
-
-	hash.Delete(p.ID)
-	return hash.Save()
+	return cmd.Run()
 }
 
-func pageCmd(cmd *Command, args []string) {
+func pageCmd(cmd *Command, args []string) error {
 	var layout string
 
-	fs := flag.NewFlagSet(cmd.Argv0+" "+args[0], flag.ExitOnError)
-	fs.StringVar(&layout, "l", "", "the layout to use for new post")
-	fs.Parse(args[1:])
+	fs := flag.NewFlagSet(cmd.Argv0, flag.ExitOnError)
+	fs.StringVar(&layout, "l", "page", "the layout of the new post")
+	fs.Parse(args)
 
-	if err := initialized(""); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
+	args = fs.Args()
+
+	if len(args) == 0 {
+		return ErrUsage
 	}
 
-	if len(args) < 2 {
-		fmt.Fprintf(os.Stderr, "%s %s: usage: %s\n", cmd.Argv0, args[0], cmd.Usage)
-		os.Exit(1)
+	if err := Initialized("."); err != nil {
+		return err
 	}
 
-	title := fs.Args()[0]
+	p := NewPage(args[0], layout)
 
-	id := slug(title)
-
-	page := &Page{
-		ID:         id,
-		Title:      title,
-		Layout:     layout,
-		SourcePath: filepath.Join(pagesDir, id+".md"),
-		SitePath:   filepath.Join(siteDir, id, "index.html"),
+	if err := p.Touch(); err != nil {
+		return err
 	}
 
-	if err := page.Touch(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to create page: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
+	if err := OpenInEditor(p.Path()); err != nil {
+		return err
 	}
-
-	if err := openInEditor(page.SourcePath); err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to open editor: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
-	}
+	return nil
 }

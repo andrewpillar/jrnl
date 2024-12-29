@@ -1,83 +1,124 @@
 package main
 
 import (
+	"embed"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 )
 
-var (
-	dataDir    = "_data"
-	postsDir   = "_posts"
-	pagesDir   = "_pages"
-	siteDir    = "_site"
-	themesDir  = "_themes"
-	layoutsDir = "_layouts"
-	assetsDir  = filepath.Join(siteDir, "assets")
+//go:embed embed/*.tmpl
+var embeds embed.FS
 
-	dirs = []string{
-		dataDir,
-		postsDir,
-		pagesDir,
+const (
+	dirMode = os.FileMode(0750)
+
+	assetDir  = "_assets"
+	layoutDir = "_layouts"
+	pageDir   = "_pages"
+	postDir   = "_posts"
+	siteDir   = "_site"
+)
+
+var (
+	jrnlDirs = [...]string{
+		assetDir,
+		layoutDir,
+		pageDir,
+		postDir,
 		siteDir,
-		themesDir,
-		layoutsDir,
-		assetsDir,
 	}
 
-	ErrInitialized = errors.New("journal not initialized")
-	ErrBadInit     = errors.New("journal not properly initialized")
+	ErrInitialized    = errors.New("already initialized")
+	ErrNotInitialized = errors.New("not initialized")
 
 	InitCmd = &Command{
 		Usage: "init [directory]",
-		Short: "initializes a new journal",
-		Long: `init will initialize a new journal. If directory is given to the command then a
+		Short: "initialize a new journal",
+		Long: `init will initialize a new journal. If a direction is given to the comment then a
 new journal will be initialized in that directory, otherwise the current
 directory is used.`,
 		Run: initCmd,
 	}
 )
 
-func initialized(root string) error {
-	for _, dir := range dirs {
+func Initialized(root string) error {
+	for _, dir := range jrnlDirs {
 		info, err := os.Stat(filepath.Join(root, dir))
 
 		if err != nil {
-			return ErrInitialized
+			return ErrNotInitialized
 		}
 
 		if !info.IsDir() {
-			return ErrBadInit
+			return errors.New(dir + " is not a directory")
 		}
 	}
 	return nil
 }
 
-func initCmd(cmd *Command, args []string) {
+func initCmd(cmd *Command, args []string) error {
 	target := "."
 
-	if len(args) >= 2 {
-		target = args[1]
+	if len(args) >= 1 {
+		target = args[0]
 	}
 
-	if err := initialized(target); err == nil {
-		fmt.Fprintf(os.Stderr, "%s %s: journal already initialized\n", cmd.Argv0, args[0])
-		os.Exit(1)
+	if err := Initialized(target); err == nil {
+		return nil
 	}
 
-	for _, dir := range dirs {
-		if err := os.MkdirAll(filepath.Join(target, dir), os.FileMode(0755)); err != nil {
-			fmt.Fprintf(os.Stderr, "%s %s: failed to initialize journal: %s\n", cmd.Argv0, args[0], err)
-			os.Exit(1)
+	for _, dir := range jrnlDirs {
+		if err := os.MkdirAll(filepath.Join(target, dir), dirMode); err != nil {
+			return err
 		}
 	}
 
-	cfg, err := CreateConfig(target)
+	ents, err := embeds.ReadDir("embed")
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s %s: failed to initialize journal: %s\n", cmd.Argv0, args[0], err)
-		os.Exit(1)
+		return err
 	}
-	cfg.Close()
+
+	for _, ent := range ents {
+		if ent.IsDir() {
+			continue
+		}
+
+		b, err := embeds.ReadFile(filepath.Join("embed", ent.Name()))
+
+		if err != nil {
+			return err
+		}
+
+		err = func(b []byte) error {
+			name := ent.Name()
+			name = name[:len(name)-5]
+
+			f, err := os.Create(filepath.Join(layoutDir, name))
+
+			if err != nil {
+				return err
+			}
+
+			defer f.Close()
+
+			_, err = f.Write(b)
+			return err
+		}(b)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	var cfg Config
+
+	cfg.Site.Atom = "atom.xml"
+	cfg.Site.RSS = "rss.xml"
+
+	if err := cfg.Save(); err != nil {
+		return err
+	}
+	return nil
 }
