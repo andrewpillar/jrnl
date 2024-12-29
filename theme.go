@@ -291,6 +291,7 @@ func ThemeCmd(argv0 string) *Command {
 	cmd.Commands.Add("rm", ThemeRmCmd)
 	cmd.Commands.Add("save", ThemeSaveCmd)
 	cmd.Commands.Add("use", ThemeUseCmd)
+	cmd.Commands.Add("rm", ThemeRmCmd)
 
 	return cmd
 }

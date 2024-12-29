@@ -169,6 +169,9 @@ func Test_Jrnl(t *testing.T) {
 		{
 			cmd: []string{"theme", "use", "default"},
 		},
+		{
+			cmd: []string{"theme", "rm", "default"},
+		},
 	}
 
 	os.Setenv("EDITOR", "true")
