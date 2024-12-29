@@ -178,6 +178,10 @@ func untar(r io.Reader) error {
 }
 
 func themeSaveCmd(cmd *Command, args []string) error {
+	if err := Initialized("."); err != nil {
+		return err
+	}
+
 	cfg, err := LoadConfig()
 
 	if err != nil {
@@ -219,17 +223,20 @@ func themeSaveCmd(cmd *Command, args []string) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
 var ThemeUseCmd = &Command{
-	Usage: "use [name]",
+	Usage: "use <name>",
 	Short: "use the given jrnl theme",
 	Run:   themeUseCmd,
 }
 
 func themeUseCmd(cmd *Command, args []string) error {
+	if err := Initialized("."); err != nil {
+		return err
+	}
+
 	if len(args) == 0 {
 		return ErrUsage
 	}
@@ -297,11 +304,11 @@ func ThemeCmd(argv0 string) *Command {
 }
 
 func themeCmd(cmd *Command, args []string) error {
-	if err := Initialized("."); err != nil {
-		return err
-	}
-
 	if len(args) == 0 {
+		if err := Initialized("."); err != nil {
+			return err
+		}
+
 		cfg, err := LoadConfig()
 
 		if err != nil {

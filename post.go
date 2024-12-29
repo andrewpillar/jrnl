@@ -50,6 +50,10 @@ func (p *Post) Touch() error {
 }
 
 func postCmd(cmd *Command, args []string) error {
+	if err := Initialized("."); err != nil {
+		return err
+	}
+
 	var layout string
 
 	fs := flag.NewFlagSet(cmd.Argv0, flag.ExitOnError)
@@ -60,10 +64,6 @@ func postCmd(cmd *Command, args []string) error {
 
 	if len(args) == 0 {
 		return ErrUsage
-	}
-
-	if err := Initialized("."); err != nil {
-		return err
 	}
 
 	p := Post{

@@ -17,6 +17,7 @@ Usage:
 	}
 
 	cmds.Add("init", InitCmd)
+	cmds.Add("flush", FlushCmd)
 	cmds.Add("page", PageCmd)
 	cmds.Add("post", PostCmd)
 	cmds.Add("publish", PublishCmd)
