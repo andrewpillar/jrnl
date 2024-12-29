@@ -154,7 +154,7 @@ func Test_Jrnl(t *testing.T) {
 			check: checkPage(postDir, time.Now().Format("2006-01-02")+"-second-post"),
 		},
 		{
-			cmd: []string{"publish", "-d", "-v"},
+			cmd:   []string{"publish", "-d", "-v"},
 		},
 		{
 			cmd: []string{"publish", "-v"},
