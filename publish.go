@@ -96,6 +96,7 @@ func templatePage(p SitePage, data *PageData) (string, error) {
 	m := minify.New()
 	m.Add("text/html", &html.Minifier{
 		KeepDocumentTags: true,
+		KeepEndTags:      true,
 		KeepQuotes:       true,
 	})
 
@@ -182,12 +183,16 @@ func publishFeeds(cfg *Config, author *feeds.Author, items []*feeds.Item) error 
 }
 
 type PageData struct {
-	Site     Site
-	Author   Author
-	Title    string
-	Content  string
-	Posts    []SitePage
-	Blogroll []SitePage
+	Site      Site
+	Author    Author
+	Dynamic   bool
+	Title     string
+	Content   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Pages     []SitePage
+	Posts     []SitePage
+	Blogroll  []SitePage
 }
 
 type feedPage struct {
@@ -358,8 +363,15 @@ func publishCmd(cmd *Command, args []string) error {
 				Author:   cfg.Author,
 				Title:    p.Title(),
 				Content:  p.Content(),
+				Pages:    pages,
 				Posts:    posts,
 				Blogroll: blogroll,
+			}
+
+			if post, ok := p.(*Post); ok {
+				data.Dynamic = true
+				data.CreatedAt = post.MetaData.CreatedAt.Time
+				data.UpdatedAt = post.MetaData.UpdatedAt.Time
 			}
 
 			sitePath, err := templatePage(p, &data)
