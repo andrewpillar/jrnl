@@ -12,7 +12,7 @@ func run(args []string) error {
 
 Usage:
 
-    jrnl <commands> [arguments]
+    jrnl <command> [arguments]
 `,
 	}
 

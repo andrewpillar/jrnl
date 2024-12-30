@@ -34,9 +34,9 @@ var (
 
 	InitCmd = &Command{
 		Usage: "init [directory]",
-		Short: "initialize a new journal",
-		Long: `init will initialize a new journal. If a direction is given to the comment then a
-new journal will be initialized in that directory, otherwise the current
+		Short: "initialize a new jrnl",
+		Long: `init will initialize a new jrnl. If a direction is given to the comment then a
+new jrnl will be initialized in that directory, otherwise the current
 directory is used.`,
 		Run: initCmd,
 	}

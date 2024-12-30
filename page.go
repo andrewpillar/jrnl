@@ -45,7 +45,7 @@ var (
 
 	PageCmd = &Command{
 		Usage: "page <title>",
-		Short: "create a new journal page",
+		Short: "create a new jrnl page",
 		Long: `page will open up the editor specified via the EDITOR environment variable for
 writing the page.
 

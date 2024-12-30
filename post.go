@@ -9,7 +9,7 @@ import (
 
 var PostCmd = &Command{
 	Usage: "post <title>",
-	Short: "create a new journal post",
+	Short: "create a new jrnl post",
 	Long: `post will open up the editor specified via the EDITOR environment variable for
 writing a post.
 
