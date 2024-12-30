@@ -38,6 +38,8 @@ func serveCmd(cmd *Command, args []string) error {
 		}
 	}()
 
+	fmt.Println("serving contents of", siteDir, "over", serveAddr)
+
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 
