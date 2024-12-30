@@ -6,9 +6,19 @@
 	</head>
 	<body>
 		<ul>
+			<li><strong>Pages</strong></li>
+			{{range .Pages}}
+				{{if ne .Title "Home"}}
+					<li><a href="{{.URL}}">{{.Title}}</a></li>
+				{{end}}
+			{{end}}
+		</ul>
+		<ul>
 			{{range .Posts}}
-				<a href="{{.URL}}">{{.Title}}</a>
-				<p>{{.Description}}</p>
+				<li>
+					<a href="{{.URL}}">{{.Title}}</a>
+					<p>{{.Description}}</p>
+				</li>
 			{{end}}
 		</ul>
 	</body>
