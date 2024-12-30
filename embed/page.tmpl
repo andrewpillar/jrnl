@@ -6,6 +6,7 @@
 	</head>
 	<body>
 		<h1>{{.Title}}</h1>
+		{{if .Dynamic}}<p>Posted on {{.CreatedAt.Format "Mon 2, Jan 2006"}}</p>{{end}}
 		{{.Content}}
 		{{if gt (len .Blogroll) 0}}
 			<h3>Blogroll</h3>
