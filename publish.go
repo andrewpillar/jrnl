@@ -433,6 +433,10 @@ func publishCmd(cmd *Command, args []string) error {
 			return err
 		}
 
+		if err := remote.Connect(); err != nil {
+			return err
+		}
+
 		errs = make(chan error)
 
 		for _, path := range sitePaths {

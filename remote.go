@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -72,7 +73,24 @@ func (r *sshRemote) Connect() error {
 		HostKeyCallback: callback,
 	}
 
-	cli, err := ssh.Dial("tcp", r.url.Host, &cfg)
+	host, port, err := net.SplitHostPort(r.url.Host)
+
+	if err != nil {
+		addrErr := &net.AddrError{}
+
+		if !errors.As(err, &addrErr) {
+			return err
+		}
+
+		if addrErr.Err != "missing port in address" {
+			return err
+		}
+
+		host = r.url.Host
+		port = "22"
+	}
+
+	cli, err := ssh.Dial("tcp", net.JoinHostPort(host, port), &cfg)
 
 	if err != nil {
 		return err
@@ -125,7 +143,7 @@ type fileRemote struct {
 }
 
 func (r *fileRemote) Connect() error {
-	return os.MkdirAll(r.url.Path, dirMode)
+	return os.MkdirAll(filepath.Join(r.url.Host, r.url.Path), dirMode)
 }
 
 func (r *fileRemote) Sync(local, remote string) error {
