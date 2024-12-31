@@ -120,9 +120,9 @@ func rmCmd(cmd *Command, args []string) error {
 			}
 		}
 
-		sitePath := filepath.Join(siteDir, p.URL(), "index.html")
+		sitePath := filepath.Join(siteDir, p.URL())
 
-		if err := os.Remove(sitePath); err != nil {
+		if err := os.RemoveAll(sitePath); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				return err
 			}

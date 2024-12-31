@@ -146,10 +146,7 @@ func (r *sshRemote) Remove(path string) error {
 	if err != nil {
 		return err
 	}
-
-	path = cli.Join(r.url.Path, path)
-
-	return cli.RemoveAll(filepath.Dir(path))
+	return cli.RemoveAll(cli.Join(r.url.Path, path))
 }
 
 type fileRemote struct {
@@ -194,9 +191,7 @@ func (r *fileRemote) Sync(local, remote string) error {
 }
 
 func (r *fileRemote) Remove(path string) error {
-	path = r.path(path)
-
-	return os.RemoveAll(filepath.Dir(path))
+	return os.RemoveAll(r.path(path))
 }
 
 func ParseRemote(s string) (Remote, error) {
