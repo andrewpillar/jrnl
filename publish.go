@@ -457,9 +457,9 @@ func publishCmd(cmd *Command, args []string) error {
 			}
 		}
 
-		//		if err := FlushPrunedPaths(); err != nil {
-		//			return err
-		//		}
+		if err := FlushPrunedPaths(); err != nil {
+			return err
+		}
 
 		errs = make(chan error)
 
