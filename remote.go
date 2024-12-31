@@ -18,6 +18,8 @@ type Remote interface {
 	Connect() error
 
 	Sync(local, remote string) error
+
+	Remove(path string) error
 }
 
 type sshRemote struct {
@@ -138,8 +140,24 @@ func (r *sshRemote) Sync(local, remote string) error {
 	return nil
 }
 
+func (r *sshRemote) Remove(path string) error {
+	cli, err := sftp.NewClient(r.cli)
+
+	if err != nil {
+		return err
+	}
+
+	path = cli.Join(r.url.Path, path)
+
+	return cli.Remove(filepath.Dir(path))
+}
+
 type fileRemote struct {
 	url *url.URL
+}
+
+func (r *fileRemote) path(path string) string {
+	return filepath.Join(r.url.Host, r.url.Path, path)
 }
 
 func (r *fileRemote) Connect() error {
@@ -147,7 +165,7 @@ func (r *fileRemote) Connect() error {
 }
 
 func (r *fileRemote) Sync(local, remote string) error {
-	remote = filepath.Join(r.url.Host, r.url.Path, remote)
+	remote = r.path(remote)
 
 	if err := os.MkdirAll(filepath.Dir(remote), dirMode); err != nil {
 		return err
@@ -173,6 +191,12 @@ func (r *fileRemote) Sync(local, remote string) error {
 		return err
 	}
 	return nil
+}
+
+func (r *fileRemote) Remove(path string) error {
+	path = r.path(path)
+
+	return os.RemoveAll(filepath.Dir(path))
 }
 
 func ParseRemote(s string) (Remote, error) {

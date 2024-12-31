@@ -21,6 +21,7 @@ Usage:
 	cmds.Add("page", PageCmd)
 	cmds.Add("post", PostCmd)
 	cmds.Add("publish", PublishCmd)
+	cmds.Add("rm", RmCmd)
 	cmds.Add("serve", ServeCmd)
 	cmds.Add("theme", ThemeCmd(cmds.Argv0))
 	cmds.Add("version", VersionCmd)

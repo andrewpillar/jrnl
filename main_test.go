@@ -131,6 +131,18 @@ func checkTheme(name string) func(*testing.T, int, []string) {
 	}
 }
 
+func checkPageDeletedFromRemote(page string) func(*testing.T, int, []string) {
+	return func(t *testing.T, id int, args []string) {
+		path := filepath.Join("remote", page, "index.html")
+
+		_, err := os.Stat(path)
+
+		if err == nil {
+			t.Fatalf("tests[%d]: expected path %q to be deleted\n", id, path)
+		}
+	}
+}
+
 func Test_Jrnl(t *testing.T) {
 	if err := os.Chdir("testdata"); err != nil {
 		t.Fatal(err)
@@ -174,6 +186,13 @@ func Test_Jrnl(t *testing.T) {
 		},
 		{
 			cmd: []string{"flush"},
+		},
+		{
+			cmd: []string{"rm", "about"},
+		},
+		{
+			cmd:   []string{"publish"},
+			check: checkPageDeletedFromRemote("about"),
 		},
 	}
 

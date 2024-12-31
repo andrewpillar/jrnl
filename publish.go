@@ -444,6 +444,23 @@ func publishCmd(cmd *Command, args []string) error {
 			return err
 		}
 
+		// Remove any deleted jrnl pages or posts from the remote.
+		pruned, err := PrunedPaths()
+
+		if err != nil {
+			return err
+		}
+
+		for _, path := range pruned {
+			if err := remote.Remove(path); err != nil {
+				return err
+			}
+		}
+
+		//		if err := FlushPrunedPaths(); err != nil {
+		//			return err
+		//		}
+
 		errs = make(chan error)
 
 		for _, path := range sitePaths {
