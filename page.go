@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -27,7 +28,7 @@ type SitePage interface {
 
 	Description() string
 
-	Content() string
+	Content() (string, error)
 
 	Layout() string
 
@@ -76,8 +77,9 @@ func (t *Time) UnmarshalYAML(n *yaml.Node) error {
 type MetaData struct {
 	Title     string
 	Layout    string
-	CreatedAt Time `yaml:"createdAt,omitempty"`
-	UpdatedAt Time `yaml:"updatedAt,omitempty"`
+	Data      string `yaml:",omitempty"`
+	CreatedAt Time   `yaml:"createdAt,omitempty"`
+	UpdatedAt Time   `yaml:"updatedAt,omitempty"`
 }
 
 func (m *MetaData) Encode(w io.Writer) error {
@@ -179,16 +181,18 @@ func LoadPage(path string) (*Page, error) {
 	return &p, nil
 }
 
-func Markdown(s string) string {
+func Markdown(s string) (string, error) {
 	var buf bytes.Buffer
 
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
 	)
-	md.Convert([]byte(s), &buf)
 
-	return buf.String()
+	if err := md.Convert([]byte(s), &buf); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func (p *Page) Slug() string {
@@ -199,9 +203,52 @@ func (p *Page) Slug() string {
 	return strings.ToLower(strings.TrimPrefix(strings.TrimSuffix(s, "-"), "-"))
 }
 
-func (p *Page) URL() string     { return "/" + p.Slug() }
-func (p *Page) Title() string   { return p.MetaData.Title }
-func (p *Page) Content() string { return Markdown(p.Body) }
+func (p *Page) URL() string   { return "/" + p.Slug() }
+func (p *Page) Title() string { return p.MetaData.Title }
+
+func (p *Page) Content() (string, error) {
+	if p.MetaData.Data != "" {
+		data := make(map[string]any)
+
+		f, err := os.Open(p.MetaData.Data)
+
+		if err != nil {
+			return "", err
+		}
+
+		defer f.Close()
+
+		if err := yaml.NewDecoder(f).Decode(&data); err != nil {
+			return "", err
+		}
+
+		tmpl := template.New(p.Slug())
+
+		if _, err := tmpl.Parse(p.Body); err != nil {
+			return "", err
+		}
+
+		var buf bytes.Buffer
+
+		if err := tmpl.Execute(&buf, data); err != nil {
+			return "", err
+		}
+
+		md, err := Markdown(buf.String())
+
+		if err != nil {
+			return "", err
+		}
+		return md, nil
+	}
+
+	md, err := Markdown(p.Body)
+
+	if err != nil {
+		return "", err
+	}
+	return md, nil
+}
 
 func (p *Page) Description() string {
 	if len(p.Body) > 4 {
@@ -210,9 +257,13 @@ func (p *Page) Description() string {
 		if i < 0 {
 			i = strings.Index(p.Body, "\n")
 		}
-		return Markdown(p.Body[:i])
+
+		md, _ := Markdown(p.Body[:i])
+		return md
 	}
-	return Markdown(p.Body)
+
+	md, _ := Markdown(p.Body)
+	return md
 }
 
 func (p *Page) Layout() string       { return p.MetaData.Layout }

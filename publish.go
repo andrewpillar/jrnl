@@ -133,12 +133,12 @@ func templatePage(p SitePage, data *PageData) (string, error) {
 
 type homePage struct{}
 
-func (p homePage) URL() string          { return "/" }
-func (p homePage) Title() string        { return "Home" }
-func (p homePage) Content() string      { return "" }
-func (p homePage) Description() string  { return "" }
-func (p homePage) Layout() string       { return "home" }
-func (p homePage) CreatedAt() time.Time { return time.Now() }
+func (p homePage) URL() string              { return "/" }
+func (p homePage) Title() string            { return "Home" }
+func (p homePage) Content() (string, error) { return "", nil }
+func (p homePage) Description() string      { return "" }
+func (p homePage) Layout() string           { return "home" }
+func (p homePage) CreatedAt() time.Time     { return time.Now() }
 
 func publishFeeds(cfg *Config, author *feeds.Author, items []*feeds.Item) error {
 	feed := feeds.Feed{
@@ -199,12 +199,12 @@ type feedPage struct {
 	item *gofeed.Item
 }
 
-func (p feedPage) URL() string          { return p.item.Link }
-func (p feedPage) Title() string        { return p.item.Title }
-func (p feedPage) Description() string  { return p.item.Description }
-func (p feedPage) Content() string      { return "" }
-func (p feedPage) Layout() string       { return "" }
-func (p feedPage) CreatedAt() time.Time { return *p.item.PublishedParsed }
+func (p feedPage) URL() string              { return p.item.Link }
+func (p feedPage) Title() string            { return p.item.Title }
+func (p feedPage) Description() string      { return p.item.Description }
+func (p feedPage) Content() (string, error) { return "", nil }
+func (p feedPage) Layout() string           { return "" }
+func (p feedPage) CreatedAt() time.Time     { return *p.item.PublishedParsed }
 
 func publishCmd(cmd *Command, args []string) error {
 	if err := Initialized("."); err != nil {
@@ -358,11 +358,18 @@ func publishCmd(cmd *Command, args []string) error {
 				<-sem
 			}()
 
+			content, err := p.Content()
+
+			if err != nil {
+				errs <- err
+				return
+			}
+
 			data := PageData{
 				Site:     cfg.Site,
 				Author:   cfg.Author,
 				Title:    p.Title(),
-				Content:  p.Content(),
+				Content:  content,
 				Pages:    pages,
 				Posts:    posts,
 				Blogroll: blogroll,
