@@ -149,7 +149,7 @@ func (r *sshRemote) Remove(path string) error {
 
 	path = cli.Join(r.url.Path, path)
 
-	return cli.Remove(filepath.Dir(path))
+	return cli.RemoveAll(filepath.Dir(path))
 }
 
 type fileRemote struct {
