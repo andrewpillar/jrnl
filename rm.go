@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,52 +11,6 @@ var RmCmd = &Command{
 	Usage: "rm <page|post,...>",
 	Short: "remove a page or post from the jrnl",
 	Run:   rmCmd,
-}
-
-func pruneFile() (*os.File, error) {
-	dir, err := cacheDir()
-
-	if err != nil {
-		return nil, err
-	}
-
-	path := filepath.Join(dir, "prune")
-
-	return os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(0640))
-}
-
-func PrunedPaths() ([]string, error) {
-	f, err := pruneFile()
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer f.Close()
-
-	paths := make([]string, 0)
-
-	sc := bufio.NewScanner(f)
-
-	for sc.Scan() {
-		if s := sc.Text(); s != "" {
-			paths = append(paths, sc.Text())
-		}
-	}
-
-	if err := sc.Err(); err != nil {
-		return nil, err
-	}
-	return paths, nil
-}
-
-func FlushPrunedPaths() error {
-	f, err := pruneFile()
-
-	if err != nil {
-		return err
-	}
-	return os.Remove(f.Name())
 }
 
 func loadPageOrPost(name string) (SitePage, string, error) {
@@ -95,17 +47,21 @@ func rmCmd(cmd *Command, args []string) error {
 		return err
 	}
 
-	if len(args) == 0 {
-		return ErrUsage
-	}
-
-	f, err := pruneFile()
+	cfg, err := LoadConfig()
 
 	if err != nil {
 		return err
 	}
 
-	defer f.Close()
+	if len(args) == 0 {
+		return ErrUsage
+	}
+
+	remote, err := ParseRemote(cfg.Remote)
+
+	if err != nil {
+		return err
+	}
 
 	for _, name := range args {
 		p, path, err := loadPageOrPost(name)
@@ -128,9 +84,9 @@ func rmCmd(cmd *Command, args []string) error {
 			}
 		}
 
-		remotePath := strings.TrimPrefix(sitePath, siteDir)
+		sitePath = strings.TrimPrefix(sitePath, siteDir)
 
-		if _, err := fmt.Fprintln(f, remotePath); err != nil {
+		if err := remote.Remove(sitePath); err != nil {
 			return err
 		}
 	}

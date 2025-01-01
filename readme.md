@@ -8,6 +8,7 @@ remote.
 * [Directory structure](#directory-structure)
 * [Pages and posts](#pages-and-posts)
 * [Front matter](#front-matter)
+* [Dynamic data](#dynamic-data)
 * [Layouts](#layouts)
 * [Themes](#themes)
 * [Remote](#remote)
@@ -112,6 +113,10 @@ use of the `createdAt` and `updatedAt` fields in the front-matter.
 
 Front matter is the block of YAML that sits at the top of pages and posts. This
 contains the metadata about the page or post.
+
+## Dynamic data
+
+
 
 ## Layouts
 
