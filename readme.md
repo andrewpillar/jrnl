@@ -136,6 +136,13 @@ assume the contents of `cv.yml` looks like this,
       - Manage cloud infrastructure via Terraform
       - Build reliable CI/CD pipelines for deploying infrastructure changes
       - Architect multi-region failover
+    - Name: Dev Ops
+      StartDate: 2020
+      EndDate: 2024
+      Company: CHOAM
+      Duties:
+      - Develop tool chain to manage deployment of inventory management platform
+      - Migrate deployment pipeline from on-prem to cloud
 
 this can then be populated inside a page like so,
 
