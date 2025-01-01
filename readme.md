@@ -116,7 +116,46 @@ contains the metadata about the page or post.
 
 ## Dynamic data
 
+Dynamic data can be populated into pages and posts. This is done by specifying
+a YAML file from which to pull data from in the front matter of the page or
+post,
 
+    ---
+    title: CV
+    data: cv.yml
+    layouts: page
+    ---
+
+assume the contents of `cv.yml` looks like this,
+
+    Jobs:
+    - Name: SRE
+      StartDate: 2024
+      Company: ACME
+      Duties:
+      - Manage cloud infrastructure via Terraform
+      - Build reliable CI/CD pipelines for deploying infrastructure changes
+      - Architect multi-region failover
+
+this can then be populated inside a page like so,
+
+    ---
+    title: CV
+    data: cv.yml
+    layout: page
+    ---
+    {{range .Jobs}}
+    ## {{.Role}} ({{.StartDate}} - {{if .EndDate}}{{.EndDate}}{{else}}Present{{end}})
+
+    **{{.Company}}**
+
+    {{range .Duties}}
+    * {{.}}
+    {{end}}
+    {{end}}
+
+this allows for populating structured and repetive data with ease in a page or
+a post.
 
 ## Layouts
 
