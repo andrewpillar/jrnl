@@ -152,7 +152,7 @@ this can then be populated inside a page like so,
     layout: page
     ---
     {{range .Jobs}}
-    ## {{.Role}} ({{.StartDate}} - {{if .EndDate}}{{.EndDate}}{{else}}Present{{end}})
+    ## {{.Name}} ({{.StartDate}} - {{if .EndDate}}{{.EndDate}}{{else}}Present{{end}})
 
     **{{.Company}}**
 
