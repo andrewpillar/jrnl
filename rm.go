@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,7 +76,7 @@ func rmCmd(cmd *Command, args []string) error {
 		}
 
 		if err := os.Remove(path); err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
+			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
 		}
@@ -83,7 +84,7 @@ func rmCmd(cmd *Command, args []string) error {
 		sitePath := filepath.Join(siteDir, p.URL())
 
 		if err := os.RemoveAll(sitePath); err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
+			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
 		}
@@ -91,7 +92,9 @@ func rmCmd(cmd *Command, args []string) error {
 		sitePath = strings.TrimPrefix(sitePath, siteDir)
 
 		if err := remote.Remove(sitePath); err != nil {
-			return err
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
 		}
 	}
 	return nil
