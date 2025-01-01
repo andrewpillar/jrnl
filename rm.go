@@ -63,6 +63,10 @@ func rmCmd(cmd *Command, args []string) error {
 		return err
 	}
 
+	if err := remote.Connect(); err != nil {
+		return err
+	}
+
 	for _, name := range args {
 		p, path, err := loadPageOrPost(name)
 
