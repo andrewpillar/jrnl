@@ -188,10 +188,7 @@ func Test_Jrnl(t *testing.T) {
 			cmd: []string{"flush"},
 		},
 		{
-			cmd: []string{"rm", "about"},
-		},
-		{
-			cmd:   []string{"publish"},
+			cmd:   []string{"rm", "about"},
 			check: checkPageDeletedFromRemote("about"),
 		},
 	}
