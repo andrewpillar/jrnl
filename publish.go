@@ -39,8 +39,20 @@ The -v flag will print out the site paths that have been created.`,
 
 func templateFunctions() template.FuncMap {
 	return template.FuncMap{
+		"has":     tmplFuncHas,
 		"partial": tmplFuncPartial,
 	}
+}
+
+func tmplFuncHas(arr []string, item string) bool {
+	tab := make(map[string]struct{})
+
+	for _, s := range arr {
+		tab[s] = struct{}{}
+	}
+
+	_, ok := tab[item]
+	return ok
 }
 
 func tmplFuncPartial(name string, data any) (string, error) {
@@ -138,7 +150,9 @@ func (p homePage) Title() string            { return "Home" }
 func (p homePage) Content() (string, error) { return "", nil }
 func (p homePage) Description() string      { return "" }
 func (p homePage) Layout() string           { return "home" }
+func (p homePage) Tags() []string           { return nil }
 func (p homePage) CreatedAt() time.Time     { return time.Now() }
+func (p homePage) UpdatedAt() time.Time     { return time.Now() }
 
 func publishFeeds(cfg *Config, author *feeds.Author, items []*feeds.Item) error {
 	feed := feeds.Feed{
@@ -185,12 +199,13 @@ func publishFeeds(cfg *Config, author *feeds.Author, items []*feeds.Item) error 
 type PageData struct {
 	Site      Site
 	Author    Author
-	Dynamic   bool
 	Title     string
+	Tags      []string
 	Content   string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Pages     []SitePage
+	Children  []SitePage
 	Posts     []SitePage
 	Blogroll  []SitePage
 }
@@ -204,7 +219,9 @@ func (p feedPage) Title() string            { return p.item.Title }
 func (p feedPage) Description() string      { return p.item.Description }
 func (p feedPage) Content() (string, error) { return "", nil }
 func (p feedPage) Layout() string           { return "" }
+func (p feedPage) Tags() []string           { return nil }
 func (p feedPage) CreatedAt() time.Time     { return *p.item.PublishedParsed }
+func (p feedPage) UpdatedAt() time.Time     { return *p.item.PublishedParsed }
 
 func publishCmd(cmd *Command, args []string) error {
 	if err := Initialized("."); err != nil {
@@ -227,6 +244,8 @@ func publishCmd(cmd *Command, args []string) error {
 		return err
 	}
 
+	childPages := make(map[string][]SitePage)
+
 	posts := make([]SitePage, 0)
 
 	walk := func(path string, info fs.FileInfo, err error) error {
@@ -244,7 +263,17 @@ func publishCmd(cmd *Command, args []string) error {
 			return nil
 		}
 
-		// This is a post, not a page, so treat it as such.
+		if p.MetaData.Parent != "" {
+			arr, ok := childPages[p.MetaData.Parent]
+
+			if !ok {
+				arr = make([]SitePage, 0)
+			}
+
+			arr = append(arr, p)
+			childPages[p.MetaData.Parent] = arr
+		}
+
 		if strings.HasPrefix(path, postDir) {
 			post := &Post{
 				Page: p,
@@ -365,18 +394,20 @@ func publishCmd(cmd *Command, args []string) error {
 				return
 			}
 
+			children := childPages[p.URL()]
+
 			data := PageData{
 				Site:     cfg.Site,
 				Author:   cfg.Author,
 				Title:    p.Title(),
 				Content:  content,
+				Children: children,
 				Pages:    pages,
 				Posts:    posts,
 				Blogroll: blogroll,
 			}
 
 			if post, ok := p.(*Post); ok {
-				data.Dynamic = true
 				data.CreatedAt = post.MetaData.CreatedAt.Time
 				data.UpdatedAt = post.MetaData.UpdatedAt.Time
 			}

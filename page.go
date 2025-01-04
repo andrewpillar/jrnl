@@ -33,7 +33,11 @@ type SitePage interface {
 
 	Layout() string
 
+	Tags() []string
+
 	CreatedAt() time.Time
+
+	UpdatedAt() time.Time
 }
 
 const (
@@ -78,9 +82,11 @@ func (t *Time) UnmarshalYAML(n *yaml.Node) error {
 type MetaData struct {
 	Title     string
 	Layout    string
-	Data      string `yaml:",omitempty"`
-	CreatedAt Time   `yaml:"createdAt,omitempty"`
-	UpdatedAt Time   `yaml:"updatedAt,omitempty"`
+	Parent    string   `yaml:",omitempty"`
+	Data      string   `yaml:",omitempty"`
+	Tags      []string `yaml:",omitempty"`
+	CreatedAt Time     `yaml:"createdAt,omitempty"`
+	UpdatedAt Time     `yaml:"updatedAt,omitempty"`
 }
 
 func (m *MetaData) Encode(w io.Writer) error {
@@ -156,11 +162,10 @@ type Page struct {
 	Body string
 }
 
-func NewPage(title, layout string) *Page {
+func NewPage(title string) *Page {
 	return &Page{
 		MetaData: &MetaData{
-			Title:  title,
-			Layout: layout,
+			Title: title,
 		},
 	}
 }
@@ -205,8 +210,20 @@ func (p *Page) Slug() string {
 	return strings.ToLower(strings.TrimPrefix(strings.TrimSuffix(s, "-"), "-"))
 }
 
-func (p *Page) URL() string   { return "/" + p.Slug() }
-func (p *Page) Title() string { return p.MetaData.Title }
+func (p *Page) URL() string {
+	url := "/" + p.Slug()
+
+	if p.MetaData.Parent != "" {
+		return p.MetaData.Parent + url
+	}
+	return url
+}
+
+func (p *Page) Title() string        { return p.MetaData.Title }
+func (p *Page) Layout() string       { return p.MetaData.Layout }
+func (p *Page) Tags() []string       { return p.MetaData.Tags }
+func (p *Page) CreatedAt() time.Time { return time.Time{} }
+func (p *Page) UpdatedAt() time.Time { return time.Time{} }
 
 func (p *Page) Content() (string, error) {
 	if p.MetaData.Data != "" {
@@ -267,9 +284,6 @@ func (p *Page) Description() string {
 	md, _ := Markdown(p.Body)
 	return md
 }
-
-func (p *Page) Layout() string       { return p.MetaData.Layout }
-func (p *Page) CreatedAt() time.Time { return p.MetaData.CreatedAt.Time }
 
 func (p *Page) Encode(w io.Writer) error {
 	if err := p.MetaData.Encode(w); err != nil {
@@ -339,10 +353,12 @@ func pageCmd(cmd *Command, args []string) error {
 		return err
 	}
 
-	var layout string
+	var layout, parent, templateFile string
 
 	fs := flag.NewFlagSet(cmd.Argv0, flag.ExitOnError)
-	fs.StringVar(&layout, "l", "page", "the layout of the new post")
+	fs.StringVar(&layout, "l", "page", "the layout of the new page")
+	fs.StringVar(&parent, "p", "", "the parent of the new page")
+	fs.StringVar(&templateFile, "t", "", "the template to use for the new page")
 	fs.Parse(args)
 
 	args = fs.Args()
@@ -351,7 +367,42 @@ func pageCmd(cmd *Command, args []string) error {
 		return ErrUsage
 	}
 
-	p := NewPage(args[0], layout)
+	p := NewPage(args[0])
+	p.MetaData.Layout = layout
+	p.MetaData.Parent = parent
+
+	if templateFile != "" {
+		b, err := os.ReadFile(templateFile)
+
+		if err != nil {
+			return err
+		}
+
+		tmpl := template.New(templateFile)
+
+		if _, err := tmpl.Parse(string(b)); err != nil {
+			return err
+		}
+
+		var buf bytes.Buffer
+
+		data := map[string]string{
+			"Title": p.Title(),
+			"Slug":  p.Slug(),
+		}
+
+		if err := tmpl.Execute(&buf, data); err != nil {
+			return err
+		}
+
+		body, err := p.MetaData.Decode(&buf)
+
+		if err != nil {
+			return err
+		}
+
+		p.Body = body.String()
+	}
 
 	if err := p.Touch(); err != nil {
 		return err

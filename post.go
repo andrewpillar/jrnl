@@ -21,8 +21,26 @@ type Post struct {
 	*Page
 }
 
+func NewPost(title string) Post {
+	return Post{
+		Page: NewPage(title),
+	}
+}
+
 func (p *Post) Slug() string { return p.MetaData.CreatedAt.Format("2006-01-02") + "-" + p.Page.Slug() }
-func (p *Post) URL() string  { return "/" + p.Slug() }
+
+func (p *Post) Layout() string       { return p.MetaData.Layout }
+func (p *Post) CreatedAt() time.Time { return p.MetaData.CreatedAt.Time }
+func (p *Post) UpdatedAt() time.Time { return p.MetaData.UpdatedAt.Time }
+
+func (p *Post) URL() string {
+	url := "/" + p.Slug()
+
+	if p.MetaData.Parent != "" {
+		return p.MetaData.Parent + url
+	}
+	return url
+}
 
 func (p *Post) Path() string {
 	return filepath.Join(postDir, p.Slug()) + ".md"
@@ -66,9 +84,8 @@ func postCmd(cmd *Command, args []string) error {
 		return ErrUsage
 	}
 
-	p := Post{
-		Page: NewPage(args[0], layout),
-	}
+	p := NewPost(args[0])
+	p.MetaData.Layout = layout
 
 	p.MetaData.CreatedAt.Time = time.Now()
 
