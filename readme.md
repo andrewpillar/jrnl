@@ -183,12 +183,12 @@ Parent pages are just normal pages. During publishing, they will have access to
 the `{{.Children}}` variable which is an array of the pages that parent has as
 children. This means a list page could be created like so,
 
-   ---
-   title: Programming
-   layout: parent
-   tags:
-   - category
-   ---
+    ---
+    title: Programming
+    layout: parent
+    tags:
+    - category
+    ---
 
 then the `_layouts/parent` could look something like,
 
