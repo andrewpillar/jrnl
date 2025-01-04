@@ -121,6 +121,7 @@ func checkTheme(name string) func(*testing.T, int, []string) {
 		expected := [...]string{
 			"_layouts/home",
 			"_layouts/page",
+			"_layouts/post",
 		}
 
 		for _, path := range expected {
@@ -158,11 +159,11 @@ func Test_Jrnl(t *testing.T) {
 			check: checkPage(pageDir, "about"),
 		},
 		{
-			cmd:   []string{"post", "-l", "page", "First post"},
+			cmd:   []string{"post", "-l", "post", "First post"},
 			check: checkPage(postDir, time.Now().Format("2006-01-02")+"-first-post"),
 		},
 		{
-			cmd:   []string{"post", "-l", "page", "Second post"},
+			cmd:   []string{"post", "-l", "post", "Second post"},
 			check: checkPage(postDir, time.Now().Format("2006-01-02")+"-second-post"),
 		},
 		{
