@@ -9,6 +9,8 @@ remote.
 * [Pages and posts](#pages-and-posts)
 * [Front matter](#front-matter)
 * [Dynamic data](#dynamic-data)
+* [Parent pages](#parent-pages)
+* [Tags](#tags)
 * [Layouts](#layouts)
 * [Themes](#themes)
 * [Remote](#remote)
@@ -164,6 +166,65 @@ this can then be populated inside a page like so,
 this allows for populating structured and repetive data with ease in a page or
 a post.
 
+## Parent pages
+
+Each page and post can have a parent associated with it. This is done via the
+`parent` field in the front matter. During publishing, this parent will be used
+in the final URL for the published page or post,
+
+   ---
+   title: Introduction to Go
+   parent: /programming
+   createdAt: "2006-01-02 15:04:05"
+   updatedAt: "2006-01-02 15:04:05"
+   ---
+
+Parent pages are just normal pages. During publishing, they will have access to
+the `{{.Children}}` variable which will list all of the pages that parent has
+as children. This means a list page could be created like so,
+
+   ---
+   title: Programming
+   layout: parent
+   tags:
+   - category
+   ---
+
+then the `_layouts/parent` could look something like,
+
+    <!DOCTYPE HTML>
+    <html lang="en">
+        <head>
+            <title>{{.Title}} - {{.Site.Title}}</title>
+        </head>
+        <body>
+            <h1>{{.Title}}</h1>
+            <ul>
+                {{range .Children}}
+                <li><a href="{{.URL}}">{{.Title}}</a></li>
+                {{end}}
+            </ul>
+        </body>
+    </html>
+
+Once published, the `/programming` page will be available, with a list of all
+the posts that have a parent set to `/programming`.
+
+## Tags
+
+Pages and posts can be tagged via the `tags` field in front matter. This can
+be useful if in a template a page or post should be excluded during rendering.
+For example, to produce a list of category pages,
+
+    <ul>
+        <li><strong>Categories</strong></li>
+        {{range .Pages}}
+            {{if has .Tags "category"}}
+            <li><a href="{{.URL}}">{{.Title}}</a></li>
+            {{end}}
+        {{end}}
+    </ul>
+
 ## Layouts
 
 Layouts are template files that define how a page or post will look once
@@ -178,12 +239,17 @@ the jrnl will fail.
 During templating, the following data is passed to each page,
 
     type PageData struct {
-        Site     Site
-        Author   Author
-        Title    string
-        Content  string
-        Posts    []SitePage
-        Blogroll []SitePage
+        Site      Site
+        Author    Author
+        Title     string
+        Tags      []string
+        Content   string
+        CreatedAt time.Time
+        UpdatedAt time.Time
+        Pages     []SitePage
+        Children  []SitePage
+        Posts     []SitePage
+        Blogroll  []SitePage
     }
 
 ## Themes
