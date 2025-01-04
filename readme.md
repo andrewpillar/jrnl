@@ -180,8 +180,8 @@ in the final URL for the published page or post,
    ---
 
 Parent pages are just normal pages. During publishing, they will have access to
-the `{{.Children}}` variable which will list all of the pages that parent has
-as children. This means a list page could be created like so,
+the `{{.Children}}` variable which is an array of the pages that parent has as
+children. This means a list page could be created like so,
 
    ---
    title: Programming
