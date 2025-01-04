@@ -55,7 +55,10 @@ var (
 		Long: `page will open up the editor specified via the EDITOR environment variable for
 writing the page.
 
-The -l flag can be given to specify a layout to use for the new page.`,
+The -l flag can be given to specify a layout to use for the new page.
+
+The -t flag can be given to specify a template to base the new page off of. This
+template will be given the {{.Title}} and {{.Slug}} of the new page.`,
 		Run: pageCmd,
 	}
 )
