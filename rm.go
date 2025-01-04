@@ -58,14 +58,18 @@ func rmCmd(cmd *Command, args []string) error {
 		return ErrUsage
 	}
 
-	remote, err := ParseRemote(cfg.Remote)
+	var remote Remote
 
-	if err != nil {
-		return err
-	}
+	if cfg.Remote != "" {
+		remote, err = ParseRemote(cfg.Remote)
 
-	if err := remote.Connect(); err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		if err := remote.Connect(); err != nil {
+			return err
+		}
 	}
 
 	for _, name := range args {
@@ -89,11 +93,13 @@ func rmCmd(cmd *Command, args []string) error {
 			}
 		}
 
-		sitePath = strings.TrimPrefix(sitePath, siteDir)
+		if remote != nil {
+			sitePath = strings.TrimPrefix(sitePath, siteDir)
 
-		if err := remote.Remove(sitePath); err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				return err
+			if err := remote.Remove(sitePath); err != nil {
+				if !errors.Is(err, fs.ErrNotExist) {
+					return err
+				}
 			}
 		}
 	}
