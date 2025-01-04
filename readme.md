@@ -172,12 +172,12 @@ Each page and post can have a parent associated with it. This is done via the
 `parent` field in the front matter. During publishing, this parent will be used
 in the final URL for the published page or post,
 
-   ---
-   title: Introduction to Go
-   parent: /programming
-   createdAt: "2006-01-02 15:04:05"
-   updatedAt: "2006-01-02 15:04:05"
-   ---
+    ---
+    title: Introduction to Go
+    parent: /programming
+    createdAt: "2006-01-02 15:04:05"
+    updatedAt: "2006-01-02 15:04:05"
+    ---
 
 Parent pages are just normal pages. During publishing, they will have access to
 the `{{.Children}}` variable which is an array of the pages that parent has as
