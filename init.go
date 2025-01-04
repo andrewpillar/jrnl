@@ -35,7 +35,7 @@ var (
 	InitCmd = &Command{
 		Usage: "init [directory]",
 		Short: "initialize a new jrnl",
-		Long: `init will initialize a new jrnl. If a direction is given to the comment then a
+		Long: `init will initialize a new jrnl. If a directory is given to the comment then a
 new jrnl will be initialized in that directory, otherwise the current
 directory is used.`,
 		Run: initCmd,
