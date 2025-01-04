@@ -68,8 +68,18 @@ func initCmd(cmd *Command, args []string) error {
 		return nil
 	}
 
+	if target != "." {
+		if err := os.Mkdir(target, dirMode); err != nil {
+			return err
+		}
+
+		if err := os.Chdir(target); err != nil {
+			return err
+		}
+	}
+
 	for _, dir := range jrnlDirs {
-		if err := os.MkdirAll(filepath.Join(target, dir), dirMode); err != nil {
+		if err := os.MkdirAll(dir, dirMode); err != nil {
 			return err
 		}
 	}
