@@ -72,10 +72,11 @@ func postCmd(cmd *Command, args []string) error {
 		return err
 	}
 
-	var layout string
+	var layout, parent string
 
 	fs := flag.NewFlagSet(cmd.Argv0, flag.ExitOnError)
-	fs.StringVar(&layout, "l", "page", "the layout of the new post")
+	fs.StringVar(&layout, "l", "post", "the layout of the new post")
+	fs.StringVar(&parent, "p", "", "the parent of the new post")
 	fs.Parse(args)
 
 	args = fs.Args()
@@ -86,6 +87,7 @@ func postCmd(cmd *Command, args []string) error {
 
 	p := NewPost(args[0])
 	p.MetaData.Layout = layout
+	p.MetaData.Parent = parent
 
 	p.MetaData.CreatedAt.Time = time.Now()
 
