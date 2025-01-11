@@ -40,6 +40,7 @@ The -v flag will print out the site paths that have been created.`,
 func templateFunctions() template.FuncMap {
 	return template.FuncMap{
 		"has":     tmplFuncHas,
+		"include": tmplFuncInclude,
 		"partial": tmplFuncPartial,
 	}
 }
@@ -55,8 +56,17 @@ func tmplFuncHas(arr []string, item string) bool {
 	return ok
 }
 
+func tmplFuncInclude(name string) (string, error) {
+	b, err := os.ReadFile(name)
+
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 func tmplFuncPartial(name string, data any) (string, error) {
-	b, err := os.ReadFile(filepath.Join(layoutDir, name))
+	s, err := tmplFuncInclude(filepath.Join(layoutDir, name))
 
 	if err != nil {
 		return "", err
@@ -65,7 +75,7 @@ func tmplFuncPartial(name string, data any) (string, error) {
 	tmpl := template.New(name)
 	tmpl.Funcs(templateFunctions())
 
-	if _, err := tmpl.Parse(string(b)); err != nil {
+	if _, err := tmpl.Parse(s); err != nil {
 		return "", err
 	}
 
