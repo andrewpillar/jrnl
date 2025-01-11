@@ -31,7 +31,7 @@ type SitePage interface {
 
 	Content() (string, error)
 
-	Layout() string
+	Layouts() []string
 
 	Tags() []string
 
@@ -82,9 +82,38 @@ func (t *Time) UnmarshalYAML(n *yaml.Node) error {
 	return nil
 }
 
+type Layouts []string
+
+func (l Layouts) MarshalYAML() (any, error) {
+	if len(l) == 0 {
+		return "", nil
+	}
+	if len(l) == 1 {
+		return l[0], nil
+	}
+	return l, nil
+}
+
+func (l *Layouts) UnmarshalYAML(n *yaml.Node) error {
+	switch n.Kind {
+	case yaml.SequenceNode:
+		*l = make([]string, 0, len(n.Content))
+
+		for _, n := range n.Content {
+			*l = append(*l, n.Value)
+		}
+	case yaml.ScalarNode:
+		*l = make([]string, 1, 1)
+		(*l)[0] = n.Value
+	default:
+		return errors.New("invalid node kind for layouts")
+	}
+	return nil
+}
+
 type MetaData struct {
 	Title     string
-	Layout    string
+	Layouts   Layouts
 	Parent    string   `yaml:",omitempty"`
 	Data      string   `yaml:",omitempty"`
 	Tags      []string `yaml:",omitempty"`
@@ -223,7 +252,7 @@ func (p *Page) URL() string {
 }
 
 func (p *Page) Title() string        { return p.MetaData.Title }
-func (p *Page) Layout() string       { return p.MetaData.Layout }
+func (p *Page) Layouts() []string    { return p.MetaData.Layouts }
 func (p *Page) Tags() []string       { return p.MetaData.Tags }
 func (p *Page) CreatedAt() time.Time { return time.Time{} }
 func (p *Page) UpdatedAt() time.Time { return time.Time{} }
@@ -371,7 +400,7 @@ func pageCmd(cmd *Command, args []string) error {
 	}
 
 	p := NewPage(args[0])
-	p.MetaData.Layout = layout
+	p.MetaData.Layouts = append(p.MetaData.Layouts, layout)
 	p.MetaData.Parent = parent
 
 	if templateFile != "" {

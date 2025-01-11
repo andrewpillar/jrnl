@@ -100,19 +100,21 @@ func templatePage(p SitePage, data *PageData) (string, error) {
 
 	defer f.Close()
 
-	layout := p.Layout()
-
-	b, err := os.ReadFile(filepath.Join(layoutDir, layout))
-
-	if err != nil {
-		return "", err
-	}
-
-	tmpl := template.New(filepath.Join(layoutDir, p.Layout()))
+	tmpl := template.New(p.Title())
 	tmpl.Funcs(templateFunctions())
 
-	if _, err := tmpl.Parse(string(b)); err != nil {
-		return "", err
+	for _, layout := range p.Layouts() {
+		b, err := os.ReadFile(filepath.Join(layoutDir, layout))
+
+		if err != nil {
+			return "", err
+		}
+
+		tmpl, err = tmpl.Parse(string(b))
+
+		if err != nil {
+			return "", err
+		}
 	}
 
 	m := minify.New()
@@ -159,7 +161,7 @@ func (p homePage) URL() string              { return "/" }
 func (p homePage) Title() string            { return "Home" }
 func (p homePage) Content() (string, error) { return "", nil }
 func (p homePage) Description() string      { return "" }
-func (p homePage) Layout() string           { return "home" }
+func (p homePage) Layouts() []string        { return []string{"home"} }
 func (p homePage) Tags() []string           { return nil }
 func (p homePage) CreatedAt() time.Time     { return time.Now() }
 func (p homePage) UpdatedAt() time.Time     { return time.Now() }
@@ -228,7 +230,7 @@ func (p feedPage) URL() string              { return p.item.Link }
 func (p feedPage) Title() string            { return p.item.Title }
 func (p feedPage) Description() string      { return p.item.Description }
 func (p feedPage) Content() (string, error) { return "", nil }
-func (p feedPage) Layout() string           { return "" }
+func (p feedPage) Layouts() []string        { return nil }
 func (p feedPage) Tags() []string           { return nil }
 func (p feedPage) CreatedAt() time.Time     { return *p.item.PublishedParsed }
 func (p feedPage) UpdatedAt() time.Time     { return *p.item.PublishedParsed }

@@ -29,7 +29,6 @@ func NewPost(title string) Post {
 
 func (p *Post) Slug() string { return p.MetaData.CreatedAt.Format("2006-01-02") + "-" + p.Page.Slug() }
 
-func (p *Post) Layout() string       { return p.MetaData.Layout }
 func (p *Post) CreatedAt() time.Time { return p.MetaData.CreatedAt.Time }
 func (p *Post) UpdatedAt() time.Time { return p.MetaData.UpdatedAt.Time }
 
@@ -86,7 +85,7 @@ func postCmd(cmd *Command, args []string) error {
 	}
 
 	p := NewPost(args[0])
-	p.MetaData.Layout = layout
+	p.MetaData.Layouts = append(p.MetaData.Layouts, layout)
 	p.MetaData.Parent = parent
 
 	p.MetaData.CreatedAt.Time = time.Now()
