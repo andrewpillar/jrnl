@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/gorilla/feeds"
@@ -37,55 +36,7 @@ The -v flag will print out the site paths that have been created.`,
 	Run: publishCmd,
 }
 
-func templateFunctions() template.FuncMap {
-	return template.FuncMap{
-		"has":     tmplFuncHas,
-		"include": tmplFuncInclude,
-		"partial": tmplFuncPartial,
-	}
-}
-
-func tmplFuncHas(arr []string, item string) bool {
-	tab := make(map[string]struct{})
-
-	for _, s := range arr {
-		tab[s] = struct{}{}
-	}
-
-	_, ok := tab[item]
-	return ok
-}
-
-func tmplFuncInclude(name string) (string, error) {
-	b, err := os.ReadFile(name)
-
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-func tmplFuncPartial(name string, data any) (string, error) {
-	s, err := tmplFuncInclude(filepath.Join(layoutDir, name))
-
-	if err != nil {
-		return "", err
-	}
-
-	tmpl := template.New(name)
-	tmpl.Funcs(templateFunctions())
-
-	if _, err := tmpl.Parse(s); err != nil {
-		return "", err
-	}
-
-	var buf bytes.Buffer
-
-	err = tmpl.Execute(&buf, data)
-	return buf.String(), err
-}
-
-func templatePage(p SitePage, data *PageData) (string, error) {
+func templatePage(tmpls *Templates, p SitePage, data *PageData) (string, error) {
 	sitePath := filepath.Join(siteDir, p.URL(), "index.html")
 
 	if err := os.MkdirAll(filepath.Dir(sitePath), dirMode); err != nil {
@@ -100,21 +51,10 @@ func templatePage(p SitePage, data *PageData) (string, error) {
 
 	defer f.Close()
 
-	tmpl := template.New(p.Title())
-	tmpl.Funcs(templateFunctions())
+	tmpl, err := tmpls.Load(p.Title(), p.Layouts()...)
 
-	for _, layout := range p.Layouts() {
-		b, err := os.ReadFile(filepath.Join(layoutDir, layout))
-
-		if err != nil {
-			return "", err
-		}
-
-		tmpl, err = tmpl.Parse(string(b))
-
-		if err != nil {
-			return "", err
-		}
+	if err != nil {
+		return "", err
 	}
 
 	m := minify.New()
@@ -256,6 +196,11 @@ func publishCmd(cmd *Command, args []string) error {
 		return err
 	}
 
+	if cfg.Remote == "" {
+		fmt.Println("no remote set, only publishing a draft")
+		draft = true
+	}
+
 	childPages := make(map[string][]SitePage)
 
 	posts := make([]SitePage, 0)
@@ -377,6 +322,8 @@ func publishCmd(cmd *Command, args []string) error {
 		return err
 	}
 
+	tmpls := NewTemplates(layoutDir)
+
 	for _, p := range pages {
 		sem <- struct{}{}
 		wg.Add(1)
@@ -424,7 +371,7 @@ func publishCmd(cmd *Command, args []string) error {
 				data.UpdatedAt = post.MetaData.UpdatedAt.Time
 			}
 
-			sitePath, err := templatePage(p, &data)
+			sitePath, err := templatePage(tmpls, p, &data)
 
 			if err != nil {
 				errs <- err
