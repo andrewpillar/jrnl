@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>{{.Title}} - {{.Site.Title}}</title>
+	</head>
+	<body>
+		<h1>{{.Title}}</h1>
+		<ul>
+			{{range .Children}}
+				<li><a href="{{.URL}}">{{.Title}}</a></li>
+			{{end}}
+		</ul>
+	</body>
+</html>

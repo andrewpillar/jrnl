@@ -37,6 +37,6 @@ install: build
 clean:
 	go clean -testcache
 	rm -rf $(BIN)/
-	rm -rf testdata/* testdata/.cache/*
+	rm -rf testdata/_* testdata/.cache/ testdata/remote/ testdata/jrnl.yml
 
 .PHONY = all clean fmt generate test

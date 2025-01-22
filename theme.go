@@ -177,6 +177,8 @@ func untar(r io.Reader) error {
 	return nil
 }
 
+var errNoThemeName = errors.New("no theme name")
+
 func themeSaveCmd(cmd *Command, args []string) error {
 	if err := Initialized("."); err != nil {
 		return err
@@ -195,7 +197,7 @@ func themeSaveCmd(cmd *Command, args []string) error {
 	}
 
 	if name == "" {
-		return errors.New("no theme name ")
+		return errNoThemeName
 	}
 
 	dir, err := themeDir()

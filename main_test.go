@@ -1,11 +1,8 @@
 package main
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
-	"crypto/sha256"
-	"errors"
+	"embed"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,135 +10,68 @@ import (
 	"time"
 )
 
-type commandTest struct {
-	cmd   []string
-	check func(t *testing.T, id int, args []string)
+//go:embed testdata/embed/*
+var testdataEmbed embed.FS
+
+type TestCommand struct {
+	Command *Command
+	Args    []string
+	Checks  []func(*testing.T)
 }
 
-func (t *commandTest) args() []string {
-	return append([]string{"jrnl"}, t.cmd...)
-}
+func (c *TestCommand) Test(t *testing.T) {
+	if err := c.Command.Run(c.Command, c.Args); err != nil {
+		cmdline := fmt.Sprintf("%s %s", c.Command.Argv0, c.Args)
 
-func checkDirsInitialized(t *testing.T, id int, args []string) {
-	if err := Initialized("."); err != nil {
-		t.Fatalf("tests[%d]: command %q failed: %s\n", id, args, err)
+		t.Fatalf("command %q failed\n\t%s\n", cmdline, err)
 	}
 
-	ents, err := embeds.ReadDir("embed")
+	for _, check := range c.Checks {
+		check(t)
+	}
+}
+
+func checkPathExists(path string) func(*testing.T) {
+	return func(t *testing.T) {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func writeToFile(path, embed string) error {
+	dst, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.FileMode(0600))
 
 	if err != nil {
-		t.Fatalf("tests[%d]: failed to read dir: %s\n", id, err)
+		return err
 	}
 
-	for _, ent := range ents {
-		if ent.IsDir() {
-			continue
-		}
+	defer dst.Close()
 
-		name := ent.Name()
+	src, err := testdataEmbed.Open(filepath.Join("testdata", "embed", embed))
 
-		b, err := embeds.ReadFile(filepath.Join("embed", name))
-
-		if err != nil {
-			t.Fatalf("tests[%d]: %s\n", id, err)
-		}
-
-		expected := sha256.New()
-		expected.Write(b)
-
-		b, err = os.ReadFile(filepath.Join(layoutDir, name[:len(name)-5]))
-
-		if err != nil {
-			t.Fatalf("tests[%d]: %s\n", id, err)
-		}
-
-		actual := sha256.New()
-		actual.Write(b)
-
-		if !bytes.Equal(expected.Sum(nil), actual.Sum(nil)) {
-			t.Fatalf("tests[%d]: %s does not match what is expected\n", id, name)
-		}
+	if err != nil {
+		return err
 	}
+
+	defer src.Close()
+
+	if _, err := dst.Seek(0, io.SeekEnd); err != nil {
+		return err
+	}
+
+	_, err = io.Copy(dst, src)
+	return err
 }
 
-func checkPage(dir, name string) func(*testing.T, int, []string) {
-	return func(t *testing.T, id int, args []string) {
-		_, err := LoadPage(filepath.Join(dir, name+".md"))
-
-		if err != nil {
-			t.Fatalf("tests[%d]: failed to load page: %s\n", id, err)
-		}
-	}
+func writePage(page string) error {
+	return writeToFile(filepath.Join(pageDir, page), page)
 }
 
-func checkTheme(name string) func(*testing.T, int, []string) {
-	return func(t *testing.T, id int, args []string) {
-		dir, err := themeDir()
+func writePost(post string) error {
+	slug := time.Now().Format("2006-01-02") + "-" + post
 
-		if err != nil {
-			t.Fatalf("tests[%d]: failed to get theme dir: %s\n", id, err)
-		}
-
-		f, err := os.Open(filepath.Join(dir, name) + ".tar.gz")
-
-		if err != nil {
-			t.Fatalf("tests[%d]: failed to open theme: %s\n", id, err)
-		}
-
-		defer f.Close()
-
-		gzr, err := gzip.NewReader(f)
-
-		if err != nil {
-			t.Fatalf("tests[%d]: failed to read theme: %s\n", id, err)
-		}
-
-		defer gzr.Close()
-
-		tr := tar.NewReader(gzr)
-
-		files := make(map[string]struct{})
-
-		for {
-			hdr, err := tr.Next()
-
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-
-				t.Fatalf("tests[%d]: failed to read tar entry: %s\n", id, err)
-			}
-
-			if hdr.Typeflag == tar.TypeReg {
-				files[hdr.Name] = struct{}{}
-			}
-		}
-
-		expected := [...]string{
-			"_layouts/home",
-			"_layouts/page",
-			"_layouts/post",
-		}
-
-		for _, path := range expected {
-			if _, ok := files[path]; !ok {
-				t.Fatalf("tests[%d]: could not find %q in %q\n", id, path, f.Name())
-			}
-		}
-	}
-}
-
-func checkPageDeletedFromRemote(page string) func(*testing.T, int, []string) {
-	return func(t *testing.T, id int, args []string) {
-		path := filepath.Join("remote", page, "index.html")
-
-		_, err := os.Stat(path)
-
-		if err == nil {
-			t.Fatalf("tests[%d]: expected path %q to be deleted\n", id, path)
-		}
-	}
+	return writeToFile(filepath.Join(postDir, slug), "post.md")
 }
 
 func Test_Jrnl(t *testing.T) {
@@ -149,105 +79,152 @@ func Test_Jrnl(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tests := [...]commandTest{
-		{
-			cmd:   []string{"init"},
-			check: checkDirsInitialized,
-		},
-		{
-			cmd:   []string{"page", "-l", "page", "About"},
-			check: checkPage(pageDir, "about"),
-		},
-		{
-			cmd:   []string{"post", "-l", "post", "First post"},
-			check: checkPage(postDir, time.Now().Format("2006-01-02")+"-first-post"),
-		},
-		{
-			cmd:   []string{"post", "-l", "post", "Second post"},
-			check: checkPage(postDir, time.Now().Format("2006-01-02")+"-second-post"),
-		},
-		{
-			cmd: []string{"publish", "-d", "-v"},
-		},
-		{
-			cmd: []string{"publish", "-v"},
-		},
-		{
-			cmd:   []string{"theme", "save", "default"},
-			check: checkTheme("default"),
-		},
-		{
-			cmd: []string{"theme", "ls"},
-		},
-		{
-			cmd: []string{"theme", "use", "default"},
-		},
-		{
-			cmd: []string{"theme", "rm", "default"},
-		},
-		{
-			cmd: []string{"flush"},
-		},
-		{
-			cmd:   []string{"rm", "about"},
-			check: checkPageDeletedFromRemote("about"),
-		},
-	}
-
 	os.Setenv("EDITOR", "true")
 	os.Setenv("HOME", ".")
 
-	for i, test := range tests {
-		t.Log("running command", test.args())
+	cmds := [...]TestCommand{
+		{
+			Command: InitCmd,
+		},
+		{
+			Command: &Command{
+				Argv0: "update jrnl config",
+				Run: func(cmd *Command, args []string) error {
+					cfg, err := LoadConfig()
 
-		if err := run(test.args()); err != nil {
-			t.Fatalf("tests[%d]: command %q failed: %s\n", i, test.args(), err)
-		}
+					if err != nil {
+						return err
+					}
 
-		if test.check != nil {
-			test.check(t, i, test.args())
-		}
+					cfg.Remote = "file://remote"
+					cfg.Author.Name = "Joe Bloggs"
+					cfg.Author.Email = "joe.bloggs@localhost"
+					cfg.Site.Title = "Joe's Blog"
+					cfg.Site.URL = "http://localhost:8080"
+					cfg.Site.Atom = "atom.xml"
+					cfg.Site.RSS = "rss.xml"
 
-		// jrnl init passed so load the config and update it.
-		if i == 0 {
-			cfg, err := LoadConfig()
+					return cfg.Save()
+				},
+			},
+		},
+		{
+			Command: &Command{
+				Argv0: "create assets",
+				Run: func(cmd *Command, args []string) error {
+					f, err := os.Create(filepath.Join(assetDir, "main.css"))
 
-			if err != nil {
-				t.Fatalf("tests[%d]: %s\n", i, err)
-			}
+					if err != nil {
+						return err
+					}
 
-			if err := os.MkdirAll("remote", dirMode); err != nil {
-				t.Fatalf("tests[%d]: %s\n", i, err)
-			}
+					defer f.Close()
 
-			cfg.Remote = "file://remote"
-			cfg.Author.Name = "Joe Bloggs"
-			cfg.Author.Email = "joe.bloggs@localhost"
-			cfg.Site.Title = "Joe's Blog"
-			cfg.Site.URL = "http://localhost:8080"
-			cfg.Site.Atom = "atom.xml"
-			cfg.Site.RSS = "rss.xml"
-
-			if err := cfg.Save(); err != nil {
-				t.Fatalf("tests[%d]: %s\n", i, err)
-			}
-
-			err = func() error {
-				f, err := os.Create(filepath.Join(assetDir, "main.css"))
-
-				if err != nil {
+					_, err = io.WriteString(f, "* {\n\tmargin: 0:\n}\n")
 					return err
-				}
+				},
+			},
+		},
+		{
+			Command: PageCmd,
+			Args:    []string{"-l", "page", "About"},
+		},
+		{
+			Command: &Command{
+				Argv0: "writePage",
+				Run: func(cmd *Command, args []string) error {
+					return writePage(args[0])
+				},
+			},
+			Args: []string{"about.md"},
+		},
+		{
+			Command: PostCmd,
+			Args:    []string{"-l", "post", "Hello, world"},
+		},
+		{
+			Command: &Command{
+				Argv0: "writePost",
+				Run: func(cmd *Command, args []string) error {
+					return writePost(args[0])
+				},
+			},
+			Args: []string{"hello-world.md"},
+		},
+		{
+			Command: PostCmd,
+			Args:    []string{"-l", "post", "-p", "programming", "Go 101"},
+		},
+		{
+			Command: &Command{
+				Argv0: "writePost",
+				Run: func(cmd *Command, args []string) error {
+					return writePost("go-101.md")
+				},
+			},
+		},
+		{
+			Command: PageCmd,
+			Args:    []string{"-l", "parent", "Programming"},
+		},
+		{
+			Command: ThemeSaveCmd,
+			Args:    []string{"default"},
+		},
+		{
+			Command: ThemeLsCmd,
+		},
+		{
+			Command: &Command{
+				Argv0: "os.Remove",
+				Run: func(cmd *Command, args []string) error {
+					for _, path := range args {
+						if err := os.Remove(path); err != nil {
+							return err
+						}
+					}
+					return nil
+				},
+			},
+			Args: []string{
+				filepath.Join(layoutDir, "parent"),
+				filepath.Join(assetDir, "main.css"),
+			},
+		},
+		{
+			Command: ThemeUseCmd,
+			Args:    []string{"default"},
+			Checks: []func(*testing.T){
+				checkPathExists(filepath.Join(layoutDir, "parent")),
+				checkPathExists(filepath.Join(assetDir, "main.css")),
+			},
+		},
+		{
+			Command: ThemeRmCmd,
+			Args:    []string{"default"},
+		},
+		{
+			Command: PublishCmd,
+			Args:    []string{"-d", "-v"},
+		},
+		{
+			Command: FlushCmd,
+		},
+		{
+			Command: PageCmd,
+			Args:    []string{"-l", "page", "test"},
+		},
+		{
+			Command: PublishCmd,
+			Args:    []string{"-v"},
+		},
+		{
+			Command: RmCmd,
+			Args:    []string{"test"},
+		},
+	}
 
-				defer f.Close()
-
-				_, err = io.WriteString(f, "* {\n\tmargin: 0;\n}")
-				return err
-			}()
-
-			if err != nil {
-				t.Fatalf("tests[%d]: %s\n", i, err)
-			}
-		}
+	for _, cmd := range cmds {
+		cmd.Test(t)
 	}
 }

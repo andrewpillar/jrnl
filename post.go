@@ -13,7 +13,9 @@ var PostCmd = &Command{
 	Long: `post will open up the editor specified via the EDITOR environment variable for
 writing a post.
 
-The -l flag can be given to specify a layout to use for the new page.`,
+The -l flag can be given to specify a layout to use for the new post.
+
+The -p flag can be given to specify the parent for the new post.`,
 	Run: postCmd,
 }
 
